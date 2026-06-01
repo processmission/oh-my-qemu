@@ -1,112 +1,95 @@
 ---
 name: qemu-peripheral-modeling
-description: Use when implementing, refactoring, or debugging a QEMU peripheral, accelerator, or MMIO device model. Focuses on qdev/SysBusDevice structure, register semantics, IRQ/timer/DMA behavior, qtest contracts, and QEMU's AI/DCO policy boundaries.
+description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling. Extends qemu-flow-plan and qemu-rlcr-loop; this skill only defines device-model decisions and verification expectations.
 license: GPL-2.0-or-later
 ---
 
 # QEMU Peripheral Modeling
 
-Use this skill when adding or changing a QEMU hardware block: UART/GPIO/PWM/timer/watchdog/DMA/accelerator/KPU-like engines, register banks, interrupt controllers, or any `hw/*` MMIO device.
+Use this domain skill for QEMU hardware blocks: MMIO devices, SysBus/qdev peripherals, interrupt controllers, timers, DMA engines, GPIO/PWM/UART/watchdog blocks, and accelerator-like devices.
+
+## Flow dependencies
+
+1. Start with `qemu-flow-plan` for any non-trivial work.
+2. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `build/agent/<task-slug>/`.
+3. Use `qemu-rlcr-loop` for implementation/debugging rounds.
+4. Use `qemu-build` and `qemu-qtest` for build and qtest gates.
+5. Use `qemu-model-verification` for runtime/trace/workload evidence.
+
+Do not create `.plan/`, `.humanize/`, root-level notes, or helper files inside QEMU source directories.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, test strategy, and review notes. Do not add `Signed-off-by` or any DCO-style trailer.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. Do not add DCO or review trailers.
 
-## Core rule
+## Device modeling contract
 
-A real hardware block should be a first-class device, not ad hoc board glue or a generic scratch register bank. Board code wires topology; device code owns guest-visible behavior.
+A real hardware block should be a first-class device. Board code wires topology; device code owns behavior.
 
-## Workflow
+For each device, define in the plan:
 
-### 1. Bound the hardware block
+- MMIO base(s), size(s), endianness, and accepted access widths;
+- register reset values, masks, read/write behavior, W1C bits, aliases, and reserved-bit behavior;
+- IRQ outputs and level/edge semantics;
+- timer, clock, reset, DMA, and bus dependencies;
+- migration-visible state vs local caches;
+- existing stub/unimplemented boundary;
+- reference evidence: datasheet, SDK driver, firmware trace, sibling QEMU device.
 
-Collect only the facts needed for this device:
+## QEMU object shape
 
-- MMIO base(s), window size(s), endianness, and accepted access widths.
-- Register reset values, read-only/write-only bits, write-one-clear bits, masks, aliases, and reserved behavior.
-- IRQ outputs, DMA initiator behavior, clock/reset inputs, timers, and sideband buses.
-- Existing stub boundary: which registers already exist, which reads are fake, and which guest behavior currently depends on them.
-- Reference sources: datasheet, SDK driver, guest firmware, existing QEMU sibling devices, runtime traces.
+Default shape unless nearby code uses a clearer convention:
 
-If the current implementation is a placeholder, name the placeholder precisely in the plan.
+- `SysBusDevice` or the subsystem's existing base class;
+- one owned `MemoryRegion` per register window;
+- explicit `qemu_irq` outputs;
+- reset/realize hooks in the local style;
+- `VMStateDescription` for guest-visible migratable state;
+- named properties only for real board/SoC variation.
 
-### 2. Pick the QEMU object shape
+Do not put register side effects in board files.
 
-Default to the boring QEMU pattern:
+## MMIO rules
 
-- `typedef struct FooState { SysBusDevice parent_obj; ... } FooState;`
-- `OBJECT_DECLARE_SIMPLE_TYPE()` or nearby target/subsystem convention.
-- `MemoryRegion mmio;` owned by the device.
-- `qemu_irq irq;` or an array of IRQ outputs if hardware exposes multiple lines.
-- `QEMUTimer *timer`, `Clock *clock`, DMA address-space references, or child buses only when the hardware needs them.
-- Realize/reset hooks in the same style as nearby devices.
-- `VMStateDescription` for migratable guest-visible state. Do not migrate pure caches.
-
-### 3. Implement MMIO as a strict register contract
-
-For every register, write down:
-
-- width and unsupported-width behavior;
-- reset value;
-- read behavior;
-- write behavior;
-- side effects;
-- guest-visible error behavior.
-
-Implementation rules:
-
-- Use constants for offsets, masks, shifts, reset values, and ID values.
-- Keep the hot read/write path allocation-free: no formatting, dynamic strings, heap containers, or heavyweight lookups.
+- Use constants for offsets, masks, shifts, reset values, and IDs.
+- Keep normal read/write callbacks allocation-free.
 - Mask guest writes before storing them.
-- Preserve reserved bits according to the reference; if unknown, prefer stable zero reads and ignored writes, with logging only when useful.
-- Make status/IRQ transitions explicit: update status first, then raise/lower IRQ exactly once.
-- Keep long-running work out of MMIO callbacks; use timers, bottom halves, worker state, or staged execution when needed.
+- Update status before raising/lowering IRQ.
+- Keep long-running work out of MMIO callbacks; use timers, bottom halves, workers, or staged execution.
+- Validate guest DMA addresses with QEMU address-space/DMA helpers.
 
-### 4. Wire side effects deliberately
+## qtest expectations
 
-- IRQ: expose named output(s); board connects them to PLIC/GIC/etc.; device raises/lowers from status and enable bits.
-- Timer: derive ticks from a QEMU clock/timer; reset stops timers and clears pending IRQ unless hardware says otherwise.
-- DMA: use QEMU DMA/address-space helpers; validate guest addresses; never trust guest-provided pointers.
-- Reset: reset all guest-visible registers and runtime state. Do not reset board-level wiring.
+Every material peripheral change should have narrow qtest coverage for:
 
-### 5. Keep board integration thin
+- reset values;
+- read/write masks and reserved bits;
+- unsupported access widths when guest-visible;
+- W1C/status clear behavior;
+- IRQ assert/deassert paths;
+- virtual clock behavior for timers;
+- DMA memory effects when applicable.
 
-Board/SoC code should only instantiate, set properties, map MMIO, connect IRQs/clocks/resets/buses, and expose firmware-visible nodes if the board owns FDT/ACPI.
+## Accelerator addendum
 
-If you need a board-specific quirk inside the device, make it an explicit property with a narrow name.
+For command-stream or accelerator blocks:
 
-### 6. Verify in layers
-
-Minimum gates for a new or materially changed peripheral:
-
-1. qtest for register reset/read/write/mask behavior.
-2. qtest for IRQ assertion/deassertion and reset behavior.
-3. qtest or unit-style test for timer/DMA edge cases if present.
-4. focused machine boot or firmware smoke only after qtest passes.
-5. trace-driven runtime check for accelerators or undocumented command streams.
-
-A boot log proves integration, not register correctness.
-
-## Accelerator-specific checklist
-
-- Identify command stream boundaries and command-memory ownership.
-- Decode descriptors into typed internal operations before executing them.
-- Separate frontend parsing from arithmetic/backend execution.
-- Validate event counts, skipped operations, summaries, and guest-visible output.
-- Compare SDK driver assumptions against runtime traces.
-- Record binary/image hashes when validating patched SDK or firmware images.
+- separate descriptor parsing from execution;
+- record command ranges, DMA windows, and output buffers;
+- validate skipped/unknown operation counts;
+- correlate trace milestones with guest-visible output;
+- record image hashes under `build/agent/<task-slug>/evidence.md`.
 
 ## Anti-patterns
 
-- Hiding a real device behind a generic register bank forever.
-- Implementing device behavior in board files.
-- Adding fake success paths so firmware boots while registers stay wrong.
-- Treating matching trace count as end-to-end success.
-- Adding broad abstractions before two concrete devices need them.
-- Allocating or logging on every normal MMIO access.
+- Generic scratch register banks for real devices.
+- Fake success paths that only make firmware boot.
+- Board-specific behavior hidden in MMIO callbacks.
+- Trace-count-only success claims.
+- Logging or allocation on every normal MMIO access.
 
 ## Upstream references
 
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
-- QEMU Object Model: `docs/devel/qom.rst` and `include/qom/object.h`.
-- QEMU tracing infrastructure: `docs/devel/tracing.rst`.
+- QOM and qdev conventions: QEMU `docs/devel/` and nearby `hw/*` devices.
+- Tracing: `docs/devel/tracing.rst`.

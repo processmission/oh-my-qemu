@@ -1,105 +1,105 @@
 ---
 name: qemu-model-verification
-description: Use when validating QEMU device or board models with qtest, runtime traces, firmware boot smoke tests, replay, and workload evidence. Helps separate model bugs from stale images, boot ABI issues, or guest failures.
+description: Use to prove QEMU device, board, TCG, or runtime behavior with qtest, traces, logs, replay, and boot/workload evidence. Extends qemu-flow-plan by defining evidence ladders and reporting rules.
 license: GPL-2.0-or-later
 ---
 
 # QEMU Model Verification
 
-Use this skill when a model “seems implemented” but must be proven: peripheral registers, IRQs, board boot, firmware compatibility, KPU/GNNE-like accelerators, or TCG/runtime behavior.
+Use this skill when a QEMU model, board, TCG change, or debug hypothesis must be proven rather than merely built.
+
+## Flow dependencies
+
+- Use `qemu-flow-plan` to define the behavior claim and evidence required.
+- Store every log, trace, replay file, command transcript, image hash list, and report under `build/agent/<task-slug>/`.
+- Use `qemu-build`, `qemu-qtest`, and `qemu-debug` for concrete gates.
+- Use `qemu-rlcr-loop` when verification findings drive source changes.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, and verification plans. Do not add `Signed-off-by` or any DCO-style trailer.
-
-## Principle
-
-State the exact behavior claim, then choose the narrowest evidence that can prove it.
-
-Build success, typecheck success, or a boot banner is not proof of a hardware model. They are prerequisite signals only.
+Do not produce source code intended for QEMU upstream submission. Do not add DCO or review trailers.
 
 ## Evidence ladder
 
-Use the lowest rung that proves the claim, then climb only when necessary:
+Use the lowest rung that proves the claim:
 
-1. **Unit/MMIO test**: register masks, reset values, side effects.
-2. **IRQ/timer/DMA test**: interrupt level, timer expiry, DMA memory effects.
-3. **Bus/lifecycle test**: attach, map, realize, read/write through address space, unrealize.
-4. **Board creation test**: machine instantiation and stable memory map.
-5. **Firmware boot smoke**: firmware reaches expected milestone.
-6. **Runtime trace validation**: device-specific events match expected sequence/count and no skip/error path fires.
-7. **Workload validation**: application-level output proves the guest consumed the modeled hardware correctly.
+1. **Static inspection**: source/docs establish a fact.
+2. **Build**: touched target compiles.
+3. **Unit/qtest**: register, IRQ, timer, memory, or board contract holds.
+4. **Trace/log**: the expected runtime path executes and the bad path does not.
+5. **Boot smoke**: firmware/kernel reaches a named milestone.
+6. **Workload**: guest output proves the modeled hardware was consumed correctly.
+7. **Replay/reproduction**: failure is deterministic or captured for later analysis.
 
-Do not skip directly to runtime trace or workload validation for a new register model.
+Do not claim device correctness from a boot banner alone.
 
-## qtest contract checklist
+## Required artifact discipline
 
-For each device or board change, cover the branches that can break:
+Record in `build/agent/<task-slug>/evidence.md`:
+
+- exact command line;
+- QEMU binary and build directory;
+- image paths and hashes/build IDs;
+- accelerator and machine type;
+- positive marker expected;
+- negative markers checked;
+- log/trace/replay paths;
+- what the evidence proves;
+- what remains unproven.
+
+## Failure classification
+
+Classify before changing model code:
+
+- environment/toolchain/build directory;
+- stale or wrong image;
+- boot ABI mismatch;
+- board topology mismatch;
+- device register/IRQ/timer/DMA semantics;
+- TCG frontend/backend bug;
+- guest/application bug unrelated to the model.
+
+Only topology, model-semantics, and TCG categories usually justify source changes.
+
+## Device/board verification checklist
 
 - reset state;
-- writable masks and reserved-bit behavior;
-- read-only/write-only registers;
-- unsupported access widths;
-- status clear and write-one-clear paths;
-- IRQ raise and lower;
-- timer expiration and restart;
-- DMA bounds/error behavior;
-- bus attach/map/realize/unrealize;
-- board memory-map read at key bases.
-
-## Runtime smoke workflow
-
-For firmware or application validation:
-
-1. Record exact binary/image paths.
-2. Record hashes or build IDs for every image under test.
-3. Capture UART/console, device trace, and emulator stderr/QEMU log into separate files.
-4. Use a bounded run; kill or confirm no lingering emulator/helper processes afterwards.
-5. Preserve the command line in a log or report.
-6. Check the expected positive marker and expected negative markers.
-
-Negative markers include fatal exceptions, page faults, repeated probe failures, old build timestamps after a claimed SDK rebuild, device trace skip paths, missing IRQ completion, and timeout with no UART progress.
+- read/write masks and reserved bits;
+- W1C/status clear;
+- IRQ raise/lower and interrupt-controller route;
+- virtual clock/timer behavior;
+- DMA guest-memory effect;
+- machine creation;
+- key memory-map probes;
+- reset after dirty state.
 
 ## Trace validation rules
 
-For accelerators and reverse-engineered devices:
+For accelerators or reverse-engineered paths:
 
-- Count expected events, but also inspect semantic summaries.
-- Check for skipped/unknown instructions or descriptors.
-- Verify command ranges, DMA windows, and output buffers.
-- Correlate trace milestones with UART/application milestones.
-- If trace closes but the application crashes, check image packaging and guest userspace before blaming the model.
-
-## Failure triage
-
-Classify failures before changing model code:
-
-- **Environment**: missing binary, wrong target build, missing accel/toolchain, stale build directory.
-- **Image provenance**: old firmware, wrong ROMFS, wrong kernel/initrd, stale SDK output.
-- **Boot ABI**: wrong reset vector, FDT pointer, entry address, CPU extension, or RAM size.
-- **Board topology**: MMIO base/size mismatch, IRQ source mismatch, missing clock/reset.
-- **Device semantics**: wrong register side effect, status bit, IRQ clear, timer behavior, DMA handling.
-- **Guest bug**: application crash unrelated to modeled hardware.
-
-Only topology and device-semantics failures usually justify model source changes.
+- count events and inspect semantic summaries;
+- check skipped/unknown descriptor counts;
+- verify command-memory and DMA ranges;
+- correlate trace milestones with UART or workload output;
+- verify the running image is the image you intended.
 
 ## Reporting format
 
-When reporting a gate, include:
+Use:
 
-- PASS/FAIL/INCONCLUSIVE;
-- command or test name;
-- exact artifact paths;
-- image hashes or build IDs when relevant;
-- one or two decisive log excerpts;
-- what the result proves;
-- what it does not prove.
-
-Avoid broad claims. “qtest covers reset and IRQ clear” is better than “device works”.
+```text
+PASS|FAIL|INCONCLUSIVE: <gate>
+Command: <exact command>
+Artifacts: <paths under build/agent/<task-slug>/>
+Evidence: <decisive lines or summary>
+Proves: <specific claim>
+Does not prove: <remaining gap>
+```
 
 ## Upstream references
 
-- QEMU testing docs: `docs/devel/testing/`.
-- QEMU tracing docs: `docs/devel/tracing.rst`.
-- QEMU record/replay docs: `docs/system/replay.rst`.
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
+- Testing overview: `docs/devel/testing/main.rst`.
+- qtest docs: `docs/devel/testing/qtest.rst`.
+- Tracing: `docs/devel/tracing.rst`.
+- Replay: `docs/system/replay.rst`.

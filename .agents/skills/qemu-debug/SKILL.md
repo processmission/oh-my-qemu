@@ -1,114 +1,112 @@
 ---
 name: qemu-debug
-description: Use when debugging QEMU itself or a guest running under QEMU. Covers gdbstub, QEMU logs, trace events, replay, one-insn-per-tb, device/TCG instrumentation, and bounded evidence collection.
+description: Use for debugging QEMU or guests under QEMU with gdbstub, -d logs, trace events, replay, one-insn-per-tb, and structured artifacts under build/agent/<task>.
 license: GPL-2.0-or-later
 ---
 
 # QEMU Debug
 
-Use this skill for QEMU failures involving guest boot hangs, crashes, wrong device behavior, TCG translation bugs, migration/runtime assertions, or hard-to-reproduce execution paths.
+Use this skill to reproduce, classify, and narrow QEMU failures: guest boot hangs, crashes, wrong device behavior, TCG bugs, migration/runtime assertions, or intermittent behavior.
+
+## Flow dependencies
+
+- Use `qemu-flow-plan` for non-trivial debugging.
+- Store reproducer commands, logs, traces, replay files, gdb notes, and scratch scripts under `build/agent/<task-slug>/`.
+- Use `qemu-rlcr-loop` if debugging leads to iterative source changes.
+- Use `qemu-model-verification` to state what the evidence proves.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with debugging, reproduction, analysis, and verification. Do not add `Signed-off-by` or any DCO-style trailer.
+Do not produce source code intended for QEMU upstream submission. Do not add DCO or review trailers.
 
-## First classify the debug target
+## Classify first
 
-Before choosing tools, identify what is being debugged:
+Identify the debug target:
 
-- **Guest code**: kernel, firmware, bootloader, RTOS, or user workload.
-- **QEMU device model**: MMIO, IRQ, DMA, reset, migration, timers.
-- **QEMU core/runtime**: main loop, block, chardev, memory API, QOM lifecycle.
-- **TCG frontend**: guest instruction decode/translation.
-- **TCG backend**: host code emission, constraints, register allocation, optional op support.
-- **Environment/image**: stale firmware, wrong build directory, wrong binary, wrong command line.
+- guest code;
+- QEMU device model;
+- board topology/boot ABI;
+- QEMU core runtime;
+- TCG frontend;
+- TCG backend;
+- stale image/build/environment.
 
-Do not assume a model bug until image provenance and command line are known.
+Do not assume a model bug before command line and image provenance are known.
 
 ## Guest debugging with gdbstub
 
-Use QEMU's gdbstub for guest state:
+Use:
 
-- `-s` opens TCP port 1234.
-- `-S` starts QEMU paused until GDB continues.
-- `-gdb dev` selects a different backend, e.g. `-gdb tcp::3117` or a chardev/unix socket.
-- For multi-cluster systems use GDB `target extended-remote`, `add-inferior`, `inferior N`, `attach N`, and `set schedule-multiple on`.
-- For system emulation, decide whether symbols correspond to firmware, kernel, module, or userspace. Relocated code needs relocated symbols or disabled ASLR.
+- `-s`: listen on TCP port 1234;
+- `-S`: start paused;
+- `-gdb dev`: choose another backend, such as `tcp::3117`, unix socket, chardev, or stdio.
+
+For multi-cluster machines, use GDB `target extended-remote`, `add-inferior`, `inferior N`, `attach N`, and `set schedule-multiple on`.
 
 Useful GDB checks:
 
-- `info reg`
-- disassemble at PC (`x/10i $pc`, architecture-specific aliases as needed)
-- memory at virtual address
-- gdbstub physical memory mode via `maintenance packet qqemu.PhyMemMode` and `Qqemu.PhyMemMode:1`
-- single-step mask via `maintenance packet qqemu.sstepbits`, `qqemu.sstep`, and `Qqemu.sstep=...`
+- registers;
+- disassembly at PC;
+- virtual memory;
+- gdbstub physical memory mode;
+- QEMU single-step mask when IRQ/timer stepping matters.
 
-## QEMU logging
+## QEMU logs and traces
 
-Use QEMU `-d item1,...` for built-in debug logs. Always pair it with `-D logfile` for non-trivial runs. Use `-d help` on the target binary to discover supported log items.
+Use `-d item1,...` with `-D build/agent/<task-slug>/logs/qemu.log`. Use `-d help` on the target binary to discover log items.
 
-For TCG issues, common log classes include instruction disassembly, translated ops, generated host code, execution, CPU state, and MMU activity. Scope noisy logs with `-dfilter` when a target address range is known.
+Use `-dfilter` when a target PC range is known. Use `-accel tcg,one-insn-per-tb=on` to isolate guest-instruction boundaries.
 
-Use `-accel tcg,one-insn-per-tb=on` when you need each translation block to contain one guest instruction. This is slow but useful for isolating the instruction that changes state.
+Use trace events for structured evidence:
 
-## Trace events
+- `--trace "pattern"` for quick checks;
+- `--trace events=build/agent/<task-slug>/trace-events.txt` for repeatable runs;
+- local `trace-events` files for source-side event definitions.
 
-Prefer trace events for structured evidence:
+## Replay and determinism
 
-- Use `--trace "pattern"` for quick checks.
-- Repeat `--trace` for multiple patterns.
-- Use `--trace events=/path/to/events` for reproducible runs.
-- Source trace definitions live in local `trace-events` files.
-- Generated trace headers/sources live under the build directory, commonly `build/trace/`.
+For intermittent bugs, use record/replay when applicable:
 
-For device debugging, trace MMIO read/write, IRQ changes, reset, DMA descriptors, and completion paths. Avoid permanent noisy tracepoints in hot paths unless they are narrowly useful.
+- record: `-icount shift=auto,rr=record,rrfile=build/agent/<task-slug>/replay.bin`;
+- replay: `-icount shift=auto,rr=replay,rrfile=build/agent/<task-slug>/replay.bin`.
 
-## Record/replay and determinism
+Record QEMU binary, image hashes, machine options, and replay file path.
 
-If the bug is intermittent or depends on execution timing, consider QEMU record/replay:
+## Debug ladders
 
-- record with `-icount shift=auto,rr=record,rrfile=...`;
-- replay with `-icount shift=auto,rr=replay,rrfile=...`;
-- use replay for reverse debugging where supported.
+### Device/board
 
-Record exact QEMU binary, image hashes, machine options, and replay file path. Replay evidence is only meaningful if the same inputs are used.
+1. Confirm image and command line.
+2. qtest the MMIO/IRQ path if possible.
+3. Enable targeted traces.
+4. Check reset state and interrupt-controller route.
+5. Only then interpret full boot logs.
 
-## Device-model debug ladder
+### TCG
 
-1. Confirm the exact MMIO/IRQ path with qtest or a minimized guest.
-2. Add or enable tracepoints around register side effects.
-3. Capture the guest access sequence.
-4. Verify reset state and image provenance.
-5. Check interrupt controller source number and level/edge assumptions.
-6. Only then inspect broader boot logs.
+1. Reproduce under `-accel tcg`.
+2. Use `one-insn-per-tb` for instruction boundary issues.
+3. Compare guest instruction, TCG IR, and host code logs.
+4. Check frontend feature gates and PC/TB state.
+5. Check backend constraints, optional flags, and emitted code.
 
-## TCG debug ladder
+## Debug report
 
-1. Reproduce under `-accel tcg`; disable KVM/HVF when debugging translation.
-2. Use `-accel tcg,one-insn-per-tb=on` to isolate instruction boundaries.
-3. Use TCG logs to compare guest instruction, TCG ops, and generated host code.
-4. Check `DisasContext`, feature flags, TB flags, and PC update behavior in the frontend.
-5. Check backend optional-op feature flags, constraints, and `tcg_out_op` emission.
-6. Add a focused TCG test for the guest instruction or backend op.
+Write reports under `build/agent/<task-slug>/` and include:
 
-## Reporting checklist
-
-A debug report should include:
-
-- QEMU binary path and build directory;
-- command line;
-- image paths and hashes/build IDs;
-- accelerator and machine type;
-- exact failure marker;
-- logs/traces/replay artifact paths;
-- classification of the failure;
+- command;
+- build directory and QEMU binary;
+- image hashes;
+- failure marker;
+- decisive log/trace paths;
+- classification;
 - next narrow check.
 
 ## Upstream references
 
-- GDB usage: `docs/system/gdb.rst`.
-- `-gdb`, `-s`, `-d`, `-D`, `-dfilter`: `qemu-options.hx`.
-- Tracing: `docs/devel/tracing.rst`.
-- Record/replay: `docs/system/replay.rst`.
-- TCG internals: `docs/devel/tcg.rst` and `docs/devel/tcg-ops.rst`.
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
+- GDB usage: `docs/system/gdb.rst`.
+- CLI debug options: `qemu-options.hx`.
+- Tracing: `docs/devel/tracing.rst`.
+- Replay: `docs/system/replay.rst`.
+- TCG internals: `docs/devel/tcg.rst` and `docs/devel/tcg-ops.rst`.

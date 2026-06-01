@@ -1,49 +1,40 @@
 ---
 name: qemu-build
-description: Use when configuring, reconfiguring, building, or diagnosing build failures in QEMU. Assumes the common out-of-tree build directory is `build/`, and covers config.log reuse, pyvenv/meson, ninja, debug/sanitizer builds, and reporting.
+description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build/ and keeps all agent-created logs/reports under build/agent/<task>.
 license: GPL-2.0-or-later
 ---
 
 # QEMU Build
 
-Use this skill when the task asks to build QEMU, inspect a QEMU build directory, reconfigure targets/options, or debug compiler/linker/configure failures.
+Use this operational skill when the task asks to inspect, configure, build, reconfigure, or diagnose a QEMU build.
+
+## Flow relationship
+
+- For non-trivial work, `qemu-flow-plan` owns the plan and artifact root.
+- `qemu-build` owns only build-directory decisions and build evidence.
+- Store copied logs, command transcripts, and diagnosis reports under `build/agent/<task-slug>/`.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with build setup, failure analysis, and verification. Do not add `Signed-off-by` or any DCO-style trailer.
+Do not produce source code intended for QEMU upstream submission. Do not add DCO or review trailers.
 
-## Build-directory rule
+## Build directory rule
 
-QEMU uses out-of-tree builds. Default to an existing `build/` directory under the QEMU source tree unless the user or repository clearly uses another layout.
+Default to `build/` in the QEMU source tree. Reuse it when suitable.
 
-Before creating or reconfiguring anything:
+Before creating or reconfiguring anything, inspect:
 
-1. Check whether `build/` exists.
-2. Inspect `build/config.log`; the first lines record the configure invocation.
-3. Check whether `build/build.ninja`, `build/pyvenv/bin/meson`, and target binaries already exist.
-4. Reuse `build/` when its configure options match the task.
-5. Create a separate build directory only when reuse would corrupt a meaningfully different configuration, such as sanitizer vs non-sanitizer or a target list that should remain stable.
+- `build/config.log` for the configure command;
+- `build/build.ninja` for configured state;
+- `build/pyvenv/bin/meson` for Meson commands;
+- `build/meson-logs/meson-log.txt` for configure failures;
+- `build/meson-info/intro-buildoptions.json` for options.
 
-If the repo uses `builds/<name>/`, apply the same rules to that directory. Do not guess; inspect the existing config.
+Create another directory only when needed to preserve a different configuration, such as sanitizer vs non-sanitizer.
 
-## Inspecting an existing build
+## Configure
 
-Useful files and commands from the QEMU source root:
-
-- `build/config.log`: configure command, detected tools, option failures.
-- `build/meson-info/intro-buildoptions.json`: Meson option state.
-- `build/meson-logs/meson-log.txt`: Meson configure diagnostics.
-- `build/compile_commands.json`: compiler command database.
-- `build/pyvenv/bin/meson introspect build --targets`: target list.
-- `build/pyvenv/bin/meson test -C build --list`: Meson-visible tests.
-
-Prefer inspecting these artifacts before rerunning configure. Configure can be expensive and may destroy useful failure evidence.
-
-## Configuring `build/`
-
-Only configure after confirming no suitable build exists.
-
-Common baseline:
+From the QEMU source root:
 
 ```bash
 mkdir -p build
@@ -51,7 +42,7 @@ cd build
 ../configure --target-list=<targets>
 ```
 
-Common target names:
+Common targets:
 
 - `x86_64-softmmu`
 - `aarch64-softmmu`
@@ -60,87 +51,75 @@ Common target names:
 - `x86_64-linux-user`
 - `aarch64-linux-user`
 
-Common debug options:
+Useful options:
 
-- `--enable-debug`: assertions and debug-oriented behavior.
-- `--enable-debug-info`: debug symbols.
-- `--enable-trace-backends=log`: simple log-backed tracing when trace behavior matters.
-
-Common sanitizer options:
-
+- `--enable-debug`
+- `--enable-debug-info`
+- `--enable-trace-backends=log`
 - `--enable-asan`
 - `--enable-tsan`
 - `--enable-ubsan`
 
-Use `../configure --help` for the exact option set supported by the checked-out QEMU version.
+Use `../configure --help` for the checked-out QEMU version.
 
-## Reconfiguring safely
+## Reconfigure safely
 
-If `build/` has the right general purpose but the wrong target list, reconstruct the existing configure command from `build/config.log`, change only the necessary option, and rerun configure from the build directory.
+Reconstruct the old command from `build/config.log`, then change only the needed option.
 
-Rules:
+Preserve:
 
-- Preserve debug/sanitizer/trace options unless the task explicitly changes them.
-- Preserve accelerator and dependency options unless they caused the failure.
-- Do not silently narrow the target list if existing users may rely on it.
-- Do not delete a build directory just to fix a configure error; inspect logs first.
+- target list unless the task changes it;
+- debug/sanitizer/trace options;
+- dependency/accelerator options;
+- build directory evidence until diagnosis is complete.
 
-## Building
+Do not delete `build/` to make an error disappear.
 
-From the QEMU source root:
+## Build
+
+From the source root:
 
 ```bash
 ninja -C build
 ```
 
-Or from inside `build/`:
-
-```bash
-ninja
-```
-
-Build only the narrow target when possible:
+Prefer narrow targets when possible:
 
 ```bash
 ninja -C build qemu-system-riscv64
 ninja -C build tests/qtest/<test-name>
 ```
 
-Use verbose output only for diagnosis:
+Use verbose mode only for diagnosis:
 
 ```bash
 ninja -C build -v <target>
 ```
 
-After source changes, rebuild before running tests. Do not report a test result against stale binaries.
+## Failure classification
 
-## Debugging build failures
+- Configure: missing dependency, unsupported option, Python/Meson issue, compiler mismatch.
+- Compile: API/type/include/feature guard mismatch.
+- Link: missing object in Meson, missing dependency, target-specific source not linked.
+- Generated source: QAPI, trace-events, decodetree, or Meson generator input.
+- Toolchain/host: sanitizer or compiler incompatibility.
 
-Classify failures before changing files:
+For generated-source failures, fix the generator input, not generated files in `build/`.
 
-- **Configure failure**: missing dependency, unsupported option, wrong compiler, stale submodule, Meson/Python issue.
-- **Compile failure**: syntax/type/API mismatch in touched files, missing include, wrong feature guard.
-- **Link failure**: missing object in `meson.build`, wrong library dependency, symbol visibility, target-specific object missing.
-- **Generated source failure**: QAPI, trace-events, decodetree, or Meson generator issue.
-- **Host/toolchain failure**: compiler bug, sanitizer incompatibility, unsupported host feature.
+## Report
 
-For generated-code failures, inspect the generator input first. Do not edit generated files under `build/`.
-
-## Reporting format
-
-Report builds with:
+Write/report:
 
 - PASS/FAIL/INCONCLUSIVE;
-- source tree path and build directory path;
+- source root and build dir;
 - exact command;
-- configure target list and key options;
-- decisive compiler/linker/configure excerpt if failed;
-- full log paths, especially `build/config.log` or `build/meson-logs/meson-log.txt`;
-- what the build proves and what remains untested.
+- target list and key options;
+- decisive failure excerpt;
+- full log paths under `build/` and copied notes under `build/agent/<task-slug>/`;
+- what the build proves.
 
 ## Upstream references
 
-- QEMU upstream RFC skill reference: `.agents/skills/qemu-build/SKILL.md` from the qemu-devel “AGENTS.md and associated skills” series.
-- QEMU build system docs: `docs/devel/build-system.rst` when present in the checked-out tree.
-- QEMU testing overview: `docs/devel/testing/main.rst`.
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
+- QEMU RFC `qemu-build` skill.
+- Testing overview: `docs/devel/testing/main.rst`.

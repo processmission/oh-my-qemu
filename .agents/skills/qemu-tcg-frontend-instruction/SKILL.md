@@ -1,139 +1,92 @@
 ---
 name: qemu-tcg-frontend-instruction
-description: Use when adding or analyzing a guest ISA instruction in a QEMU TCG target frontend. Covers decodetree patterns, DisasContext feature gating, trans_* functions, helper calls, PC/TB behavior, and TCG tests.
+description: Use for adding, reviewing, or debugging a guest ISA instruction in a QEMU TCG frontend. Extends qemu-flow-plan and qemu-rlcr-loop; this skill only defines frontend decode/translation decisions.
 license: GPL-2.0-or-later
 ---
 
 # QEMU TCG Frontend Instruction
 
-Use this skill when the task is to add, review, or debug a guest instruction in a QEMU target frontend such as `target/riscv`, `target/arm`, `target/loongarch`, or another TCG-translated architecture.
+Use this domain skill for guest ISA decode/translation work in `target/<arch>/`: decodetree patterns, `trans_*` functions, feature gates, helpers, PC updates, exceptions, and tests.
+
+## Flow dependencies
+
+1. Start with `qemu-flow-plan`.
+2. Put decode notes, generated decoder inspection, TCG logs, test outputs, and scratch files under `build/agent/<task-slug>/`.
+3. Use `qemu-rlcr-loop` for iterative work.
+4. Use `qemu-build` for target builds.
+5. Use `qemu-debug` for TCG logs and `one-insn-per-tb` debugging.
+6. Use `qemu-model-verification` for evidence reporting.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with instruction semantics research, decoder analysis, debugging, and test strategy. Do not add `Signed-off-by` or any DCO-style trailer.
+Do not produce source code intended for QEMU upstream submission. Do not add DCO or review trailers.
 
-## Frontend mental model
+## Frontend contract
 
-A frontend turns guest instructions into TCG IR. The typical path is:
+A frontend maps guest instructions to TCG IR while preserving architectural exceptions, feature gating, PC state, and TB termination.
 
-1. guest bytes are fetched for the current PC;
-2. a decoder identifies the instruction and extracts fields;
-3. a `trans_*` function validates feature/privilege/width constraints;
-4. the translator emits TCG ops or calls helpers;
-5. PC, exception, and TB termination behavior is set correctly;
-6. tests prove architectural behavior.
+Record in the plan:
 
-## 1. Locate the target's translator style
+- ISA extension/version and privilege requirements;
+- instruction encoding and aliases;
+- operand fields and sign/zero extension;
+- XLEN/vector/FPU state constraints;
+- expected illegal-instruction cases;
+- helper vs direct TCG-op decision;
+- tests that prove semantics and invalid encodings.
 
-Before changing anything, inspect nearby instructions in the same extension/subsystem:
-
-- `.decode` files for opcode patterns and argument sets.
-- `translate.c` for `DisasContext`, TB flags, feature helpers, PC update helpers, and decoder dispatch.
-- `insn_trans/*.c.inc` or equivalent files for `trans_*` functions.
-- `helper.h` and helper implementation files if nearby instructions use helpers.
-- target CPU feature/property definitions.
-- `tests/tcg/<target>/` for existing ISA tests.
-
-Reuse the target's existing idioms. Do not invent a parallel translator style.
-
-## 2. Add or review decoder coverage
+## Decoder rules
 
 For decodetree targets:
 
-- Add a pattern only after confirming `(insn & fixedmask) == fixedbits` is unique enough.
-- Use existing fields, formats, and argument sets when possible.
-- If a field needs transformation, use a named field function in the style of the target.
-- If several instructions share operands, use a shared argument set.
-- Check overlap groups and ordering when encodings alias.
-- Remember: a pattern calls `trans_NAME(DisasContext *ctx, arg_NAME *a)` or the target's equivalent generated signature.
+- reuse existing fields, formats, and argument sets;
+- confirm fixedmask/fixedbits uniqueness;
+- handle overlap groups intentionally;
+- use field functions for transformed immediates;
+- keep decoder ordering consistent with nearby extensions.
 
-For hand-written decoders, preserve decode order, extension checks, and illegal-instruction fallback.
+For hand decoders, preserve existing fallback and illegal-instruction behavior.
 
-## 3. Gate the instruction before emitting IR
+## `trans_*` rules
 
-A `trans_*` function should reject unsupported encodings before emitting side effects:
+Before emitting IR, gate:
 
-- ISA extension or CPU feature enabled;
-- privilege level or virtualization state;
-- XLEN/operand-width requirement;
-- immediate/register constraints;
-- vector length/state constraints if relevant;
-- illegal reserved bits;
-- alignment and memory-mode constraints where architectural.
+- CPU/ISA feature;
+- privilege/virtualization mode;
+- XLEN/operand width;
+- reserved bits and invalid immediates;
+- vector/FPU state where relevant;
+- alignment or memory-mode constraints if architectural.
 
-Follow the target convention: many frontends return `false` from `trans_*` to let the decoder raise illegal instruction; others explicitly call exception helpers.
+Use direct TCG ops for simple integer/logical/shift/select operations. Use helpers for complex state, softfloat/crypto/vector libraries, or exception-heavy semantics.
 
-## 4. Emit TCG IR with correct architectural semantics
+Helper calls must use correct side-effect flags. Do not mark a helper no-side-effects if it can raise or mutate CPU state.
 
-Prefer direct TCG ops for simple integer/logical/shift/select operations. Use helpers when the operation:
+## PC and TB rules
 
-- is complex enough to be unreadable in TCG;
-- needs shared C semantics;
-- may raise an exception after non-trivial checks;
-- touches large or non-scalar state;
-- needs softfloat, crypto, vector, or target-specific helper libraries.
+Check target conventions for:
 
-When using helpers:
+- `pc_next` advancement;
+- PC update before exceptions;
+- branch/direct-block chaining;
+- `ctx->base.is_jmp` state;
+- page-boundary behavior;
+- single-step and interrupt trigger behavior.
 
-- declare them in the target helper header;
-- use correct `TCG_CALL_*` flags only if the helper truly has those properties;
-- update PC before helper calls that may raise exceptions if target convention requires it;
-- avoid helpers for operations that are a couple of TCG ops in hot paths.
+Wrong PC state corrupts exceptions, gdbstub state, and replay/debug evidence.
 
-## 5. Handle destination and zero registers correctly
+## Verification expectations
 
-Use target helpers for reading/writing registers:
-
-- zero register writes should be discarded in the target's normal way;
-- sign/zero extension should match architectural width;
-- 32-bit forms on 64-bit targets often require explicit sign extension;
-- vector/floating registers may need NaN-boxing, element-width, or state checks.
-
-Do not directly index CPU state if the target provides frontend helpers.
-
-## 6. PC, exceptions, and TB termination
-
-Check the target's rules for:
-
-- `ctx->base.pc_next` advancement;
-- `gen_update_pc()` or equivalent before exceptions;
-- `ctx->base.is_jmp` states such as next, no-return, branch, or too-many;
-- direct block chaining eligibility;
-- single-step/interrupt-trigger behavior;
-- instructions crossing page boundaries.
-
-A wrong PC update often produces misleading guest exceptions and broken gdbstub state.
-
-## 7. Add tests at the right layer
-
-Minimum test plan for a new instruction:
-
-1. assembler/disassembler coverage if applicable;
-2. `tests/tcg/<target>/` execution test for normal semantics;
-3. edge values: zero, sign bit, carry/overflow, maximum shift, invalid immediate, reserved register if applicable;
-4. illegal-instruction test when feature disabled or encoding invalid;
-5. system-mode or privilege test if the instruction is not user-mode legal;
-6. `-accel tcg,one-insn-per-tb=on` reproduction if debugging PC/TB behavior.
-
-Do not rely only on a compiler-generated workload; it rarely exercises illegal encodings or edge cases.
-
-## Debug checklist
-
-When a new instruction misbehaves:
-
-- Does the decoder select the intended `trans_*` function?
-- Are fields sign-extended and concatenated correctly?
-- Is the feature gate returning illegal at the right time?
-- Are source/destination registers read/written through target helpers?
-- Does the generated TCG IR match the intended data width?
-- Does the helper have correct side-effect flags?
-- Is PC saved before an exception?
-- Is TB termination correct for branches, traps, and state changes?
+- Build the target translator.
+- Add/run focused `tests/tcg/<target>/` coverage when applicable.
+- Cover edge values, invalid encodings, feature-disabled behavior, and privilege errors.
+- Use `-accel tcg,one-insn-per-tb=on` when debugging instruction boundaries.
+- Store TCG logs under `build/agent/<task-slug>/logs/`.
 
 ## Upstream references
 
-- Decodetree specification: `docs/devel/decodetree.rst`.
-- TCG translator internals: `docs/devel/tcg.rst`.
-- TCG IR and helper semantics: `docs/devel/tcg-ops.rst`.
-- RISC-V translator examples: `target/riscv/translate.c`, `target/riscv/*.decode`, `target/riscv/insn_trans/`.
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
+- Decodetree: `docs/devel/decodetree.rst`.
+- TCG internals: `docs/devel/tcg.rst`.
+- TCG IR/helper semantics: `docs/devel/tcg-ops.rst`.
+- Target examples: `target/riscv/translate.c`, `target/riscv/*.decode`, `target/riscv/insn_trans/`.
