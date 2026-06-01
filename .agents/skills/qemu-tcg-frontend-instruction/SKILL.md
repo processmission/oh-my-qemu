@@ -136,3 +136,4 @@ When a new instruction misbehaves:
 - TCG translator internals: `docs/devel/tcg.rst`.
 - TCG IR and helper semantics: `docs/devel/tcg-ops.rst`.
 - RISC-V translator examples: `target/riscv/translate.c`, `target/riscv/*.decode`, `target/riscv/insn_trans/`.
+- QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.

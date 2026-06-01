@@ -111,3 +111,4 @@ A debug report should include:
 - Tracing: `docs/devel/tracing.rst`.
 - Record/replay: `docs/system/replay.rst`.
 - TCG internals: `docs/devel/tcg.rst` and `docs/devel/tcg-ops.rst`.
+- QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.

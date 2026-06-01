@@ -18,9 +18,11 @@ Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream 
 
 Available skills:
 
+- `qemu-build`: configuring, reusing `build/`, building, and diagnosing QEMU build failures.
 - `qemu-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling.
 - `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling.
 - `qemu-model-verification`: qtest, runtime trace, and firmware smoke verification for models.
+- `qemu-qtest`: writing, listing, running, and debugging QEMU qtests from a build directory.
 - `qemu-debug`: QEMU debugging workflow using gdbstub, logs, traces, replay, and bounded runs.
 - `qemu-tcg-frontend-instruction`: adding a guest instruction to a QEMU target frontend.
 - `qemu-tcg-backend-adaptation`: adapting TCG host backends for IR ops, constraints, code emission, and feature flags.

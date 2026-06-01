@@ -145,3 +145,4 @@ A backend adaptation is not proven until:
 - TCG translator/runtime internals: `docs/devel/tcg.rst`.
 - Backend structure examples: `tcg/aarch64/`, `tcg/riscv64/`, `tcg/loongarch64/`.
 - Core TCG declarations: `include/tcg/tcg.h`, `include/tcg/tcg-opc.h`, `include/tcg/tcg-op-common.h`.
+- QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
