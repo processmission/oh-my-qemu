@@ -1,37 +1,30 @@
 # oh-my-qemu
 
-QEMU-focused agent skills for planning, debugging, building, qtest validation, peripheral modeling, board modeling, and TCG frontend/backend work.
+QEMU-focused agent skills and an optional Oh My Pi plugin for hardware modeling work: register extraction, peripheral modeling, board modeling, qtest, debugging, build, and TCG frontend/backend workflows.
 
-These skills follow QEMU's agent/provenance constraints: agent-created artifacts should stay under `build/agent/<task-slug>/` in a QEMU source tree, and agents must not add DCO or review trailers on behalf of humans.
+The flow design is based on [PolyArch/humanize](https://github.com/PolyArch/humanize): plan with explicit acceptance criteria, iterate in reviewed rounds, and keep evidence attached to the work. `oh-my-qemu` adapts that idea for QEMU by putting all agent-created artifacts under:
 
-## Humanize foundation
-
-This repository's planning and review-loop design is based on [PolyArch/humanize](https://github.com/PolyArch/humanize).
-
-Humanize provides RLCR: **Ralph-Loop with Codex Review**, an iterative development pattern where implementation rounds are followed by independent AI review until acceptance criteria are satisfied.
-
-`oh-my-qemu` adapts that idea for QEMU workflows:
-
-- `qemu-flow-plan` mirrors Humanize's emphasis on explicit goals, acceptance criteria, scope boundaries, and evidence ledgers.
-- `qemu-rlcr-loop` is a simplified Humanize-style loop: work round → verification → summary → independent review → fix.
-- QEMU-specific artifacts are kept under `build/agent/<task-slug>/` instead of Humanize's default `.humanize/` tree, so QEMU source directories and git status stay clean.
-- Domain skills such as `qemu-peripheral-modeling`, `qemu-board-modeling`, and TCG skills extend the shared flow instead of duplicating planning/review mechanics.
-
-## Prerequisites
-
-- Node.js with `npx` available.
-- Network access to GitHub.
-- An agent environment supported by the Skills CLI.
-
-## Inspect available skills
-
-Before installing, list the skills published by this repository:
-
-```bash
-npx skills add https://github.com/zevorn/oh-my-qemu -l
+```text
+build/agent/<task-slug>/
 ```
 
-Expected skills:
+This avoids polluting a QEMU source tree with `.plan/`, `.humanize/`, scratch notes, logs, or temporary scripts.
+
+## QEMU policy
+
+These skills follow QEMU provenance constraints:
+
+- agents do not generate code intended for QEMU upstream submission;
+- agents do not add DCO/review trailers on behalf of humans;
+- local research, debugging, verification, and workflow guidance are allowed.
+
+## Practice demo
+
+A practice/demo branch using these ideas for K230-related QEMU modeling work:
+
+- https://github.com/zevorn/qemu/tree/chao-k230-dev
+
+## Skills
 
 ```text
 qemu-flow-plan
@@ -47,92 +40,57 @@ qemu-tcg-frontend-instruction
 qemu-tcg-backend-adaptation
 ```
 
-## Install globally for all agents
+## Install as portable skills
 
-Use this when you want every supported agent on the machine to see the QEMU skills:
+List available skills:
+
+```bash
+npx skills add https://github.com/zevorn/oh-my-qemu -l
+```
+
+Install globally for supported agents:
 
 ```bash
 npx skills add https://github.com/zevorn/oh-my-qemu -g --all
 ```
 
-## Install into the current project for all agents
-
-Run from the project directory:
+Install into the current project:
 
 ```bash
 npx skills add https://github.com/zevorn/oh-my-qemu --all
 ```
 
-## Install for one agent
-
-Example for Claude Code:
-
-```bash
-npx skills add https://github.com/zevorn/oh-my-qemu \
-  -g \
-  --agent claude-code \
-  --skill '*' \
-  -y
-```
-
-Use another agent name if your environment uses a different Skills CLI agent identifier.
-
-## Install selected skills only
-
-Example: install the shared flow skills plus peripheral modeling and qtest support:
-
-```bash
-npx skills add https://github.com/zevorn/oh-my-qemu \
-  -g \
-  --agent '*' \
-  --skill qemu-flow-plan qemu-register-extraction qemu-rlcr-loop qemu-peripheral-modeling qemu-qtest \
-  -y
-```
-
 ## Install as an Oh My Pi plugin
 
-The skill package above is the portable install path for many agents. Oh My Pi can also load this repository as a plugin, which adds OMP-only runtime helpers:
+The plugin adds OMP-only helpers:
 
-- a `qemu_init_task` tool for agents;
-- a `/qemu-init-task` slash command for users;
-- a light artifact-policy hook that redirects `.plan/`, `.humanize/`, and root-level scratch artifacts to `build/agent/<task-slug>/`;
+- `qemu_init_task` tool;
+- `/qemu-init-task` slash command;
+- artifact-policy hook that redirects root-level scratch artifacts to `build/agent/<task-slug>/`;
 - the same skills exposed through the plugin `skills/` layout.
 
-### Install from the OMP marketplace interface
-
-In Oh My Pi interactive mode:
-
-```text
-/marketplace add zevorn/oh-my-qemu
-/marketplace install oh-my-qemu@oh-my-qemu
-```
-
-CLI equivalent:
+Install from this self-hosted marketplace repo:
 
 ```bash
 omp plugin marketplace add zevorn/oh-my-qemu
 omp plugin install oh-my-qemu@oh-my-qemu
 ```
 
-### Local development link
-
-From a local clone:
+Local development link:
 
 ```bash
 omp plugin link /path/to/oh-my-qemu
 ```
 
-The plugin manifest is `package.json`; the OMP extension entry point is `src/extension.js`.
+## Use in a QEMU source tree
 
-### Use the OMP helper
-
-Inside a QEMU source tree:
+Initialize a task workspace:
 
 ```text
 /qemu-init-task k230-uart-model
 ```
 
-or let an agent call the `qemu_init_task` tool. It creates:
+This creates:
 
 ```text
 build/agent/k230-uart-model/
@@ -148,54 +106,24 @@ build/agent/k230-uart-model/
   rlcr/
 ```
 
-## Verify installation
+Recommended flow:
 
-List globally installed skills:
-
-```bash
-npx skills list -g
-```
-
-Filter by agent:
-
-```bash
-npx skills list -g --agent claude-code
-```
+1. `qemu-flow-plan` — define goal, scope, acceptance criteria, and evidence.
+2. `qemu-register-extraction` — extract registers, bitfields, cross-register dependencies, IRQ/DMA/timer behavior from drivers, datasheets, firmware filesystems, or regfiles.
+3. `qemu-peripheral-modeling` or `qemu-board-modeling` — model the hardware using the extracted contract.
+4. `qemu-rlcr-loop` — iterate with verification and independent review.
+5. `qemu-build`, `qemu-qtest`, `qemu-debug`, and `qemu-model-verification` — prove the result.
 
 ## Update
 
-Update globally installed skills:
+Portable skills:
 
 ```bash
 npx skills update -g
 ```
 
-Update project-installed skills from inside the project:
+OMP plugin:
 
 ```bash
-npx skills update -p
-```
-
-## Recommended usage flow
-
-For non-trivial QEMU work:
-
-1. Start with `qemu-flow-plan`.
-2. If modeling from external drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` to produce `register-extraction.md` with register facts and cross-register feature dependencies.
-3. Use `qemu-rlcr-loop` for iterative work and review.
-4. Use the narrow domain skill:
-   - `qemu-peripheral-modeling`
-   - `qemu-board-modeling`
-   - `qemu-tcg-frontend-instruction`
-   - `qemu-tcg-backend-adaptation`
-5. Use operational gates:
-   - `qemu-build`
-   - `qemu-qtest`
-   - `qemu-debug`
-   - `qemu-model-verification`
-
-All generated plans, logs, traces, scratch files, and reviews for QEMU source-tree work should go under:
-
-```text
-build/agent/<task-slug>/
+omp plugin upgrade oh-my-qemu@oh-my-qemu
 ```
