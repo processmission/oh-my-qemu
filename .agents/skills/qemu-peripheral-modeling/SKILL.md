@@ -31,13 +31,14 @@ For each device, define in the plan:
 
 - MMIO base(s), size(s), endianness, and accepted access widths;
 - register reset values, masks, read/write behavior, W1C bits, aliases, and reserved-bit behavior;
+- cross-register dependencies, feature flows, and register-bit combinations needed to enable or observe a function;
 - IRQ outputs and level/edge semantics;
 - timer, clock, reset, DMA, and bus dependencies;
 - migration-visible state vs local caches;
 - existing stub/unimplemented boundary;
 - reference evidence: datasheet, SDK driver, firmware trace, sibling QEMU device.
 
-When the source of truth is external to QEMU, do not begin modeling from memory or from a partial driver skim. Require a completed `qemu-register-extraction` markdown handoff with register facts, behavioral sequences, conflicts, confidence levels, and qtest candidates.
+When the source of truth is external to QEMU, do not begin modeling from memory or from a partial driver skim. Require a completed `qemu-register-extraction` markdown handoff with register facts, cross-register dependencies, behavioral sequences, conflicts, confidence levels, and qtest candidates.
 
 ## QEMU object shape
 

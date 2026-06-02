@@ -109,7 +109,7 @@ npx skills update -p
 For non-trivial QEMU work:
 
 1. Start with `qemu-flow-plan`.
-2. If modeling from external drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` to produce `register-extraction.md`.
+2. If modeling from external drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` to produce `register-extraction.md` with register facts and cross-register feature dependencies.
 3. Use `qemu-rlcr-loop` for iterative work and review.
 4. Use the narrow domain skill:
    - `qemu-peripheral-modeling`
