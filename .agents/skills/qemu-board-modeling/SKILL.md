@@ -1,6 +1,6 @@
 ---
 name: qemu-board-modeling
-description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-flow-plan and qemu-rlcr-loop; this skill only defines board-model decisions.
+description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-flow-plan and qemu-rlcr-loop; board work must add or extend qemu-qtest coverage for verification.
 license: GPL-2.0-or-later
 ---
 
@@ -14,7 +14,7 @@ Use this domain skill when changing a QEMU machine or SoC: CPU clusters, memory 
 2. Put all plans, boot logs, UART captures, FDT dumps, trace files, scratch scripts, and review notes under `build/agent/<task-slug>/`.
 3. Use `qemu-rlcr-loop` for implementation/debugging rounds.
 4. Use `qemu-build` for target binary builds.
-5. Use `qemu-qtest` for machine creation and memory-map probes.
+5. Use `qemu-qtest` to add or extend board qtest cases for machine creation, memory-map probes, and representative IRQ/device wiring.
 6. Use `qemu-debug` and `qemu-model-verification` for boot/runtime evidence.
 
 No `.plan/`, `.humanize/`, root notes, or helper files in source directories.
@@ -68,15 +68,31 @@ Use dependency order:
 
 Reuse architecture helpers before hand-rolling boot code. For example, RISC-V boards should prefer existing reset-vector and direct-kernel helpers unless the real hardware requires a custom ROM path. If firmware intentionally receives no FDT, model that intentionally instead of generating a fake one.
 
+## qtest verification requirement
+
+Board-modeling work must be verified through `qemu-qtest`, not only through boot smoke. For every new board, SoC, memory-map change, reset-vector change, or IRQ topology change:
+
+- add a new `tests/qtest/<board-or-soc>-test.c` case, or extend the closest existing board qtest;
+- register it in `tests/qtest/meson.build` under the correct architecture bucket;
+- instantiate the machine with the minimal arguments required for the board;
+- probe key RAM/ROM/MMIO/unimplemented bases from the memory-map table;
+- verify reset-visible state when qtest can observe it;
+- test one representative interrupt/device wiring path when practical;
+- run the narrow Meson qtest name from `build/`;
+- store the command, result, and log path under `build/agent/<task-slug>/`.
+
+If a board change cannot be covered by qtest, record the technical reason in the plan and use `qemu-model-verification` for the replacement evidence. A firmware boot log is supplemental evidence, not a substitute for qtest coverage.
+
 ## Verification expectations
 
 At minimum:
 
 - target binary builds;
-- qtest can instantiate the machine;
-- qtest probes key MMIO bases or unimplemented regions;
-- one representative IRQ path is tested when practical;
-- boot smoke captures UART/console under `build/agent/<task-slug>/logs/`;
+- `qemu-qtest` adds or extends a board case for the changed machine/SoC behavior;
+- the qtest can instantiate the machine with minimal arguments;
+- the qtest probes key MMIO/RAM/ROM/unimplemented bases from the memory-map table;
+- the qtest covers one representative IRQ or device wiring path when practical;
+- boot smoke captures UART/console under `build/agent/<task-slug>/logs/` when firmware compatibility is in scope;
 - image hashes and exact command lines are recorded.
 
 ## Anti-patterns

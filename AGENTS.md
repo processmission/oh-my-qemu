@@ -43,7 +43,7 @@ Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream 
 ## Domain skills
 
 - `qemu-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling.
-- `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling.
+- `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
 - `qemu-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
 - `qemu-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
 
