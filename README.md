@@ -4,6 +4,19 @@ QEMU-focused agent skills for planning, debugging, building, qtest validation, p
 
 These skills follow QEMU's agent/provenance constraints: agent-created artifacts should stay under `build/agent/<task-slug>/` in a QEMU source tree, and agents must not add DCO or review trailers on behalf of humans.
 
+## Humanize foundation
+
+This repository's planning and review-loop design is based on [PolyArch/humanize](https://github.com/PolyArch/humanize).
+
+Humanize provides RLCR: **Ralph-Loop with Codex Review**, an iterative development pattern where implementation rounds are followed by independent AI review until acceptance criteria are satisfied.
+
+`oh-my-qemu` adapts that idea for QEMU workflows:
+
+- `qemu-flow-plan` mirrors Humanize's emphasis on explicit goals, acceptance criteria, scope boundaries, and evidence ledgers.
+- `qemu-rlcr-loop` is a simplified Humanize-style loop: work round → verification → summary → independent review → fix.
+- QEMU-specific artifacts are kept under `build/agent/<task-slug>/` instead of Humanize's default `.humanize/` tree, so QEMU source directories and git status stay clean.
+- Domain skills such as `qemu-peripheral-modeling`, `qemu-board-modeling`, and TCG skills extend the shared flow instead of duplicating planning/review mechanics.
+
 ## Prerequisites
 
 - Node.js with `npx` available.
