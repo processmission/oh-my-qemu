@@ -22,6 +22,7 @@ Expected skills:
 
 ```text
 qemu-flow-plan
+qemu-register-extraction
 qemu-rlcr-loop
 qemu-build
 qemu-qtest
@@ -71,7 +72,7 @@ Example: install the shared flow skills plus peripheral modeling and qtest suppo
 npx skills add https://github.com/zevorn/oh-my-qemu \
   -g \
   --agent '*' \
-  --skill qemu-flow-plan qemu-rlcr-loop qemu-peripheral-modeling qemu-qtest \
+  --skill qemu-flow-plan qemu-register-extraction qemu-rlcr-loop qemu-peripheral-modeling qemu-qtest \
   -y
 ```
 
@@ -108,13 +109,14 @@ npx skills update -p
 For non-trivial QEMU work:
 
 1. Start with `qemu-flow-plan`.
-2. Use `qemu-rlcr-loop` for iterative work and review.
-3. Use the narrow domain skill:
+2. If modeling from external drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` to produce `register-extraction.md`.
+3. Use `qemu-rlcr-loop` for iterative work and review.
+4. Use the narrow domain skill:
    - `qemu-peripheral-modeling`
    - `qemu-board-modeling`
    - `qemu-tcg-frontend-instruction`
    - `qemu-tcg-backend-adaptation`
-4. Use operational gates:
+5. Use operational gates:
    - `qemu-build`
    - `qemu-qtest`
    - `qemu-debug`

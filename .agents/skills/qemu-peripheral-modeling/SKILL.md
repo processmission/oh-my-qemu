@@ -11,10 +11,11 @@ Use this domain skill for QEMU hardware blocks: MMIO devices, SysBus/qdev periph
 ## Flow dependencies
 
 1. Start with `qemu-flow-plan` for any non-trivial work.
-2. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `build/agent/<task-slug>/`.
-3. Use `qemu-rlcr-loop` for implementation/debugging rounds.
-4. Use `qemu-build` and `qemu-qtest` for build and qtest gates.
-5. Use `qemu-model-verification` for runtime/trace/workload evidence.
+2. If register facts come from drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` first and use its `register-extraction.md` as the source contract.
+3. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `build/agent/<task-slug>/`.
+4. Use `qemu-rlcr-loop` for implementation/debugging rounds.
+5. Use `qemu-build` and `qemu-qtest` for build and qtest gates.
+6. Use `qemu-model-verification` for runtime/trace/workload evidence.
 
 Do not create `.plan/`, `.humanize/`, root-level notes, or helper files inside QEMU source directories.
 
@@ -35,6 +36,8 @@ For each device, define in the plan:
 - migration-visible state vs local caches;
 - existing stub/unimplemented boundary;
 - reference evidence: datasheet, SDK driver, firmware trace, sibling QEMU device.
+
+When the source of truth is external to QEMU, do not begin modeling from memory or from a partial driver skim. Require a completed `qemu-register-extraction` markdown handoff with register facts, behavioral sequences, conflicts, confidence levels, and qtest candidates.
 
 ## QEMU object shape
 

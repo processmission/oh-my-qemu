@@ -31,6 +31,7 @@ Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream 
 ## Flow skills
 
 - `qemu-flow-plan`: first step for non-trivial tasks; creates the build/agent artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
+- `qemu-register-extraction`: research flow that extracts register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown for peripheral modeling.
 - `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, and final evidence.
 
 ## Operational skills
