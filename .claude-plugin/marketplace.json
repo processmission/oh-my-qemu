@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "oh-my-qemu",
+  "owner": {
+    "name": "zevorn"
+  },
+  "metadata": {
+    "description": "QEMU skills and Oh My Pi runtime helpers.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "oh-my-qemu",
+      "description": "QEMU skills and OMP helpers for modeling, debugging, build, qtest, register extraction, and TCG workflows.",
+      "source": "./",
+      "version": "0.1.0",
+      "homepage": "https://github.com/zevorn/oh-my-qemu",
+      "repository": "https://github.com/zevorn/oh-my-qemu",
+      "license": "GPL-2.0-or-later",
+      "category": "development",
+      "tags": [
+        "qemu",
+        "skills",
+        "qtest",
+        "tcg",
+        "hardware-modeling"
+      ]
+    }
+  ]
+}

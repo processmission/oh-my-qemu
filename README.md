@@ -76,6 +76,65 @@ npx skills add https://github.com/zevorn/oh-my-qemu \
   -y
 ```
 
+## Install as an Oh My Pi plugin
+
+The skill package above is the portable install path for many agents. Oh My Pi can also load this repository as a plugin, which adds OMP-only runtime helpers:
+
+- a `qemu_init_task` tool for agents;
+- a `/qemu-init-task` slash command for users;
+- a light artifact-policy hook that redirects `.plan/`, `.humanize/`, and root-level scratch artifacts to `build/agent/<task-slug>/`;
+- the same skills exposed through the plugin `skills/` layout.
+
+### Install from the OMP marketplace interface
+
+In Oh My Pi interactive mode:
+
+```text
+/marketplace add zevorn/oh-my-qemu
+/marketplace install oh-my-qemu@oh-my-qemu
+```
+
+CLI equivalent:
+
+```bash
+omp plugin marketplace add zevorn/oh-my-qemu
+omp plugin install oh-my-qemu@oh-my-qemu
+```
+
+### Local development link
+
+From a local clone:
+
+```bash
+omp plugin link /path/to/oh-my-qemu
+```
+
+The plugin manifest is `package.json`; the OMP extension entry point is `src/extension.js`.
+
+### Use the OMP helper
+
+Inside a QEMU source tree:
+
+```text
+/qemu-init-task k230-uart-model
+```
+
+or let an agent call the `qemu_init_task` tool. It creates:
+
+```text
+build/agent/k230-uart-model/
+  plan.md
+  evidence.md
+  commands.md
+  register-extraction.md
+  source-inventory.md
+  conflicts.md
+  logs/
+  reviews/
+  scratch/
+  rlcr/
+```
+
 ## Verify installation
 
 List globally installed skills:

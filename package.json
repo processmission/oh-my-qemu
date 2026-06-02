@@ -1,0 +1,29 @@
+{
+  "name": "oh-my-qemu",
+  "version": "0.1.0",
+  "description": "QEMU skills and Oh My Pi runtime helpers for modeling, debugging, build, qtest, and TCG workflows.",
+  "type": "module",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "oh-my-pi",
+    "omp-plugin",
+    "qemu",
+    "skills",
+    "qtest",
+    "tcg"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zevorn/oh-my-qemu.git"
+  },
+  "omp": {
+    "extensions": [
+      "./src/extension.js"
+    ]
+  },
+  "pi": {
+    "extensions": [
+      "./src/extension.js"
+    ]
+  }
+}

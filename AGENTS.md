@@ -28,6 +28,15 @@ Never create `.plan/`, `.humanize/`, root-level notes, temporary helper files, o
 
 Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream RFC layout used for QEMU agent skills.
 
+## Oh My Pi plugin layout
+
+This repository is also an Oh My Pi plugin:
+
+- `package.json` declares the OMP extension entry point.
+- `src/extension.js` registers `qemu_init_task`, `/qemu-init-task`, and the artifact-policy hook.
+- `skills` points to `.agents/skills` so OMP plugin discovery exposes the same skill content.
+- `.claude-plugin/marketplace.json` lets OMP install the repository through the marketplace flow.
+
 ## Flow skills
 
 - `qemu-flow-plan`: first step for non-trivial tasks; creates the build/agent artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
