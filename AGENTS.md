@@ -37,7 +37,7 @@ Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream 
 
 - `qemu-build`: configuring, reusing `build/`, building, and diagnosing QEMU build failures.
 - `qemu-qtest`: writing, listing, running, and debugging QEMU qtests from a build directory.
-- `qemu-debug`: gdbstub, QEMU logs, traces, replay, and TCG/device debugging.
+- `qemu-debug`: host-side QEMU process gdb/lldb, guest gdbstub, logs, traces, replay, and TCG/device debugging.
 - `qemu-model-verification`: evidence ladder and reporting for model/runtime behavior.
 
 ## Domain skills
