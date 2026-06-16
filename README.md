@@ -32,16 +32,24 @@ Primitive flow skills:
 - `qemu-source-provenance`: source trees, revisions, configs, toolchains, outputs, and hashes.
 - `qemu-image-layout`: image formats, partitions, offsets, writes, mutation policy, and hashes.
 - `qemu-boot-run`: reproducible QEMU boot commands, logs, timeouts, markers, and result classification.
-- `qemu-debug`: gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis.
 - `qemu-model-verification`: evidence ladder and PASS/FAIL/INCONCLUSIVE reports.
 
 Workflow skills compose the primitives:
 
+- `qemu-register-extraction`: extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences.
+- `qemu-rlcr-loop`: iterate implementation/debugging rounds with verification and review.
+- `qemu-build`: configure, build, and diagnose QEMU build directories.
+- `qemu-qtest`: design, register, run, and debug qtest coverage.
+- `qemu-debug`: use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis.
+- `qemu-peripheral-modeling`: model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices.
+- `qemu-board-modeling`: model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology.
 - `qemu-kernel-build`: build Linux kernel artifacts for QEMU boot tests.
 - `qemu-uboot-build`: build U-Boot/SPL/TPL/FIT artifacts for firmware boot tests.
 - `qemu-image-packaging`: package boot media from kernels, firmware, DTBs, rootfs, and modules.
 - `qemu-direct-linux-boot`: boot Linux directly with QEMU kernel options.
 - `qemu-firmware-linux-boot`: boot Linux through firmware or bootloader stages.
+- `qemu-tcg-frontend-instruction`: add or debug guest ISA decode and TCG translation.
+- `qemu-tcg-backend-adaptation`: adapt TCG host backend ops, constraints, emission, atomics, and vectors.
 
 ## Install as portable skills
 
