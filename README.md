@@ -10,6 +10,26 @@ build/agent/<task-slug>/
 
 This avoids polluting a QEMU source tree with `.plan/`, `.humanize/`, scratch notes, logs, or temporary scripts.
 
+## Best-Practice Quick Start
+
+Use `oh-my-qemu` from inside a QEMU source checkout. For example:
+
+```bash
+git clone https://github.com/processmission/qemu.git
+cd qemu
+codex
+```
+
+After installing `oh-my-qemu` with one of the methods below, start a Codex goal
+with a concrete hardware target and workload:
+
+```text
+/goal Help me model the xxx hardware model in QEMU. Proactively collect relevant datasheets, technical blogs, and driver source code. Follow the oh-my-qemu workflow end to end, including source provenance, register extraction, peripheral or board modeling, qtest/model verification, build, boot/run evidence, and RST documentation where appropriate. Continue until the xxx workload can run under QEMU, such as a bare-metal program, firmware payload, RTOS image, or Linux boot.
+```
+
+Replace `xxx` with the specific SoC, board, peripheral, ISA feature, or program
+you want to model and run.
+
 ## QEMU policy
 
 These skills follow QEMU provenance constraints:
