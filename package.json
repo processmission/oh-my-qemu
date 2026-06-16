@@ -1,20 +1,28 @@
 {
   "name": "oh-my-qemu",
-  "version": "0.1.0",
-  "description": "QEMU skills and Oh My Pi runtime helpers for modeling, debugging, build, qtest, and TCG workflows.",
+  "version": "0.2.0",
+  "description": "QEMU skills and Oh My Pi / Claude Code runtime helpers for modeling, source builds, image packaging, boot testing, debugging, qtest, and TCG workflows.",
   "type": "module",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
+  "scripts": {
+    "codex:skills:validate": "node scripts/validate-codex-skills.mjs",
+    "codex:skills:register": "node scripts/register-codex-skills.mjs",
+    "codex:skills:register:dry-run": "node scripts/register-codex-skills.mjs --dry-run"
+  },
   "keywords": [
     "oh-my-pi",
     "omp-plugin",
+    "claude-code-plugin",
     "qemu",
     "skills",
+    "boot",
+    "firmware",
     "qtest",
     "tcg"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/zevorn/oh-my-qemu.git"
+    "url": "https://github.com/processmission/oh-my-qemu.git"
   },
   "omp": {
     "extensions": [
