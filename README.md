@@ -136,7 +136,7 @@ Add this repo as a marketplace and install:
 
 ```bash
 claude plugin marketplace add processmission/oh-my-qemu
-claude plugin install processmission@oh-my-qemu
+claude plugin install oh-my-qemu@processmission
 ```
 
 Install into the current project only (committed for the team) with `--scope project`, or keep it local with `--scope local`.
@@ -145,7 +145,7 @@ Local development against a checkout:
 
 ```bash
 claude plugin marketplace add /path/to/oh-my-qemu
-claude plugin install processmission@oh-my-qemu
+claude plugin install oh-my-qemu@processmission
 ```
 
 Or load the directory directly without a marketplace (good for iterating):
@@ -158,7 +158,7 @@ Verify the plugin and its skills are loaded:
 
 ```bash
 claude plugin list
-claude plugin details processmission@oh-my-qemu
+claude plugin details oh-my-qemu@processmission
 ```
 
 Installed skills are namespaced as `oh-my-qemu:<skill>` (for example `oh-my-qemu:qemu-flow-plan`) and are auto-discovered like any other skill. The `skills/` directory is a symlink to `.agents/skills`, so the same SKILL.md content backs the Claude Code plugin, the OMP plugin, and the portable `npx skills` install.
@@ -254,7 +254,7 @@ omp plugin upgrade oh-my-qemu@processmission
 Claude Code plugin:
 
 ```bash
-claude plugin install processmission@oh-my-qemu
+claude plugin install oh-my-qemu@processmission
 ```
 
 Re-add the marketplace to pick up new commits, or manage versions through the interactive `/plugin` menu.
