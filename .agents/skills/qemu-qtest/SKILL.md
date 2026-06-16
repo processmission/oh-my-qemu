@@ -1,7 +1,6 @@
 ---
 name: qemu-qtest
 description: Use for QEMU qtest design, registration, execution, and debugging. Extends qemu-flow-plan; qtest evidence and logs stay under build/agent/<task>.
-license: GPL-2.0-or-later
 ---
 
 # QEMU qtest

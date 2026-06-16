@@ -1,7 +1,6 @@
 ---
 name: qemu-peripheral-modeling
 description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling. Extends qemu-flow-plan and qemu-rlcr-loop; register-bank modeling must use QEMU's registerinfo framework and qtest verification.
-license: GPL-2.0-or-later
 ---
 
 # QEMU Peripheral Modeling

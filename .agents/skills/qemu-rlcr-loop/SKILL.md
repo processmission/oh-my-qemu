@@ -1,8 +1,6 @@
 ---
 name: qemu-rlcr-loop
 description: Use for non-trivial QEMU implementation or debugging work after qemu-flow-plan. Provides a simplified RLCR loop for one round of work, verification, summary, independent review, and fixes until acceptance criteria pass.
-type: flow
-license: GPL-2.0-or-later
 ---
 
 # QEMU RLCR Loop

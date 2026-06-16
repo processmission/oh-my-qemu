@@ -1,8 +1,6 @@
 ---
 name: qemu-flow-plan
 description: Use as the first step for any non-trivial QEMU task. Produces a small implementation/debugging plan under build/agent/<task>/ with immutable acceptance criteria, scope boundaries, artifact policy, and verification gates.
-type: flow
-license: GPL-2.0-or-later
 ---
 
 # QEMU Flow Plan

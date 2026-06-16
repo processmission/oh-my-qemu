@@ -1,7 +1,6 @@
 ---
 name: qemu-debug
 description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, -d logs, trace events, replay, one-insn-per-tb, and structured artifacts under build/agent/<task>.
-license: GPL-2.0-or-later
 ---
 
 # QEMU Debug

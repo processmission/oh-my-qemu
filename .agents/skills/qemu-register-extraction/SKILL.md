@@ -1,8 +1,6 @@
 ---
 name: qemu-register-extraction
 description: Use as a research flow before qemu-peripheral-modeling to extract register maps, bitfields, cross-register dependencies, side effects, IRQs, DMA behavior, clocks, resets, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown.
-type: flow
-license: GPL-2.0-or-later
 ---
 
 # QEMU Register Extraction

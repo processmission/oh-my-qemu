@@ -1,7 +1,6 @@
 ---
 name: qemu-build
 description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build/ and keeps all agent-created logs/reports under build/agent/<task>.
-license: GPL-2.0-or-later
 ---
 
 # QEMU Build

@@ -1,7 +1,6 @@
 ---
 name: qemu-model-verification
 description: Use to prove QEMU device, board, TCG, or runtime behavior with qtest, traces, logs, replay, and boot/workload evidence. Extends qemu-flow-plan by defining evidence ladders and reporting rules.
-license: GPL-2.0-or-later
 ---
 
 # QEMU Model Verification

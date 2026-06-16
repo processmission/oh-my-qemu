@@ -1,7 +1,6 @@
 ---
 name: qemu-board-modeling
 description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-flow-plan and qemu-rlcr-loop; board work must add or extend qemu-qtest coverage for verification.
-license: GPL-2.0-or-later
 ---
 
 # QEMU Board and Machine Modeling

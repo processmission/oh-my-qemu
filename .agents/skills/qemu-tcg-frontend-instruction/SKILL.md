@@ -1,7 +1,6 @@
 ---
 name: qemu-tcg-frontend-instruction
 description: Use for adding, reviewing, or debugging a guest ISA instruction in a QEMU TCG frontend. Extends qemu-flow-plan and qemu-rlcr-loop; this skill only defines frontend decode/translation decisions.
-license: GPL-2.0-or-later
 ---
 
 # QEMU TCG Frontend Instruction
