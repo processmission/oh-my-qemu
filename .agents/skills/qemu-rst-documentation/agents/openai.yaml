@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU RST Documentation"
+  short_description: "Write QEMU RST docs and board pages."
+  default_prompt: "Use $qemu-rst-documentation to write QEMU RST documentation for this board or machine."

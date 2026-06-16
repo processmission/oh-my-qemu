@@ -69,6 +69,7 @@ This repository is also a Claude Code plugin:
 
 - `qemu-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling, using the checked-out QEMU registerinfo framework for guest-visible register banks.
 - `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
+- `qemu-rst-documentation`: QEMU reStructuredText documentation workflow for board, machine, system, device, and developer docs, including toctree/index updates and docs build validation.
 - `qemu-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
 - `qemu-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
 

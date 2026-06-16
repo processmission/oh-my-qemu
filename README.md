@@ -43,6 +43,7 @@ Workflow skills compose the primitives:
 - `qemu-debug`: use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis.
 - `qemu-peripheral-modeling`: model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices.
 - `qemu-board-modeling`: model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology.
+- `qemu-rst-documentation`: write QEMU RST docs, board pages, boot examples, and Sphinx index updates.
 - `qemu-kernel-build`: build Linux kernel artifacts for QEMU boot tests.
 - `qemu-uboot-build`: build U-Boot/SPL/TPL/FIT artifacts for firmware boot tests.
 - `qemu-image-packaging`: package boot media from kernels, firmware, DTBs, rootfs, and modules.

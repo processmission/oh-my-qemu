@@ -101,6 +101,7 @@ After the plan is stable, choose the narrow domain skill:
 - `qemu-register-extraction`
 - `qemu-peripheral-modeling`
 - `qemu-board-modeling`
+- `qemu-rst-documentation`
 - `qemu-tcg-frontend-instruction`
 - `qemu-tcg-backend-adaptation`
 - `qemu-qtest`
