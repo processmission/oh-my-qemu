@@ -37,9 +37,24 @@ This repository is also an Oh My Pi plugin:
 - `skills` points to `.agents/skills` so OMP plugin discovery exposes the same skill content.
 - `.claude-plugin/marketplace.json` lets OMP install the repository through the marketplace flow.
 
+## Claude Code plugin layout
+
+This repository is also a Claude Code plugin:
+
+- `.claude-plugin/plugin.json` is the plugin manifest (name, version, hooks reference).
+- `.claude-plugin/marketplace.json` lists the plugin with `source: "./"`, so the marketplace and the plugin live in one repo.
+- `commands/qemu-init-task.md` provides the `/qemu-init-task` slash command.
+- `hooks/hooks.json` wires a `PreToolUse` hook to `scripts/artifact-policy.mjs`, mirroring the OMP artifact policy.
+- `scripts/init-task.mjs` backs `/qemu-init-task`; `scripts/artifact-policy.mjs` backs the hook.
+- `src/lib.mjs` holds the shared workspace-init and artifact-policy logic used by both `src/extension.js` (OMP) and the Claude Code scripts, so behavior is identical across runtimes.
+- `skills` points to `.agents/skills`, so the same SKILL.md content is exposed to Claude Code, OMP, and the portable `npx skills` install.
+
 ## Flow skills
 
 - `qemu-flow-plan`: first step for non-trivial tasks; creates the build/agent artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
+- `qemu-source-provenance`: flow primitive for source roots, revisions, configs, toolchains, produced artifacts, and hashes.
+- `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
+- `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
 - `qemu-register-extraction`: research flow that extracts register maps, bitfields, cross-register dependencies, side effects, IRQ/DMA behavior, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown for peripheral modeling.
 - `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, and final evidence.
 
@@ -56,6 +71,22 @@ This repository is also an Oh My Pi plugin:
 - `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
 - `qemu-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
 - `qemu-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
+
+## Boot and build workflow skills
+
+- `qemu-kernel-build`: composes flow plan and source provenance to build Linux kernel artifacts for QEMU boot testing.
+- `qemu-uboot-build`: composes flow plan and source provenance to build U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts.
+- `qemu-image-packaging`: composes source provenance and image layout to package boot media.
+- `qemu-direct-linux-boot`: composes source provenance, boot run, and model verification for direct Linux boot commands.
+- `qemu-firmware-linux-boot`: composes source provenance, image layout, boot run, debug, and verification for firmware-to-Linux paths.
+
+## Codex skill compatibility
+
+Codex skills require `SKILL.md` frontmatter with only `name` and `description`. Keep license, ownership, category, and plugin metadata in repository-level files rather than skill frontmatter. Validate with:
+
+```bash
+npm run codex:skills:validate
+```
 
 ## Upstream references
 
