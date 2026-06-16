@@ -20,33 +20,11 @@ These skills follow QEMU provenance constraints:
 
 ## Practice demo
 
-A practice/demo branch using these ideas for K230-related QEMU modeling work:
+Practice/demo branch using these ideas for downstream QEMU modeling work:
 
-- https://github.com/zevorn/qemu/tree/chao-k230-dev
+- RK3588/RK3588S Rockchip machines and shared IP models: https://github.com/processmission/qemu/tree/rk3588-board
 
 ## Skills
-
-```text
-qemu-flow-plan
-qemu-source-provenance
-qemu-image-layout
-qemu-boot-run
-qemu-register-extraction
-qemu-rlcr-loop
-qemu-build
-qemu-qtest
-qemu-debug
-qemu-model-verification
-qemu-peripheral-modeling
-qemu-board-modeling
-qemu-kernel-build
-qemu-uboot-build
-qemu-image-packaging
-qemu-direct-linux-boot
-qemu-firmware-linux-boot
-qemu-tcg-frontend-instruction
-qemu-tcg-backend-adaptation
-```
 
 Primitive flow skills:
 
@@ -132,7 +110,7 @@ Install from this self-hosted marketplace repo:
 
 ```bash
 omp plugin marketplace add processmission/oh-my-qemu
-omp plugin install processmission@oh-my-qemu
+omp plugin install oh-my-qemu@processmission
 ```
 
 Local development link:
@@ -235,7 +213,7 @@ npx skills update -g
 OMP plugin:
 
 ```bash
-omp plugin upgrade processmission@oh-my-qemu
+omp plugin upgrade oh-my-qemu@processmission
 ```
 
 Claude Code plugin:
