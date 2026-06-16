@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "oh-my-qemu",
+  "name": "processmission",
   "owner": {
     "name": "Process Mission"
   },
