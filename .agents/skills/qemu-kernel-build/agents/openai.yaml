@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Kernel Build"
+  short_description: "Build Linux kernels for QEMU boot testing."
+  default_prompt: "Use $qemu-kernel-build to build this Linux kernel and record the artifacts for QEMU boot testing."

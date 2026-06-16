@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Firmware Linux Boot"
+  short_description: "Boot Linux through firmware stages in QEMU."
+  default_prompt: "Use $qemu-firmware-linux-boot to run Linux through the firmware boot path in QEMU."

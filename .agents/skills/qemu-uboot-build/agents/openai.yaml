@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU U-Boot Build"
+  short_description: "Build U-Boot firmware artifacts for QEMU."
+  default_prompt: "Use $qemu-uboot-build to build U-Boot artifacts and record their provenance for QEMU firmware boot."
