@@ -7,6 +7,8 @@ description: Use to prove QEMU device, board, TCG, or runtime behavior with qtes
 
 Use this skill when a QEMU model, board, TCG change, or debug hypothesis must be proven rather than merely built.
 
+As a flow primitive, use this skill to turn the result of a build, image package, boot run, trace, or debugger session into a clear PASS, FAIL, or INCONCLUSIVE claim.
+
 ## Flow dependencies
 
 - Use `qemu-flow-plan` to define the behavior claim and evidence required.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Image Layout"
+  short_description: "Describe and verify QEMU boot image layouts."
+  default_prompt: "Use $qemu-image-layout to document this QEMU boot image layout before running it."

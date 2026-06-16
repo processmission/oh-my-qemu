@@ -1,6 +1,6 @@
 ---
 name: qemu-build
-description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build/ and keeps all agent-created logs/reports under build/agent/<task>.
+description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build and keeps agent-created logs and reports under a build/agent task workspace.
 ---
 
 # QEMU Build

@@ -1,11 +1,13 @@
 ---
 name: qemu-flow-plan
-description: Use as the first step for any non-trivial QEMU task. Produces a small implementation/debugging plan under build/agent/<task>/ with immutable acceptance criteria, scope boundaries, artifact policy, and verification gates.
+description: Use as the first step for any non-trivial QEMU task. Produces a small implementation or debugging plan under a build/agent task workspace with acceptance criteria, scope boundaries, artifact policy, and verification gates.
 ---
 
 # QEMU Flow Plan
 
-Use this foundational flow before any non-trivial QEMU modeling, TCG, qtest, debug, or build task. Domain skills extend this flow; they should not duplicate planning mechanics.
+Use this foundational flow before any non-trivial QEMU modeling, TCG, qtest, debug, build, image packaging, or boot task. Domain and workflow skills extend this flow; they should not duplicate planning mechanics.
+
+For reusable primitive composition rules, read `references/flow-primitives.md` when a task combines source builds, image packaging, boot runs, verification, or debug windows.
 
 ## Hard policy boundary
 
@@ -34,6 +36,9 @@ build/agent/<task-slug>/
   plan.md
   evidence.md
   commands.md
+  source-provenance.md
+  image-layout.md
+  boot-run.md
   logs/
   reviews/
   scratch/

@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Boot Run"
+  short_description: "Build and run reproducible QEMU boot commands."
+  default_prompt: "Use $qemu-boot-run to construct and run a logged QEMU boot command with success markers."

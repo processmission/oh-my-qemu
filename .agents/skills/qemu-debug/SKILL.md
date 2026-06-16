@@ -1,11 +1,13 @@
 ---
 name: qemu-debug
-description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, -d logs, trace events, replay, one-insn-per-tb, and structured artifacts under build/agent/<task>.
+description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, QEMU log flags, trace events, replay, one-insn-per-tb, and structured build/agent artifacts.
 ---
 
 # QEMU Debug
 
 Use this skill to reproduce, classify, and narrow QEMU failures: QEMU process crashes/assertions, guest boot hangs, wrong device behavior, TCG bugs, migration/runtime assertions, or intermittent behavior.
+
+As a flow primitive, use this skill from boot workflows after `qemu-boot-run` has captured the exact command, failure marker, and log path.
 
 ## Flow dependencies
 
