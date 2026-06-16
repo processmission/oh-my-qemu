@@ -22,7 +22,7 @@ These skills follow QEMU provenance constraints:
 
 Practice/demo branch using these ideas for downstream QEMU modeling work:
 
-- RK3588/RK3588S Rockchip machines and shared IP models: https://github.com/processmission/qemu/tree/rk3588-board
+- RK3588/RK3588S Rockchip machines and shared IP models: https://github.com/processmission/qemu/tree/devel
 
 ## Skills
 
