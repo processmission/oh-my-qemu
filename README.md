@@ -60,16 +60,17 @@ List available skills:
 npx skills add https://github.com/processmission/oh-my-qemu -l
 ```
 
-Install globally for supported agents:
+From a local checkout, install globally for supported agents:
 
 ```bash
-npx skills add https://github.com/processmission/oh-my-qemu -g --all
+npm run portable:skills:install-global
 ```
 
-Current `npx skills` versions also try PromptScript when `--all` is used.
-PromptScript has no global skill path, so the command may report
-`PromptScript does not support global skill installation` after installing the
-other global agent targets. Verify the completed installs with:
+This wraps `npx skills add` with an explicit list of agents that support global
+skill paths. It intentionally excludes PromptScript because PromptScript is
+project-only in current `skills` CLI releases. The script also refreshes Codex
+links under `${CODEX_HOME:-$HOME/.codex}/skills` from this checkout. Verify the
+completed installs with:
 
 ```bash
 npx skills list -g
