@@ -7,7 +7,8 @@
   "scripts": {
     "codex:skills:validate": "node scripts/validate-codex-skills.mjs",
     "codex:skills:register": "node scripts/register-codex-skills.mjs",
-    "codex:skills:register:dry-run": "node scripts/register-codex-skills.mjs --dry-run"
+    "codex:skills:register:dry-run": "node scripts/register-codex-skills.mjs --dry-run",
+    "methodology:issue": "node scripts/draft-methodology-issue.mjs"
   },
   "keywords": [
     "oh-my-pi",

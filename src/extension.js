@@ -18,7 +18,7 @@ export default function ohMyQemu(pi) {
   pi.registerTool({
     name: "qemu_init_task",
     label: "QEMU Init Task",
-    description: "Create build/agent/<task-slug>/ plan, evidence, command, provenance, image layout, boot run, register extraction, log, review, scratch, and RLCR files for a QEMU task.",
+    description: "Create build/agent/<task-slug>/ plan, evidence, command, provenance, image layout, boot run, methodology feedback, register extraction, log, review, scratch, and RLCR files for a QEMU task.",
     parameters: z.object({
       name: z.string().describe("Task name or slug. It will be normalized for build/agent/<task-slug>/.").optional(),
     }),

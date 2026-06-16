@@ -156,6 +156,18 @@ Before finishing, write `final-summary.md`:
 
 Do not report completion if any AC lacks evidence.
 
+## Methodology feedback phase
+
+After final verification, pause, block, max-iteration exit, or completion of a multi-workflow composition, run the methodology feedback phase once for the whole task. Do not ask the user after every primitive or workflow step.
+
+Read `references/methodology-feedback.md` for the full procedure. In short:
+
+- write sanitized workflow lessons to `build/agent/<task-slug>/methodology-feedback.md`;
+- if there are no reusable improvements, do not ask the user to file an issue;
+- if there are reusable improvements, ask once whether the user wants to open an upstream issue;
+- show the sanitized issue draft before filing;
+- default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
+
 ## When not to use RLCR
 
 Skip this flow for trivial read-only questions, one-line documentation edits, or a single targeted command with no source changes. Still keep artifacts under `build/` if any are created.

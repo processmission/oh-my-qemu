@@ -180,6 +180,7 @@ build/agent/k230-uart-model/
   source-provenance.md
   image-layout.md
   boot-run.md
+  methodology-feedback.md
   register-extraction.md
   source-inventory.md
   conflicts.md
@@ -208,6 +209,31 @@ Common compositions:
 kernel build -> direct linux boot -> verification
 uboot build -> image packaging -> firmware linux boot -> debug if needed -> verification
 image packaging -> boot run -> verification
+```
+
+## Methodology feedback
+
+At the final completion, pause, blocked state, or max-iteration exit of an RLCR or composed workflow, `qemu-rlcr-loop` can run a one-time methodology feedback phase. It summarizes reusable workflow problems or improvements into:
+
+```text
+build/agent/<task-slug>/methodology-feedback.md
+```
+
+The report must be sanitized before it is shown or filed: no private paths, branch names, commit hashes, proprietary logs, code snippets, project-specific URLs, image paths, or board/customer/product identifiers unless explicitly approved.
+
+If reusable improvements exist, the agent asks once whether to create an upstream issue. It should not ask after every primitive step in a multi-workflow run. The default target is `processmission/oh-my-qemu`, overrideable with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
+
+To draft an issue from a sanitized report:
+
+```bash
+npm run methodology:issue -- build/agent/<task-slug>
+```
+
+This writes:
+
+```text
+build/agent/<task-slug>/scratch/methodology-issue-title.txt
+build/agent/<task-slug>/scratch/methodology-issue.md
 ```
 
 ## Update

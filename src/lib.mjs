@@ -16,6 +16,7 @@ export const ROOT_FILES = {
   "source-provenance.md": true,
   "image-layout.md": true,
   "boot-run.md": true,
+  "methodology-feedback.md": true,
   "source-inventory.md": true,
   "conflicts.md": true,
   "debugger.md": true,
@@ -191,6 +192,41 @@ Record exact commands, working directories, environment overrides, and output ar
 ## Result
 
 ## Debug Handoff
+`, result);
+
+  writeIfMissing(join(root, "methodology-feedback.md"), `# ${slug} Methodology Feedback
+
+## Status
+
+- State: not-analyzed
+- Exit reason:
+- User asked for issue: no
+- Issue filed: no
+
+## Sanitized Workflow Context
+
+- Workflow type:
+- Exit condition:
+- Phases involved:
+
+## Observed Patterns
+
+## Improvement Suggestions
+
+## Issue Draft
+
+### Title
+
+### Body
+
+## Privacy Check
+
+- [ ] No private paths, repository paths, or local usernames.
+- [ ] No branch names, commit hashes, or git identifiers.
+- [ ] No proprietary logs, raw error messages, or stack traces.
+- [ ] No code snippets or code fragments.
+- [ ] No project-specific URLs, image paths, or endpoints.
+- [ ] No customer, product, board, or SoC identifiers unless explicitly approved.
 `, result);
 
   writeIfMissing(join(root, "register-extraction.md"), `# ${slug} Register Extraction
