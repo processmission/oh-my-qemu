@@ -65,6 +65,7 @@ want to model and run.
 | `.agents/skills/` | Agent skills, one `SKILL.md` per QEMU workflow |
 | `scripts/` | Skill validation, Codex registration, portable install, task initialization, and methodology issue helpers |
 | `commands/` | Slash command definitions such as `/qemu-init-task` |
+| `workflows/` | OMP `.omhflow` artifacts for deterministic QEMU task bootstrapping |
 | `hooks/` | Artifact-policy hooks that keep agent scratch files under `build/agent/` |
 | `src/` | Oh My Pi plugin runtime glue and shared hook logic |
 | `.claude-plugin/` | Claude Code plugin and marketplace metadata |
@@ -214,6 +215,24 @@ Local development link:
 omp plugin link /path/to/oh-my-qemu
 ```
 
+Install the bundled OMP workflow artifacts into your workflow registry:
+
+```bash
+cd /path/to/oh-my-qemu
+npm run omp:workflows:validate
+npm run omp:workflows:install
+```
+
+The installer calls `omp workflow install` for each artifact. Override the OMP
+binary when developing against a local checkout:
+
+```bash
+OMP_BIN=/path/to/omp npm run omp:workflows:install
+```
+
+After installation, `omp workflow list` should include
+`qemu-task-bootstrap`.
+
 ### Claude Code plugin
 
 The Claude Code plugin exposes the same skills, `/qemu-init-task`, and the
@@ -275,6 +294,42 @@ build/agent/k230-uart-model/
   scratch/
   rlcr/
 ```
+
+Alternatively, bootstrap the same workspace through OMP's workflow runner. In a
+QEMU tree, create `qemu-task.md`:
+
+```markdown
+---
+slug: k230-uart-model
+workstream: peripheral-modeling
+---
+
+Model the K230 UART and prove it with qtest.
+```
+
+Then start OMH/OMP from that QEMU tree and run:
+
+```text
+/workflow start /path/to/oh-my-qemu/workflows/qemu-task-bootstrap.omhflow --json
+```
+
+If the flow has been installed, or `OMHFLOW_DIR=/path/to/oh-my-qemu/workflows`
+was set before launching OMH/OMP, the shorter named form also works:
+
+```text
+/workflow start qemu-task-bootstrap --json
+```
+
+For the fastest interactive path, use the bundled prompt command:
+
+```text
+/qemu-workflow Model the K230 UART and prove it with qtest.
+```
+
+This writes `qemu-task.md`, starts the workflow by explicit path, creates the
+task root, records a lightweight provenance snapshot, and writes
+`build/agent/k230-uart-model/workflow-handoff.md` with the recommended Oh My
+QEMU skill chain.
 
 Typical composition:
 
