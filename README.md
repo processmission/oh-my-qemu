@@ -1,18 +1,26 @@
-# oh-my-qemu
+# oh-my-qemu - QEMU Modeling Skills
 
-QEMU-focused agent skills packaged as an Oh My Pi plugin, a Claude Code plugin, portable skills, and Codex-registerable local skills for hardware modeling, source builds, image packaging, boot testing, debugging, qtest, and TCG workflows.
+A collection of AI agent **skills** for QEMU hardware modeling, source builds,
+image packaging, boot testing, qtest coverage, debugging, RST documentation, and
+TCG workflows.
 
-The flow design is based on [PolyArch/humanize](https://github.com/PolyArch/humanize): plan with explicit acceptance criteria, iterate in reviewed rounds, and keep evidence attached to the work. `oh-my-qemu` adapts that idea for QEMU by putting all agent-created artifacts under:
+The skills give an agent structured, evidence-driven workflows for turning a
+hardware target into a runnable QEMU model. They are designed to be used inside a
+QEMU source tree and keep all agent-created artifacts under:
 
 ```text
 build/agent/<task-slug>/
 ```
 
-This avoids polluting a QEMU source tree with `.plan/`, `.humanize/`, scratch notes, logs, or temporary scripts.
+This keeps QEMU source trees free of `.plan/`, `.humanize/`, scratch notes, logs,
+temporary scripts, and other agent working files.
 
-## Best-Practice Quick Start
+---
 
-Use `oh-my-qemu` from inside a QEMU source checkout. For example:
+## Example prompts
+
+Once installed, start Codex from a QEMU checkout and give the agent a concrete
+target and workload. For example:
 
 ```bash
 git clone https://github.com/processmission/qemu.git
@@ -20,59 +28,117 @@ cd qemu
 codex
 ```
 
-After installing `oh-my-qemu` with one of the methods below, start a Codex goal
-with a concrete hardware target and workload:
+**Model a board or peripheral until a workload runs**
+> /goal Help me model the xxx hardware model in QEMU. Proactively collect
+> relevant datasheets, technical blogs, and driver source code. Follow the
+> oh-my-qemu workflow end to end, including source provenance, register
+> extraction, peripheral or board modeling, qtest/model verification, build,
+> boot/run evidence, and RST documentation where appropriate. Continue until
+> the xxx workload can run under QEMU, such as a bare-metal program, firmware
+> payload, RTOS image, or Linux boot.
 
-```text
-/goal Help me model the xxx hardware model in QEMU. Proactively collect relevant datasheets, technical blogs, and driver source code. Follow the oh-my-qemu workflow end to end, including source provenance, register extraction, peripheral or board modeling, qtest/model verification, build, boot/run evidence, and RST documentation where appropriate. Continue until the xxx workload can run under QEMU, such as a bare-metal program, firmware payload, RTOS image, or Linux boot.
-```
+**Extract a register contract before modeling**
+> Use the oh-my-qemu workflow to research this UART/SPI/PCIe block. Compare the
+> datasheet, Linux driver, U-Boot driver, device tree bindings, and firmware
+> initialization sequence, then produce a register-extraction handoff for QEMU
+> modeling.
 
-Replace `xxx` with the specific SoC, board, peripheral, ISA feature, or program
-you want to model and run.
+**Debug a stuck firmware boot**
+> The firmware boot hangs after early MMIO setup. Use QEMU logs, trace events,
+> gdbstub, and instruction-window analysis to identify the blocking device or
+> missing register behavior.
 
-## QEMU policy
+**Create QEMU board documentation**
+> Write the QEMU RST documentation for this board model. Include supported
+> devices, direct Linux boot, firmware boot, test commands, and known
+> limitations, and update the relevant toctree.
 
-These skills follow QEMU provenance constraints:
+Replace `xxx` with the SoC, board, peripheral, ISA feature, or test program you
+want to model and run.
 
-- agents do not generate code intended for QEMU upstream submission;
-- agents do not add DCO/review trailers on behalf of humans;
-- local research, debugging, verification, and workflow guidance are allowed.
+---
 
-## Practice demo
+## Contents
 
-Practice/demo branch using these ideas for downstream QEMU modeling work:
+| Directory | Purpose |
+|-----------|---------|
+| `.agents/skills/` | Agent skills, one `SKILL.md` per QEMU workflow |
+| `scripts/` | Skill validation, Codex registration, portable install, task initialization, and methodology issue helpers |
+| `commands/` | Slash command definitions such as `/qemu-init-task` |
+| `hooks/` | Artifact-policy hooks that keep agent scratch files under `build/agent/` |
+| `src/` | Oh My Pi plugin runtime glue and shared hook logic |
+| `.claude-plugin/` | Claude Code plugin and marketplace metadata |
+| `skills` | Symlink to `.agents/skills/` for plugin-compatible discovery |
 
-- RK3588/RK3588S Rockchip machines and shared IP models: https://github.com/processmission/qemu/tree/devel
+---
 
 ## Skills
 
-Primitive flow skills:
+### Flow primitives
 
-- `qemu-flow-plan`: task scope, acceptance criteria, artifact root, and verification gates.
-- `qemu-source-provenance`: source trees, revisions, configs, toolchains, outputs, and hashes.
-- `qemu-image-layout`: image formats, partitions, offsets, writes, mutation policy, and hashes.
-- `qemu-boot-run`: reproducible QEMU boot commands, logs, timeouts, markers, and result classification.
-- `qemu-model-verification`: evidence ladder and PASS/FAIL/INCONCLUSIVE reports.
+Small building blocks used by larger QEMU workflows.
 
-Workflow skills compose the primitives:
+| Skill | Purpose |
+|-------|---------|
+| `qemu-flow-plan` | Define task scope, acceptance criteria, artifact root, and verification gates |
+| `qemu-source-provenance` | Record source trees, revisions, configs, toolchains, outputs, and hashes |
+| `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
+| `qemu-boot-run` | Build reproducible QEMU run commands, logs, timeout markers, and result classification |
+| `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
 
-- `qemu-register-extraction`: extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences.
-- `qemu-rlcr-loop`: iterate implementation/debugging rounds with verification and review.
-- `qemu-build`: configure, build, and diagnose QEMU build directories.
-- `qemu-qtest`: design, register, run, and debug qtest coverage.
-- `qemu-debug`: use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis.
-- `qemu-peripheral-modeling`: model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices.
-- `qemu-board-modeling`: model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology.
-- `qemu-rst-documentation`: write QEMU RST docs, board pages, boot examples, and Sphinx index updates.
-- `qemu-kernel-build`: build Linux kernel artifacts for QEMU boot tests.
-- `qemu-uboot-build`: build U-Boot/SPL/TPL/FIT artifacts for firmware boot tests.
-- `qemu-image-packaging`: package boot media from kernels, firmware, DTBs, rootfs, and modules.
-- `qemu-direct-linux-boot`: boot Linux directly with QEMU kernel options.
-- `qemu-firmware-linux-boot`: boot Linux through firmware or bootloader stages.
-- `qemu-tcg-frontend-instruction`: add or debug guest ISA decode and TCG translation.
-- `qemu-tcg-backend-adaptation`: adapt TCG host backend ops, constraints, emission, atomics, and vectors.
+### Modeling and debugging workflows
 
-## Install as portable skills
+Skills for turning hardware facts into a QEMU model and proving it behaves.
+
+| Skill | Purpose |
+|-------|---------|
+| `qemu-register-extraction` | Extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences |
+| `qemu-peripheral-modeling` | Model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices |
+| `qemu-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
+| `qemu-qtest` | Design, register, run, and debug qtest coverage |
+| `qemu-debug` | Use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis |
+| `qemu-rlcr-loop` | Iterate implementation/debugging rounds with verification, review, and final evidence |
+| `qemu-rst-documentation` | Write QEMU RST docs, board pages, boot examples, Sphinx index updates, and docs validation |
+
+### Build, image, and boot workflows
+
+Skills for compiling artifacts and running realistic boot paths.
+
+| Skill | Purpose |
+|-------|---------|
+| `qemu-build` | Configure, build, reuse, and diagnose QEMU build directories |
+| `qemu-kernel-build` | Build Linux kernel artifacts for QEMU boot tests |
+| `qemu-uboot-build` | Build U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts |
+| `qemu-image-packaging` | Package kernels, firmware, DTBs, rootfs, modules, and boot media images |
+| `qemu-direct-linux-boot` | Boot Linux directly with QEMU `-kernel`, DTB, initrd, console, and rootfs options |
+| `qemu-firmware-linux-boot` | Boot Linux through firmware or bootloader stages and preserve handoff evidence |
+
+### TCG workflows
+
+Skills for guest instruction frontend work and host backend adaptation.
+
+| Skill | Purpose |
+|-------|---------|
+| `qemu-tcg-frontend-instruction` | Add, review, or debug guest ISA decode and TCG translation |
+| `qemu-tcg-backend-adaptation` | Adapt TCG host backend ops, constraints, register allocation, emission, atomics, and vectors |
+
+---
+
+## Installation
+
+This repository follows the open [Agent Skills standard](https://agentskills.io).
+Each skill directory contains a `SKILL.md` file that compatible agents can load
+on demand. The same skill content is exposed through portable skills, Codex
+local registration, Oh My Pi, and Claude Code plugin packaging.
+
+| Agent/runtime | Project-level path | User-level path |
+|---|---|---|
+| OpenAI Codex | `.agents/skills/` | `${CODEX_HOME:-$HOME/.codex}/skills` |
+| Portable `npx skills` canonical install | `.agents/skills/` | `~/.agents/skills/` |
+| Claude Code plugin | plugin marketplace/cache | plugin marketplace/cache |
+| Oh My Pi plugin | plugin marketplace/cache | plugin marketplace/cache |
+
+### Portable skills
 
 List available skills:
 
@@ -80,51 +146,41 @@ List available skills:
 npx skills add https://github.com/processmission/oh-my-qemu -l
 ```
 
-From a local checkout, install globally for supported agents:
+From a local checkout, install globally for agents that support global skill
+paths:
 
 ```bash
+git clone https://github.com/processmission/oh-my-qemu.git
+cd oh-my-qemu
 npm run portable:skills:install-global
 ```
 
-This wraps `npx skills add` with an explicit list of agents that support global
-skill paths. It intentionally excludes PromptScript because PromptScript is
+The install script wraps `npx skills add` with an explicit list of global-capable
+agents. It intentionally excludes PromptScript because PromptScript is
 project-only in current `skills` CLI releases. The script also refreshes Codex
-links under `${CODEX_HOME:-$HOME/.codex}/skills` from this checkout. Verify the
-completed installs with:
+links under `${CODEX_HOME:-$HOME/.codex}/skills` from this checkout.
+
+Verify the completed install:
 
 ```bash
 npx skills list -g
 ```
 
-Install into the current project:
+Install into the current project instead:
 
 ```bash
 npx skills add https://github.com/processmission/oh-my-qemu --all
 ```
 
-## Register as Codex skills
+### OpenAI Codex
 
-From a local checkout:
+For Codex development against this checkout, validate and register symlinks into
+`${CODEX_HOME:-$HOME/.codex}/skills`:
 
 ```bash
 cd /path/to/oh-my-qemu
-```
-
-Validate the skill metadata:
-
-```bash
 npm run codex:skills:validate
-```
-
-Preview registration:
-
-```bash
 npm run codex:skills:register:dry-run
-```
-
-Register into `${CODEX_HOME:-$HOME/.codex}/skills` using symlinks:
-
-```bash
 npm run codex:skills:register
 ```
 
@@ -134,18 +190,18 @@ Use a copy instead of symlinks, or target another directory:
 node scripts/register-codex-skills.mjs --copy --target /path/to/codex/skills
 ```
 
-Registration writes into `${CODEX_HOME:-$HOME/.codex}/skills`. The default symlink mode keeps Codex pointed at this checkout, so future edits to `~/oh-my-qemu/.agents/skills` are picked up without copying files again. Start a new Codex session after registering so the new skill metadata is loaded.
+Start a new Codex session after registering so the new skill metadata is loaded.
 
-## Install as an Oh My Pi plugin
+### Oh My Pi plugin
 
-The plugin adds OMP-only helpers:
+The Oh My Pi plugin exposes the same skills plus OMP-specific helpers:
 
 - `qemu_init_task` tool;
 - `/qemu-init-task` slash command;
-- artifact-policy hook that redirects root-level scratch artifacts to `build/agent/<task-slug>/`;
-- the same skills exposed through the plugin `skills/` layout.
+- artifact-policy hook that redirects root-level scratch artifacts to
+  `build/agent/<task-slug>/`.
 
-Install from this self-hosted marketplace repo:
+Install from the self-hosted marketplace:
 
 ```bash
 omp plugin marketplace add processmission/oh-my-qemu
@@ -158,18 +214,20 @@ Local development link:
 omp plugin link /path/to/oh-my-qemu
 ```
 
-## Install as a Claude Code plugin
+### Claude Code plugin
 
-The repository is also a Claude Code plugin (`.claude-plugin/plugin.json`). Installing it exposes the skills, a `/qemu-init-task` slash command, and an artifact-policy `PreToolUse` hook that keeps agent artifacts under `build/agent/<task-slug>/`.
+The Claude Code plugin exposes the same skills, `/qemu-init-task`, and the
+artifact-policy `PreToolUse` hook.
 
-Add this repo as a marketplace and install:
+Install from the self-hosted marketplace:
 
 ```bash
 claude plugin marketplace add processmission/oh-my-qemu
 claude plugin install oh-my-qemu@processmission
 ```
 
-Install into the current project only (committed for the team) with `--scope project`, or keep it local with `--scope local`.
+Install into the current project only with `--scope project`, or keep it local
+with `--scope local`.
 
 Local development against a checkout:
 
@@ -178,22 +236,19 @@ claude plugin marketplace add /path/to/oh-my-qemu
 claude plugin install oh-my-qemu@processmission
 ```
 
-Or load the directory directly without a marketplace (good for iterating):
-
-```bash
-claude --plugin-dir /path/to/oh-my-qemu
-```
-
-Verify the plugin and its skills are loaded:
+Verify the plugin and its skills:
 
 ```bash
 claude plugin list
 claude plugin details oh-my-qemu@processmission
 ```
 
-Installed skills are namespaced as `oh-my-qemu:<skill>` (for example `oh-my-qemu:qemu-flow-plan`) and are auto-discovered like any other skill. The `skills/` directory is a symlink to `.agents/skills`, so the same SKILL.md content backs the Claude Code plugin, the OMP plugin, and the portable `npx skills` install.
+Installed plugin skills are namespaced as `oh-my-qemu:<skill>`, for example
+`oh-my-qemu:qemu-flow-plan`.
 
-## Use in a QEMU source tree
+---
+
+## Recommended workflow in a QEMU tree
 
 Initialize a task workspace:
 
@@ -221,40 +276,65 @@ build/agent/k230-uart-model/
   rlcr/
 ```
 
-Recommended flow:
+Typical composition:
 
-1. `qemu-flow-plan` — define goal, scope, acceptance criteria, and evidence.
-2. Choose primitives:
-   - `qemu-source-provenance` for source/build artifacts.
-   - `qemu-image-layout` for boot media and firmware images.
-   - `qemu-boot-run` for QEMU command execution.
-3. Choose workflow or domain skills:
-   - `qemu-kernel-build`, `qemu-uboot-build`, `qemu-image-packaging`, `qemu-direct-linux-boot`, or `qemu-firmware-linux-boot` for quick run/test loops.
-   - `qemu-register-extraction`, `qemu-peripheral-modeling`, or `qemu-board-modeling` for modeling work.
-4. `qemu-rlcr-loop` — iterate with verification and independent review.
-5. `qemu-build`, `qemu-qtest`, `qemu-debug`, and `qemu-model-verification` — prove the result.
+1. `qemu-flow-plan` - define goal, scope, acceptance criteria, and evidence.
+2. `qemu-source-provenance`, `qemu-image-layout`, and `qemu-boot-run` - record
+   sources, artifacts, media layout, and run commands.
+3. `qemu-register-extraction`, `qemu-peripheral-modeling`, or
+   `qemu-board-modeling` - build the model from verified hardware facts.
+4. `qemu-build`, `qemu-qtest`, `qemu-debug`, and `qemu-model-verification` -
+   prove the model with build, tests, traces, and boot evidence.
+5. `qemu-rst-documentation` - document supported hardware, boot commands, tests,
+   and known limitations.
+6. `qemu-rlcr-loop` - iterate until the acceptance criteria pass.
 
-Common compositions:
+Common workflows:
 
 ```text
 kernel build -> direct linux boot -> verification
 uboot build -> image packaging -> firmware linux boot -> debug if needed -> verification
-image packaging -> boot run -> verification
+register extraction -> peripheral modeling -> qtest -> model verification
+board modeling -> qtest -> direct linux boot -> RST documentation
 ```
+
+---
+
+## Policy and provenance
+
+These skills follow QEMU provenance constraints:
+
+- agents do not generate code intended for QEMU upstream submission;
+- agents do not add DCO/review trailers on behalf of humans;
+- local research, debugging, verification, and workflow guidance are allowed.
+
+The workflow design is based on
+[PolyArch/humanize](https://github.com/PolyArch/humanize): plan with explicit
+acceptance criteria, iterate in reviewed rounds, and keep evidence attached to
+the work.
+
+---
 
 ## Methodology feedback
 
-At the final completion, pause, blocked state, or max-iteration exit of an RLCR or composed workflow, `qemu-rlcr-loop` can run a one-time methodology feedback phase. It summarizes reusable workflow problems or improvements into:
+At final completion, pause, blocked state, or max-iteration exit of an RLCR or
+composed workflow, `qemu-rlcr-loop` can run a one-time methodology feedback
+phase. It summarizes reusable workflow problems or improvements into:
 
 ```text
 build/agent/<task-slug>/methodology-feedback.md
 ```
 
-The report must be sanitized before it is shown or filed: no private paths, branch names, commit hashes, proprietary logs, code snippets, project-specific URLs, image paths, or board/customer/product identifiers unless explicitly approved.
+The report must be sanitized before it is shown or filed: no private paths,
+branch names, commit hashes, proprietary logs, code snippets, project-specific
+URLs, image paths, or board/customer/product identifiers unless explicitly
+approved.
 
-If reusable improvements exist, the agent asks once whether to create an upstream issue. It should not ask after every primitive step in a multi-workflow run. The default target is `processmission/oh-my-qemu`, overrideable with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
+If reusable improvements exist, the agent asks once whether to create an
+upstream issue. The default target is `processmission/oh-my-qemu`, overrideable
+with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
 
-To draft an issue from a sanitized report:
+Draft an issue from a sanitized report:
 
 ```bash
 npm run methodology:issue -- build/agent/<task-slug>
@@ -267,6 +347,17 @@ build/agent/<task-slug>/scratch/methodology-issue-title.txt
 build/agent/<task-slug>/scratch/methodology-issue.md
 ```
 
+---
+
+## Practice demo
+
+Practice/demo branch using these ideas for downstream QEMU modeling work:
+
+- RK3588/RK3588S Rockchip machines and shared IP models:
+  https://github.com/processmission/qemu/tree/devel
+
+---
+
 ## Update
 
 Portable skills:
@@ -275,7 +366,7 @@ Portable skills:
 npx skills update -g
 ```
 
-OMP plugin:
+Oh My Pi plugin:
 
 ```bash
 omp plugin upgrade oh-my-qemu@processmission
@@ -287,7 +378,10 @@ Claude Code plugin:
 claude plugin install oh-my-qemu@processmission
 ```
 
-Re-add the marketplace to pick up new commits, or manage versions through the interactive `/plugin` menu.
+Re-add the marketplace to pick up new commits, or manage versions through the
+interactive plugin menu.
+
+---
 
 ## License
 
