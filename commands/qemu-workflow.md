@@ -1,5 +1,5 @@
 ---
-description: Seed qemu-task.md and start the Oh My QEMU bootstrap workflow from the current QEMU tree.
+description: Seed qemu-task.md and start the complete Oh My QEMU modeling workflow from the current QEMU tree.
 argument-hint: <request text, optionally starting with slug:... workstream:...>
 ---
 
@@ -21,13 +21,13 @@ Procedure:
    <the user's full request text>
    ```
 
-3. Start the workflow by explicit artifact path, without requiring installation:
+3. Start the complete modeling workflow by explicit artifact path, without requiring installation:
 
    ```bash
-   omp workflow start "${CLAUDE_PLUGIN_ROOT}/workflows/qemu-task-bootstrap.omhflow" --cwd "$PWD" --json
+   omp workflow start "${CLAUDE_PLUGIN_ROOT}/workflows/qemu-modeling.omhflow" --cwd "$PWD" --json
    ```
 
-4. Report the workflow status, task root, and `workflow-handoff.md` path. Do not continue into implementation unless the user asks.
+4. Report the workflow status, run id, task root, and `workflow-handoff.md` path. The workflow owns planning, implementation, verification, review looping, and final evidence.
 
 Rules:
 
