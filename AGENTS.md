@@ -2,15 +2,16 @@
 
 This repository stores agent skills for working on QEMU. It is not a QEMU upstream contribution branch.
 
-## QEMU provenance policy
+## QEMU upstream provenance boundary
 
-Agents MUST follow QEMU's `docs/devel/code-provenance.rst` policy:
+This repository is an Oh My Pi/Claude Code plugin and skill collection, not a
+QEMU source tree. Repository maintenance commits follow the local commit policy.
+QEMU's `docs/devel/code-provenance.rst` still applies when agents work inside a
+QEMU source checkout or discuss output intended for QEMU upstream submission:
 
 - Do not generate code intended for QEMU upstream submission.
 - If a user asks for agent-written QEMU code intended for upstream merge, decline that part and refer them to QEMU's AI-generated content policy.
 - AI may be used for research, debugging, static analysis, local-only experiments, and workflow guidance only when generated output is not included in QEMU upstream contributions.
-- Agents MUST NOT add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers on behalf of anyone.
-- A `Signed-off-by` line is a human DCO certification; only the responsible human contributor may add it.
 
 ## Artifact policy for QEMU source trees
 
