@@ -1,6 +1,6 @@
 ---
 name: qemu-rlcr-loop
-description: Use for non-trivial QEMU implementation or debugging work after qemu-flow-plan. Provides a simplified RLCR loop for one round of work, verification, summary, independent review, and fixes until acceptance criteria pass.
+description: Use for non-trivial local QEMU implementation or debugging after qemu-flow-plan. Runs coherent rounds of work, verification, summary, independent review, scoped local Git checkpoint commits, and fixes until acceptance criteria pass.
 ---
 
 # QEMU RLCR Loop
@@ -11,7 +11,7 @@ RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Round commits created by this flow are local checkpoints only. Never push, publish, export, or describe them as upstream-ready. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
 
 ## Required inputs
 
@@ -19,6 +19,10 @@ Do not produce source code intended for QEMU upstream submission. QEMU currently
 - Its artifact root, usually `build/agent/<task-slug>/`.
 - Frozen acceptance criteria.
 - A chosen domain skill for the technical work.
+- A designated task source tree and dedicated local task branch.
+- A baseline revision, initial dirty-path inventory, allowed round-commit
+  pathspecs, and expected QEMU subsystem prefix recorded by
+  `qemu-source-provenance`.
 
 If there is no plan, run `qemu-flow-plan` first.
 
@@ -31,8 +35,10 @@ build/agent/<task-slug>/rlcr/
   goal-tracker.md
   round-001-summary.md
   round-001-review.md
+  round-001-source-state.md
   round-002-summary.md
   round-002-review.md
+  round-002-source-state.md
   final-summary.md
 ```
 
@@ -53,6 +59,7 @@ Maintain `goal-tracker.md` with two sections:
 ## Mutable
 
 - Active round:
+- Round commit:
 - Completed:
 - Remaining:
 - Deferred with reason:
@@ -67,7 +74,10 @@ Repeat until all acceptance criteria pass and review finds no blocking issue.
 
 ### 1. Select one round objective
 
-Pick the smallest coherent slice that advances one or more ACs. Avoid mixing unrelated subsystems in one round.
+Pick the smallest coherent slice that advances one or more ACs and can stand as
+one logical, verified QEMU commit. Avoid mixing unrelated subsystems in one
+round. If a slice needs multiple independently meaningful commits, split it
+into multiple rounds before implementation.
 
 ### 2. Do the work
 
@@ -101,6 +111,15 @@ Write `build/agent/<task-slug>/rlcr/round-NNN-summary.md`:
 
 ## Evidence Paths
 
+## Git Checkpoint
+
+- Parent:
+- Commit:
+- Tree:
+- Subject:
+- Staged paths:
+- Residual dirty state:
+
 ## Known Gaps
 
 ## Questions for Reviewer
@@ -129,7 +148,72 @@ Write the result to `round-NNN-review.md`.
 
 - Fix every `BLOCKER`.
 - Fix `MAJOR` findings unless explicitly deferred in `goal-tracker.md` with a reason.
-- Continue the loop until no blockers remain and all ACs are proven.
+- If review requires a fix, remain in the current round, then repeat
+  verification, summary, and independent review.
+- Do not commit a round with a failed verification gate, `BLOCKER`, or
+  unresolved `MAJOR` finding.
+- Repeat the current round until its objective has passing evidence and no
+  blocking review finding, then commit it. If overall ACs remain, start the
+  next round from that commit.
+
+### 7. Commit the verified round
+
+For every round that changes task source, create exactly one local Git commit
+after verification and independent review pass, and before starting the next
+round. Do not create empty commits for research-only or artifact-only rounds;
+record `No source commit` in the round summary instead.
+
+Before staging:
+
+- compare the current working tree with the baseline dirty-path inventory;
+- select only paths changed for the current round and allowed by the plan;
+- stop if a task change overlaps a pre-existing dirty path or cannot be
+  separated safely;
+- never stage `build/agent/` artifacts or unrelated user changes.
+
+Stage exact pathspecs with `git add -- <path>...`. Never use `git add -A`,
+`git add .`, or another repository-wide staging command. Inspect
+`git diff --cached --name-status`, `git diff --cached --stat`, and the complete
+staged diff. Run `git diff --cached --check` and confirm that the staged set is
+non-empty, task-related, and limited to the approved pathspecs.
+
+Write the message to
+`build/agent/<task-slug>/scratch/round-NNN-commit-message.txt`, then commit with
+`git commit -F <message-file>`. Follow QEMU commit-message style:
+
+```text
+<subsystem>: <single-line summary without a trailing period>
+
+<standalone body explaining why the change is necessary and what it does>
+
+This is a local-only workflow checkpoint. It is not intended for
+upstream submission.
+```
+
+- derive `<subsystem>` from the affected area and nearby `git shortlog`, not
+  from the task slug or round number;
+- keep the subject and every body line at most 76 characters;
+- keep the body meaningful when read independently from the subject;
+- do not use `[WIP]`, `round N`, or the task slug as the subject;
+- do not add contribution, DCO, or review trailers.
+
+Do not bypass hooks with `--no-verify`. Do not amend, rebase, reset, stash, or
+push as part of the round checkpoint. If staging, hooks, author configuration,
+or commit creation fails, record the failure as a blocker and do not start the
+next round.
+
+After commit, write `round-NNN-source-state.md` and update the round summary,
+`goal-tracker.md`, and `source-provenance.md` with:
+
+- parent, commit, and `HEAD^{tree}` IDs;
+- exact subject and committed path list;
+- verification and review evidence paths;
+- post-commit `git status --short`, which must contain only declared baseline
+  changes or newly identified blockers.
+
+The successful commit is the round boundary and the next round's source
+baseline. Never rewrite a previous round commit; fix later findings in a new
+round.
 
 ## Finalization
 
@@ -142,6 +226,8 @@ Before finishing, write `final-summary.md`:
 
 ## Source Changes
 
+## Round Commits
+
 ## Verification Evidence
 
 ## Artifacts
@@ -152,6 +238,7 @@ Before finishing, write `final-summary.md`:
 
 - No agent-created artifacts outside build/agent/<task-slug>/.
 - No DCO/review trailers added by the agent.
+- Round commits remained local and were not pushed or published.
 ```
 
 Do not report completion if any AC lacks evidence.
