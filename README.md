@@ -221,7 +221,8 @@ The `.omhflow` runner and workflow registry are provided by
 [Oh My Humanize](https://github.com/PolyArch/oh-my-humanize). The bundled
 `qemu-modeling` flow runs the full local QEMU modeling loop: workspace bootstrap,
 planning, source provenance, implementation/debugging, targeted verification,
-review, fix rounds, and final evidence.
+review, fix rounds, one scoped local Git checkpoint per reviewed source-changing
+round, and final evidence.
 
 #### Install into the active OMP registry
 
@@ -419,7 +420,7 @@ For the fastest interactive path, use the bundled prompt command:
 
 This writes `qemu-task.md`, starts the workflow by explicit path, creates the
 task root, records a provenance snapshot, plans the modeling work, runs
-implementation/verification/review loops, and writes
+implementation/verification/review/commit loops, and writes
 `build/agent/k230-uart-model/rlcr/final-summary.md`.
 
 Typical composition:

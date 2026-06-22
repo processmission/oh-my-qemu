@@ -144,7 +144,8 @@ async function bootstrapWorkspace() {
       { op: "set", path: "/implementation", value: stageState("pending", "implementationRound has not run") },
       { op: "set", path: "/verification", value: stageState("pending", "verificationRound has not run") },
       { op: "set", path: "/fixes", value: { status: "pending", round: 0, summary: "No fix round has run yet." } },
-      { op: "set", path: "/modeling", value: { status: "bootstrapped", round: 0, summaries: {}, artifacts: [] } },
+      { op: "set", path: "/modeling", value: { status: "bootstrapped", round: 0, attempt: 0, summaries: {}, artifacts: [] } },
+      { op: "set", path: "/commit", value: { status: "pending", round: 0, commit: "none" } },
       { op: "set", path: "/final", value: { status: "pending" } },
     ],
   });
@@ -219,30 +220,48 @@ async function writeHandoff() {
 
 async function recordRound() {
   const completed = Array.isArray(context.completedActivations) ? context.completedActivations : [];
-  const round = countCompleted(completed, "recordRound") + 1;
-  const stageIds = ["planWork", "researchContract", "implementationRound", "verificationRound", "fixRound", "reviewModeling"];
-  const summaries = Object.fromEntries(stageIds.map((id) => [id, summarizeActivation(latestActivation(completed, id))]));
+  const round = countCompleted(completed, "commitRound") + 1;
+  const attempt = countCompletedAfterLast(completed, "recordRound", "commitRound") + 1;
+  const summaries = {
+    planWork: summarizeActivation(latestActivation(completed, "planWork")),
+    researchContract: summarizeActivation(latestActivation(completed, "researchContract")),
+    implementationRound: summarizeActivation(
+      latestActivationAfterLast(completed, "implementationRound", "commitRound"),
+    ),
+    verificationRound: summarizeActivation(
+      latestActivationAfterLast(completed, "verificationRound", "commitRound"),
+    ),
+    fixRound: summarizeActivation(latestActivationAfterLast(completed, "fixRound", "commitRound")),
+  };
   const artifacts = unique(
-    stageIds.flatMap((id) => latestActivation(completed, id)?.output?.artifacts ?? []),
+    Object.values(summaries).flatMap((summary) => summary.artifacts ?? []),
   );
   const modeling = {
     status: "review-pending",
     round,
+    attempt,
     summaries,
     artifacts,
     updatedAt: new Date().toISOString(),
   };
   const roundFile = join(taskRoot, "rlcr", `round-${String(round).padStart(3, "0")}-summary.md`);
-  await writeFile(roundFile, roundSummaryTemplate(round, summaries, artifacts), "utf8");
+  const attemptFile = join(
+    taskRoot,
+    "reviews",
+    `round-${String(round).padStart(3, "0")}-attempt-${String(attempt).padStart(3, "0")}-summary.md`,
+  );
+  const summary = roundSummaryTemplate(round, attempt, summaries, artifacts);
+  await writeFile(roundFile, summary, "utf8");
+  await writeFile(attemptFile, summary, "utf8");
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
-    `<!-- qemu-modeling round ${round} -->`,
-    `\n## Workflow Round ${round}\n\n<!-- qemu-modeling round ${round} -->\n\n- Summary: ${summaries.verificationRound.summary}\n- Round summary: rlcr/${basename(roundFile)}\n- Artifact references: ${artifacts.length ? artifacts.join(", ") : "none recorded"}\n`,
+    `<!-- qemu-modeling round ${round} attempt ${attempt} -->`,
+    `\n## Workflow Round ${round} Attempt ${attempt}\n\n<!-- qemu-modeling round ${round} attempt ${attempt} -->\n\n- Summary: ${summaries.verificationRound.summary}\n- Round summary: rlcr/${basename(roundFile)}\n- Attempt summary: reviews/${basename(attemptFile)}\n- Artifact references: ${artifacts.length ? artifacts.join(", ") : "none recorded"}\n`,
   );
 
   emit({
-    summary: `recorded QEMU modeling round ${round}`,
-    data: { round, roundFile, artifacts },
+    summary: `recorded QEMU modeling round ${round} attempt ${attempt}`,
+    data: { round, attempt, roundFile, attemptFile, artifacts },
     statePatch: [{ op: "set", path: "/modeling", value: modeling }],
   });
 }
@@ -250,7 +269,8 @@ async function recordRound() {
 async function finalizeEvidence() {
   const completed = Array.isArray(context.completedActivations) ? context.completedActivations : [];
   const review = latestActivation(completed, "reviewModeling");
-  const verdict = review?.output?.data?.verdict ?? context.state?.verdict ?? "unknown";
+  const commit = context.state?.commit ?? {};
+  const verdict = commit.verdict ?? review?.output?.data?.verdict ?? context.state?.verdict ?? "unknown";
   const modeling = context.state?.modeling ?? {};
   const final = {
     status: verdict === "COMPLETE" ? "complete" : "incomplete",
@@ -259,7 +279,7 @@ async function finalizeEvidence() {
     workstream,
     completedAt: new Date().toISOString(),
   };
-  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling), "utf8");
+  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling, commit), "utf8");
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
     "<!-- qemu-modeling final -->",
@@ -451,8 +471,38 @@ function countCompleted(activations, nodeId) {
   return activations.filter((activation) => activation.nodeId === nodeId && activation.status === "completed").length;
 }
 
+function countCompletedAfterLast(activations, nodeId, boundaryNodeId) {
+  let boundary = -1;
+  for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === boundaryNodeId && activation.status === "completed") {
+      boundary = index;
+      break;
+    }
+  }
+  return activations
+    .slice(boundary + 1)
+    .filter((activation) => activation.nodeId === nodeId && activation.status === "completed").length;
+}
+
 function latestActivation(activations, nodeId) {
   for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === nodeId && activation.status === "completed") return activation;
+  }
+  return undefined;
+}
+
+function latestActivationAfterLast(activations, nodeId, boundaryNodeId) {
+  let boundary = -1;
+  for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === boundaryNodeId && activation.status === "completed") {
+      boundary = index;
+      break;
+    }
+  }
+  for (let index = activations.length - 1; index > boundary; index -= 1) {
     const activation = activations[index];
     if (activation.nodeId === nodeId && activation.status === "completed") return activation;
   }
@@ -534,6 +584,16 @@ ${taskBrief}
 
 ### Allowed source changes
 
+### Local Git Checkpoint Contract
+
+- Task source tree:
+- Dedicated local branch:
+- Baseline revision:
+- Initial dirty paths:
+- Round-commit pathspecs:
+- QEMU subject prefix:
+- Remote publication: forbidden
+
 ### Artifact root
 
 \`build/agent/${slug}/\`
@@ -548,7 +608,10 @@ ${taskBrief}
   - Evidence: Source changes and artifact references recorded in the round summaries.
 - AC-4: Targeted verification proves the relevant behavior.
   - Evidence: commands.md, evidence.md, logs/, qtest/build/boot/debug output as applicable.
-- AC-5: Independent review returns COMPLETE.
+- AC-5: Every source-changing logical round has one reviewed local Git
+  checkpoint commit.
+  - Evidence: source-provenance.md and rlcr/round-NNN-source-state.md.
+- AC-6: Independent review returns COMPLETE.
   - Evidence: reviewModeling verdict and rlcr/final-summary.md.
 
 ## Verification Gates
@@ -588,6 +651,11 @@ function sourceProvenanceTemplate() {
 
 | Component | Path/URL | Revision | Dirty state | Purpose |
 | --- | --- | --- | --- | --- |
+
+## RLCR Round Checkpoints
+
+| Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Configurations
 
@@ -773,6 +841,7 @@ function goalTrackerTemplate() {
 ## Mutable
 
 - Active round: 0
+- Round commit: none
 - Completed:
 - Remaining:
 - Deferred with reason:
@@ -802,7 +871,7 @@ ${skills.map((skill, index) => `${index + 1}. ${skill}`).join("\n")}
 ## Workflow Contract
 
 - Start with \`${skills[0]}\`; keep artifacts in this task root.
-- For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: round summaries, independent review, fixes, and final evidence.
+- For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: one coherent slice, targeted verification, independent review, and one scoped local commit before advancing.
 - Use targeted QEMU build/qtest/boot/debug gates that prove the acceptance criteria.
 - Preserve QEMU provenance policy: no agent-added DCO or review trailers, and no claim that source output is upstream-ready.
 
@@ -812,8 +881,12 @@ The workflow is complete only when source provenance, modeling/build/debug work,
 `;
 }
 
-function roundSummaryTemplate(round, summaries, artifacts) {
+function roundSummaryTemplate(round, attempt, summaries, artifacts) {
   return `# Round ${round} Summary
+
+## Attempt
+
+${attempt}
 
 ## Plan
 
@@ -835,9 +908,19 @@ ${summaries.verificationRound.summary}
 
 ${summaries.fixRound.summary}
 
-## Latest Review
+## Review
 
-${summaries.reviewModeling.summary}
+Pending independent review for this attempt.
+
+## Git Checkpoint
+
+- Status: pending review
+- Parent:
+- Commit:
+- Tree:
+- Subject:
+- Staged paths:
+- Residual dirty state:
 
 ## Artifacts
 
@@ -845,7 +928,7 @@ ${artifacts.length ? artifacts.map((artifact) => `- ${artifact}`).join("\n") : "
 `;
 }
 
-function finalSummaryTemplate(final, modeling) {
+function finalSummaryTemplate(final, modeling, commit) {
   return `# Final Summary
 
 ## Status
@@ -865,10 +948,18 @@ See ../plan.md and the round summaries in this directory.
 ${JSON.stringify(modeling, null, 2)}
 \`\`\`
 
+## Latest Round Commit
+
+\`\`\`json
+${JSON.stringify(commit, null, 2)}
+\`\`\`
+
 ## Policy Check
 
 - Agent-created artifacts belong under ${relativeTaskRoot()}/.
 - No DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers are added by this workflow.
 - Source output is local workflow output, not an upstream-ready contribution package.
+- Every source-changing reviewed round is committed locally before the workflow advances.
+- The workflow does not push, publish, format, or send round commits.
 `;
 }

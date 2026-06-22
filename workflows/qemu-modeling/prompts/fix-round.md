@@ -29,6 +29,8 @@ Rules:
 - Keep all generated artifacts under `{{taskRoot}}/`.
 - Do not add DCO/review trailers.
 - If a reviewer request is impossible with available sources/tools, record the missing prerequisite in `{{taskRoot}}/plan.md` and `{{taskRoot}}/evidence.md`.
+- Remain in the same logical round. Do not commit or select a new round
+  objective until verification and independent review pass.
 
 Change:
 
