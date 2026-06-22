@@ -100,6 +100,7 @@ if (mode === "bootstrap") {
 }
 
 async function bootstrapWorkspace() {
+  const provenance = captureProvenance();
   const result = { created: [], kept: [] };
   await ensureDir(taskRoot, result);
   for (const dir of ROOT_DIRS) await ensureDir(join(taskRoot, dir), result);
@@ -137,6 +138,7 @@ async function bootstrapWorkspace() {
           dirs: ROOT_DIRS,
         },
       },
+      { op: "set", path: "/provenance", value: provenance },
       { op: "set", path: "/plan", value: stageState("pending", "planWork has not run") },
       { op: "set", path: "/research", value: stageState("pending", "researchContract has not run") },
       { op: "set", path: "/implementation", value: stageState("pending", "implementationRound has not run") },
@@ -149,29 +151,19 @@ async function bootstrapWorkspace() {
 }
 
 async function recordProvenance() {
-  const gitRoot = commandLine("git", ["rev-parse", "--show-toplevel"]);
-  const gitHead = commandLine("git", ["rev-parse", "--short", "HEAD"]);
-  const gitInside = commandLine("git", ["rev-parse", "--is-inside-work-tree"]);
-  const qemuSystem = commandLine("sh", ["-c", "command -v qemu-system-aarch64 || command -v qemu-system-x86_64 || true"]);
-  const qemuImg = commandLine("sh", ["-c", "command -v qemu-img || true"]);
-  const snapshot = {
-    cwd,
-    gitRoot: gitRoot.ok ? gitRoot.stdout : "unavailable",
-    gitHead: gitHead.ok ? gitHead.stdout : "unavailable",
-    gitInsideWorkTree: gitInside.ok ? gitInside.stdout : "unavailable",
-    qemuSystem: qemuSystem.stdout || "unavailable",
-    qemuImg: qemuImg.stdout || "unavailable",
-  };
+  const prior = context.state?.provenance;
+  const snapshot =
+    prior && prior.gitInsideWorkTree !== "unavailable" ? prior : captureProvenance();
 
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
     "<!-- qemu-modeling provenance -->",
-    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling provenance -->\n\n- CWD: ${cwd}\n- Git root: ${snapshot.gitRoot}\n- Git HEAD: ${snapshot.gitHead}\n- qemu-system: ${snapshot.qemuSystem}\n- qemu-img: ${snapshot.qemuImg}\n`,
+    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling provenance -->\n\n- CWD: ${cwd}\n- Git root: ${snapshot.gitRoot}\n- Git branch: ${snapshot.gitBranch}\n- Git HEAD: ${snapshot.gitHead}\n- Initial dirty state: ${snapshot.gitDirtyState}\n- qemu-system: ${snapshot.qemuSystem}\n- qemu-img: ${snapshot.qemuImg}\n\n\`\`\`text\n${snapshot.gitStatus || "(clean)"}\n\`\`\`\n`,
   );
   await appendSectionOnce(
     join(taskRoot, "source-provenance.md"),
     "<!-- qemu-modeling source-provenance -->",
-    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling source-provenance -->\n\n| Component | Path/URL | Revision | Dirty state | Purpose |\n| --- | --- | --- | --- | --- |\n| QEMU source | ${snapshot.gitRoot} | ${snapshot.gitHead} | not checked by bootstrap | workflow cwd |\n\n## Detected Tools\n\n| Tool | Path | Notes |\n| --- | --- | --- |\n| qemu-system | ${snapshot.qemuSystem} | first aarch64/x86_64 executable on PATH, if any |\n| qemu-img | ${snapshot.qemuImg} | executable on PATH, if any |\n`,
+    `\n## Task Source Baseline\n\n<!-- qemu-modeling source-provenance -->\n\n| Tree | Branch | Baseline revision | Initial dirty paths | Commit pathspecs |\n| --- | --- | --- | --- | --- |\n| ${markdownCell(snapshot.gitRoot)} | ${markdownCell(snapshot.gitBranch)} | ${markdownCell(snapshot.gitHead)} | ${snapshot.gitDirtyState === "dirty" ? "see status below" : snapshot.gitDirtyState} | pending plan |\n\n### Initial Git Status\n\n\`\`\`text\n${snapshot.gitStatus || "(clean)"}\n\`\`\`\n\n## Detected Tools\n\n| Tool | Path | Notes |\n| --- | --- | --- |\n| qemu-system | ${snapshot.qemuSystem} | first aarch64/x86_64 executable on PATH, if any |\n| qemu-img | ${snapshot.qemuImg} | executable on PATH, if any |\n`,
   );
 
   emit({
@@ -179,6 +171,28 @@ async function recordProvenance() {
     data: snapshot,
     statePatch: [{ op: "set", path: "/provenance", value: snapshot }],
   });
+}
+
+function captureProvenance() {
+  const gitRoot = commandLine("git", ["rev-parse", "--show-toplevel"]);
+  const gitHead = commandLine("git", ["rev-parse", "HEAD"]);
+  const gitBranch = commandLine("git", ["branch", "--show-current"]);
+  const gitStatus = commandOutput("git", ["status", "--short"]);
+  const gitInside = commandLine("git", ["rev-parse", "--is-inside-work-tree"]);
+  const qemuSystem = commandLine("sh", ["-c", "command -v qemu-system-aarch64 || command -v qemu-system-x86_64 || true"]);
+  const qemuImg = commandLine("sh", ["-c", "command -v qemu-img || true"]);
+  return {
+    cwd,
+    gitRoot: gitRoot.ok ? gitRoot.stdout : "unavailable",
+    gitHead: gitHead.ok ? gitHead.stdout : "unavailable",
+    gitBranch: gitBranch.ok ? gitBranch.stdout || "detached" : "unavailable",
+    gitStatus: gitStatus.ok ? gitStatus.stdout : `unavailable: ${gitStatus.error}`,
+    gitDirtyPaths: gitStatus.ok ? gitStatus.stdout.split(/\r?\n/).filter(Boolean) : [],
+    gitDirtyState: gitStatus.ok ? (gitStatus.stdout ? "dirty" : "clean") : "unavailable",
+    gitInsideWorkTree: gitInside.ok ? gitInside.stdout : "unavailable",
+    qemuSystem: qemuSystem.stdout || "unavailable",
+    qemuImg: qemuImg.stdout || "unavailable",
+  };
 }
 
 async function writeHandoff() {
@@ -412,13 +426,23 @@ async function appendSectionOnce(path, marker, content) {
 }
 
 function commandLine(command, args) {
+  const result = runCommand(command, args);
+  if (!result.ok) return result;
+  return { ...result, stdout: result.stdout.split(/\r?\n/)[0] ?? "" };
+}
+
+function commandOutput(command, args) {
+  return runCommand(command, args);
+}
+
+function runCommand(command, args) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
     timeout: 2000,
   });
   if (result.error) return { ok: false, stdout: "", error: result.error.message };
-  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stdout = (result.stdout ?? "").trim();
   const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
   return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
 }
@@ -464,6 +488,10 @@ function clipText(text, max) {
 
 function unique(values) {
   return [...new Set(values.filter((value) => typeof value === "string" && value.length > 0))];
+}
+
+function markdownCell(value) {
+  return String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
 function stageState(status, summary) {
