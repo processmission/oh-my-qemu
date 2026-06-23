@@ -27,7 +27,7 @@ Procedure:
    omp workflow start "${CLAUDE_PLUGIN_ROOT}/workflows/qemu-modeling.omhflow" --cwd "$PWD" --json
    ```
 
-4. Report the workflow status, run id, task root, and `workflow-handoff.md` path. The workflow owns planning, implementation, verification, review looping, and final evidence.
+4. Report the workflow status, run id, task root, and `workflow-handoff.md` path. The workflow owns planning, implementation, verification, review looping, scoped local round commits, and final evidence.
 
 Rules:
 

@@ -100,6 +100,7 @@ if (mode === "bootstrap") {
 }
 
 async function bootstrapWorkspace() {
+  const provenance = captureProvenance();
   const result = { created: [], kept: [] };
   await ensureDir(taskRoot, result);
   for (const dir of ROOT_DIRS) await ensureDir(join(taskRoot, dir), result);
@@ -137,41 +138,33 @@ async function bootstrapWorkspace() {
           dirs: ROOT_DIRS,
         },
       },
+      { op: "set", path: "/provenance", value: provenance },
       { op: "set", path: "/plan", value: stageState("pending", "planWork has not run") },
       { op: "set", path: "/research", value: stageState("pending", "researchContract has not run") },
       { op: "set", path: "/implementation", value: stageState("pending", "implementationRound has not run") },
       { op: "set", path: "/verification", value: stageState("pending", "verificationRound has not run") },
       { op: "set", path: "/fixes", value: { status: "pending", round: 0, summary: "No fix round has run yet." } },
-      { op: "set", path: "/modeling", value: { status: "bootstrapped", round: 0, summaries: {}, artifacts: [] } },
+      { op: "set", path: "/modeling", value: { status: "bootstrapped", round: 0, attempt: 0, summaries: {}, artifacts: [] } },
+      { op: "set", path: "/commit", value: { status: "pending", round: 0, commit: "none" } },
       { op: "set", path: "/final", value: { status: "pending" } },
     ],
   });
 }
 
 async function recordProvenance() {
-  const gitRoot = commandLine("git", ["rev-parse", "--show-toplevel"]);
-  const gitHead = commandLine("git", ["rev-parse", "--short", "HEAD"]);
-  const gitInside = commandLine("git", ["rev-parse", "--is-inside-work-tree"]);
-  const qemuSystem = commandLine("sh", ["-c", "command -v qemu-system-aarch64 || command -v qemu-system-x86_64 || true"]);
-  const qemuImg = commandLine("sh", ["-c", "command -v qemu-img || true"]);
-  const snapshot = {
-    cwd,
-    gitRoot: gitRoot.ok ? gitRoot.stdout : "unavailable",
-    gitHead: gitHead.ok ? gitHead.stdout : "unavailable",
-    gitInsideWorkTree: gitInside.ok ? gitInside.stdout : "unavailable",
-    qemuSystem: qemuSystem.stdout || "unavailable",
-    qemuImg: qemuImg.stdout || "unavailable",
-  };
+  const prior = context.state?.provenance;
+  const snapshot =
+    prior && prior.gitInsideWorkTree !== "unavailable" ? prior : captureProvenance();
 
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
     "<!-- qemu-modeling provenance -->",
-    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling provenance -->\n\n- CWD: ${cwd}\n- Git root: ${snapshot.gitRoot}\n- Git HEAD: ${snapshot.gitHead}\n- qemu-system: ${snapshot.qemuSystem}\n- qemu-img: ${snapshot.qemuImg}\n`,
+    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling provenance -->\n\n- CWD: ${cwd}\n- Git root: ${snapshot.gitRoot}\n- Git branch: ${snapshot.gitBranch}\n- Git HEAD: ${snapshot.gitHead}\n- Initial dirty state: ${snapshot.gitDirtyState}\n- qemu-system: ${snapshot.qemuSystem}\n- qemu-img: ${snapshot.qemuImg}\n\n\`\`\`text\n${snapshot.gitStatus || "(clean)"}\n\`\`\`\n`,
   );
   await appendSectionOnce(
     join(taskRoot, "source-provenance.md"),
     "<!-- qemu-modeling source-provenance -->",
-    `\n## Workflow Bootstrap Snapshot\n\n<!-- qemu-modeling source-provenance -->\n\n| Component | Path/URL | Revision | Dirty state | Purpose |\n| --- | --- | --- | --- | --- |\n| QEMU source | ${snapshot.gitRoot} | ${snapshot.gitHead} | not checked by bootstrap | workflow cwd |\n\n## Detected Tools\n\n| Tool | Path | Notes |\n| --- | --- | --- |\n| qemu-system | ${snapshot.qemuSystem} | first aarch64/x86_64 executable on PATH, if any |\n| qemu-img | ${snapshot.qemuImg} | executable on PATH, if any |\n`,
+    `\n## Task Source Baseline\n\n<!-- qemu-modeling source-provenance -->\n\n| Tree | Branch | Baseline revision | Initial dirty paths | Commit pathspecs |\n| --- | --- | --- | --- | --- |\n| ${markdownCell(snapshot.gitRoot)} | ${markdownCell(snapshot.gitBranch)} | ${markdownCell(snapshot.gitHead)} | ${snapshot.gitDirtyState === "dirty" ? "see status below" : snapshot.gitDirtyState} | pending plan |\n\n### Initial Git Status\n\n\`\`\`text\n${snapshot.gitStatus || "(clean)"}\n\`\`\`\n\n## Detected Tools\n\n| Tool | Path | Notes |\n| --- | --- | --- |\n| qemu-system | ${snapshot.qemuSystem} | first aarch64/x86_64 executable on PATH, if any |\n| qemu-img | ${snapshot.qemuImg} | executable on PATH, if any |\n`,
   );
 
   emit({
@@ -179,6 +172,28 @@ async function recordProvenance() {
     data: snapshot,
     statePatch: [{ op: "set", path: "/provenance", value: snapshot }],
   });
+}
+
+function captureProvenance() {
+  const gitRoot = commandLine("git", ["rev-parse", "--show-toplevel"]);
+  const gitHead = commandLine("git", ["rev-parse", "HEAD"]);
+  const gitBranch = commandLine("git", ["branch", "--show-current"]);
+  const gitStatus = commandOutput("git", ["status", "--short"]);
+  const gitInside = commandLine("git", ["rev-parse", "--is-inside-work-tree"]);
+  const qemuSystem = commandLine("sh", ["-c", "command -v qemu-system-aarch64 || command -v qemu-system-x86_64 || true"]);
+  const qemuImg = commandLine("sh", ["-c", "command -v qemu-img || true"]);
+  return {
+    cwd,
+    gitRoot: gitRoot.ok ? gitRoot.stdout : "unavailable",
+    gitHead: gitHead.ok ? gitHead.stdout : "unavailable",
+    gitBranch: gitBranch.ok ? gitBranch.stdout || "detached" : "unavailable",
+    gitStatus: gitStatus.ok ? gitStatus.stdout : `unavailable: ${gitStatus.error}`,
+    gitDirtyPaths: gitStatus.ok ? gitStatus.stdout.split(/\r?\n/).filter(Boolean) : [],
+    gitDirtyState: gitStatus.ok ? (gitStatus.stdout ? "dirty" : "clean") : "unavailable",
+    gitInsideWorkTree: gitInside.ok ? gitInside.stdout : "unavailable",
+    qemuSystem: qemuSystem.stdout || "unavailable",
+    qemuImg: qemuImg.stdout || "unavailable",
+  };
 }
 
 async function writeHandoff() {
@@ -205,30 +220,48 @@ async function writeHandoff() {
 
 async function recordRound() {
   const completed = Array.isArray(context.completedActivations) ? context.completedActivations : [];
-  const round = countCompleted(completed, "recordRound") + 1;
-  const stageIds = ["planWork", "researchContract", "implementationRound", "verificationRound", "fixRound", "reviewModeling"];
-  const summaries = Object.fromEntries(stageIds.map((id) => [id, summarizeActivation(latestActivation(completed, id))]));
+  const round = countCompleted(completed, "commitRound") + 1;
+  const attempt = countCompletedAfterLast(completed, "recordRound", "commitRound") + 1;
+  const summaries = {
+    planWork: summarizeActivation(latestActivation(completed, "planWork")),
+    researchContract: summarizeActivation(latestActivation(completed, "researchContract")),
+    implementationRound: summarizeActivation(
+      latestActivationAfterLast(completed, "implementationRound", "commitRound"),
+    ),
+    verificationRound: summarizeActivation(
+      latestActivationAfterLast(completed, "verificationRound", "commitRound"),
+    ),
+    fixRound: summarizeActivation(latestActivationAfterLast(completed, "fixRound", "commitRound")),
+  };
   const artifacts = unique(
-    stageIds.flatMap((id) => latestActivation(completed, id)?.output?.artifacts ?? []),
+    Object.values(summaries).flatMap((summary) => summary.artifacts ?? []),
   );
   const modeling = {
     status: "review-pending",
     round,
+    attempt,
     summaries,
     artifacts,
     updatedAt: new Date().toISOString(),
   };
   const roundFile = join(taskRoot, "rlcr", `round-${String(round).padStart(3, "0")}-summary.md`);
-  await writeFile(roundFile, roundSummaryTemplate(round, summaries, artifacts), "utf8");
+  const attemptFile = join(
+    taskRoot,
+    "reviews",
+    `round-${String(round).padStart(3, "0")}-attempt-${String(attempt).padStart(3, "0")}-summary.md`,
+  );
+  const summary = roundSummaryTemplate(round, attempt, summaries, artifacts);
+  await writeFile(roundFile, summary, "utf8");
+  await writeFile(attemptFile, summary, "utf8");
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
-    `<!-- qemu-modeling round ${round} -->`,
-    `\n## Workflow Round ${round}\n\n<!-- qemu-modeling round ${round} -->\n\n- Summary: ${summaries.verificationRound.summary}\n- Round summary: rlcr/${basename(roundFile)}\n- Artifact references: ${artifacts.length ? artifacts.join(", ") : "none recorded"}\n`,
+    `<!-- qemu-modeling round ${round} attempt ${attempt} -->`,
+    `\n## Workflow Round ${round} Attempt ${attempt}\n\n<!-- qemu-modeling round ${round} attempt ${attempt} -->\n\n- Summary: ${summaries.verificationRound.summary}\n- Round summary: rlcr/${basename(roundFile)}\n- Attempt summary: reviews/${basename(attemptFile)}\n- Artifact references: ${artifacts.length ? artifacts.join(", ") : "none recorded"}\n`,
   );
 
   emit({
-    summary: `recorded QEMU modeling round ${round}`,
-    data: { round, roundFile, artifacts },
+    summary: `recorded QEMU modeling round ${round} attempt ${attempt}`,
+    data: { round, attempt, roundFile, attemptFile, artifacts },
     statePatch: [{ op: "set", path: "/modeling", value: modeling }],
   });
 }
@@ -236,7 +269,8 @@ async function recordRound() {
 async function finalizeEvidence() {
   const completed = Array.isArray(context.completedActivations) ? context.completedActivations : [];
   const review = latestActivation(completed, "reviewModeling");
-  const verdict = review?.output?.data?.verdict ?? context.state?.verdict ?? "unknown";
+  const commit = context.state?.commit ?? {};
+  const verdict = commit.verdict ?? review?.output?.data?.verdict ?? context.state?.verdict ?? "unknown";
   const modeling = context.state?.modeling ?? {};
   const final = {
     status: verdict === "COMPLETE" ? "complete" : "incomplete",
@@ -245,7 +279,7 @@ async function finalizeEvidence() {
     workstream,
     completedAt: new Date().toISOString(),
   };
-  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling), "utf8");
+  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling, commit), "utf8");
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
     "<!-- qemu-modeling final -->",
@@ -412,13 +446,23 @@ async function appendSectionOnce(path, marker, content) {
 }
 
 function commandLine(command, args) {
+  const result = runCommand(command, args);
+  if (!result.ok) return result;
+  return { ...result, stdout: result.stdout.split(/\r?\n/)[0] ?? "" };
+}
+
+function commandOutput(command, args) {
+  return runCommand(command, args);
+}
+
+function runCommand(command, args) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
     timeout: 2000,
   });
   if (result.error) return { ok: false, stdout: "", error: result.error.message };
-  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stdout = (result.stdout ?? "").trim();
   const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
   return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
 }
@@ -427,8 +471,38 @@ function countCompleted(activations, nodeId) {
   return activations.filter((activation) => activation.nodeId === nodeId && activation.status === "completed").length;
 }
 
+function countCompletedAfterLast(activations, nodeId, boundaryNodeId) {
+  let boundary = -1;
+  for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === boundaryNodeId && activation.status === "completed") {
+      boundary = index;
+      break;
+    }
+  }
+  return activations
+    .slice(boundary + 1)
+    .filter((activation) => activation.nodeId === nodeId && activation.status === "completed").length;
+}
+
 function latestActivation(activations, nodeId) {
   for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === nodeId && activation.status === "completed") return activation;
+  }
+  return undefined;
+}
+
+function latestActivationAfterLast(activations, nodeId, boundaryNodeId) {
+  let boundary = -1;
+  for (let index = activations.length - 1; index >= 0; index -= 1) {
+    const activation = activations[index];
+    if (activation.nodeId === boundaryNodeId && activation.status === "completed") {
+      boundary = index;
+      break;
+    }
+  }
+  for (let index = activations.length - 1; index > boundary; index -= 1) {
     const activation = activations[index];
     if (activation.nodeId === nodeId && activation.status === "completed") return activation;
   }
@@ -464,6 +538,10 @@ function clipText(text, max) {
 
 function unique(values) {
   return [...new Set(values.filter((value) => typeof value === "string" && value.length > 0))];
+}
+
+function markdownCell(value) {
+  return String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
 function stageState(status, summary) {
@@ -506,6 +584,16 @@ ${taskBrief}
 
 ### Allowed source changes
 
+### Local Git Checkpoint Contract
+
+- Task source tree:
+- Dedicated local branch:
+- Baseline revision:
+- Initial dirty paths:
+- Round-commit pathspecs:
+- QEMU subject prefix:
+- Remote publication: forbidden
+
 ### Artifact root
 
 \`build/agent/${slug}/\`
@@ -520,7 +608,10 @@ ${taskBrief}
   - Evidence: Source changes and artifact references recorded in the round summaries.
 - AC-4: Targeted verification proves the relevant behavior.
   - Evidence: commands.md, evidence.md, logs/, qtest/build/boot/debug output as applicable.
-- AC-5: Independent review returns COMPLETE.
+- AC-5: Every source-changing logical round has one reviewed local Git
+  checkpoint commit.
+  - Evidence: source-provenance.md and rlcr/round-NNN-source-state.md.
+- AC-6: Independent review returns COMPLETE.
   - Evidence: reviewModeling verdict and rlcr/final-summary.md.
 
 ## Verification Gates
@@ -560,6 +651,11 @@ function sourceProvenanceTemplate() {
 
 | Component | Path/URL | Revision | Dirty state | Purpose |
 | --- | --- | --- | --- | --- |
+
+## RLCR Round Checkpoints
+
+| Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Configurations
 
@@ -745,6 +841,7 @@ function goalTrackerTemplate() {
 ## Mutable
 
 - Active round: 0
+- Round commit: none
 - Completed:
 - Remaining:
 - Deferred with reason:
@@ -774,7 +871,7 @@ ${skills.map((skill, index) => `${index + 1}. ${skill}`).join("\n")}
 ## Workflow Contract
 
 - Start with \`${skills[0]}\`; keep artifacts in this task root.
-- For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: round summaries, independent review, fixes, and final evidence.
+- For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: one coherent slice, targeted verification, independent review, and one scoped local commit before advancing.
 - Use targeted QEMU build/qtest/boot/debug gates that prove the acceptance criteria.
 - Preserve QEMU provenance policy: no agent-added DCO or review trailers, and no claim that source output is upstream-ready.
 
@@ -784,8 +881,12 @@ The workflow is complete only when source provenance, modeling/build/debug work,
 `;
 }
 
-function roundSummaryTemplate(round, summaries, artifacts) {
+function roundSummaryTemplate(round, attempt, summaries, artifacts) {
   return `# Round ${round} Summary
+
+## Attempt
+
+${attempt}
 
 ## Plan
 
@@ -807,9 +908,19 @@ ${summaries.verificationRound.summary}
 
 ${summaries.fixRound.summary}
 
-## Latest Review
+## Review
 
-${summaries.reviewModeling.summary}
+Pending independent review for this attempt.
+
+## Git Checkpoint
+
+- Status: pending review
+- Parent:
+- Commit:
+- Tree:
+- Subject:
+- Staged paths:
+- Residual dirty state:
 
 ## Artifacts
 
@@ -817,7 +928,7 @@ ${artifacts.length ? artifacts.map((artifact) => `- ${artifact}`).join("\n") : "
 `;
 }
 
-function finalSummaryTemplate(final, modeling) {
+function finalSummaryTemplate(final, modeling, commit) {
   return `# Final Summary
 
 ## Status
@@ -837,10 +948,18 @@ See ../plan.md and the round summaries in this directory.
 ${JSON.stringify(modeling, null, 2)}
 \`\`\`
 
+## Latest Round Commit
+
+\`\`\`json
+${JSON.stringify(commit, null, 2)}
+\`\`\`
+
 ## Policy Check
 
 - Agent-created artifacts belong under ${relativeTaskRoot()}/.
 - No DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers are added by this workflow.
 - Source output is local workflow output, not an upstream-ready contribution package.
+- Every source-changing reviewed round is committed locally before the workflow advances.
+- The workflow does not push, publish, format, or send round commits.
 `;
 }

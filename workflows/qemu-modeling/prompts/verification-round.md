@@ -32,6 +32,8 @@ Rules:
 - Run only targeted gates that prove the plan acceptance criteria.
 - Never suppress a failure to make the workflow pass. Classify failures and record log paths.
 - Store logs, traces, qtest output, boot consoles, and scratch data under `{{taskRoot}}/logs/` or another `{{taskRoot}}/` subdirectory.
+- Verify only the current logical round. Do not stage or commit source; the
+  independent `commitRound` node owns Git state after review passes.
 
 Change:
 

@@ -13,8 +13,9 @@ changePolicy:
 Complete Oh My QEMU modeling workflow for local QEMU research, implementation,
 and verification runs. It bootstraps the required `build/agent/<task-slug>/`
 workspace, runs the QEMU planning and domain-skill chain, loops through
-implementation plus verification review until the reviewer returns `COMPLETE`,
-and writes a final evidence summary.
+coherent implementation plus verification rounds, commits each reviewed round
+locally, and writes a final evidence summary after the reviewer returns
+`COMPLETE`.
 
 This is a candidate workflow artifact. Run it by explicit path or through
 `OMHFLOW_DIR`; do not treat it as an Oh My Humanize built-in practical flow
@@ -41,6 +42,7 @@ stateSchema:
     verification: object
     fixes: object
     modeling: object
+    commit: object
     verdict: string
     final: object
 resources:
@@ -57,6 +59,8 @@ resources:
   - path: prompts/fix-round.md
     kind: prompt
   - path: prompts/review-gate.md
+    kind: prompt
+  - path: prompts/commit-round.md
     kind: prompt
 capabilities:
   agents:
@@ -77,12 +81,14 @@ nodes:
       - /taskBrief
       - /workstream
       - /workspace
+      - /provenance
       - /plan
       - /research
       - /implementation
       - /verification
       - /fixes
       - /modeling
+      - /commit
       - /final
   recordProvenance:
     type: script
@@ -190,6 +196,10 @@ nodes:
               node: researchContract
               path: /summary
               activation: latest-completed
+          modeling:
+            state: /modeling
+          commit:
+            state: /commit
   verificationRound:
     type: agent
     agent: task
@@ -251,6 +261,10 @@ nodes:
             state: /handoff
           modeling:
             state: /modeling
+          round:
+            state: /modeling/round
+          attempt:
+            state: /modeling/attempt
           verificationSummary:
             output:
               node: verificationRound
@@ -258,8 +272,53 @@ nodes:
               activation: latest-completed
     gates:
       - CONTINUE
+      - ADVANCE
       - COMPLETE
     fallbackVerdict: CONTINUE
+  commitRound:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /commit
+    prompt:
+      template:
+        file: prompts/commit-round.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          provenance:
+            state: /provenance
+          modeling:
+            state: /modeling
+          round:
+            state: /modeling/round
+          attempt:
+            state: /modeling/attempt
+          verificationSummary:
+            output:
+              node: verificationRound
+              path: /summary
+              activation: latest-completed
+          reviewSummary:
+            output:
+              node: reviewModeling
+              path: /summary
+              activation: latest-completed
+          reviewVerdict:
+            output:
+              node: reviewModeling
+              path: /data/verdict
+              activation: latest-completed
   fixRound:
     type: agent
     agent: task
@@ -321,11 +380,20 @@ edges:
   - from: recordRound
     to: reviewModeling
   - from: reviewModeling
-    to: finalizeEvidence
-    when: outputs.reviewModeling.verdict == "COMPLETE"
-  - from: reviewModeling
     to: fixRound
     when: outputs.reviewModeling.verdict == "CONTINUE"
+  - from: reviewModeling
+    to: commitRound
+    when: outputs.reviewModeling.verdict == "ADVANCE"
+  - from: reviewModeling
+    to: commitRound
+    when: outputs.reviewModeling.verdict == "COMPLETE"
   - from: fixRound
     to: verificationRound
+  - from: commitRound
+    to: implementationRound
+    when: outputs.reviewModeling.verdict == "ADVANCE"
+  - from: commitRound
+    to: finalizeEvidence
+    when: outputs.reviewModeling.verdict == "COMPLETE"
 ```

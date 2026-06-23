@@ -57,7 +57,7 @@ This repository is also a Claude Code plugin:
 - `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
 - `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
 - `qemu-register-extraction`: research flow that extracts register maps, bitfields, cross-register dependencies, side effects, IRQ/DMA behavior, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown for peripheral modeling.
-- `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, final evidence, and one-time sanitized methodology feedback at terminal workflow points.
+- `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, scoped local Git checkpoint commits, final evidence, and one-time sanitized methodology feedback at terminal workflow points.
 
 ## Operational skills
 

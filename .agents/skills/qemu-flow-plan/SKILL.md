@@ -79,10 +79,29 @@ Include:
 - files/subsystems allowed to change;
 - files/subsystems that are read-only references;
 - source-generated artifacts that must not be committed;
+- the task source tree, dedicated local task branch, baseline revision, and
+  initial dirty paths;
+- exact source pathspecs allowed in round commits and the expected QEMU
+  subsystem prefix;
 - build/test commands allowed;
 - expected verification gates.
 
-### 5. Record evidence as it is discovered
+If a task must modify a path that was already dirty at baseline, stop and ask
+the human to resolve or explicitly include that pre-existing change before
+implementation. Never infer that an existing modification belongs to the task.
+
+### 5. Prepare local Git checkpoints
+
+For implementation work, use a dedicated local task branch and record its name,
+HEAD, and initial `git status --short` in `source-provenance.md` before changing
+source. State that RLCR round commits are local workflow checkpoints: never push,
+publish, format, or describe them as QEMU-upstream-ready output.
+
+Derive the expected commit subject prefix from the affected subsystem and nearby
+QEMU history. Keep agent artifacts under `build/agent/<task-slug>/`; they are
+evidence for the commits, not commit content.
+
+### 6. Record evidence as it is discovered
 
 Use `evidence.md` as a ledger:
 
@@ -94,7 +113,7 @@ Use `evidence.md` as a ledger:
 
 Keep evidence short. Link to artifacts in `build/agent/<task-slug>/logs/` instead of pasting large logs into the plan.
 
-### 6. Hand off to domain skill
+### 7. Hand off to domain skill
 
 After the plan is stable, choose the narrow domain skill:
 
@@ -130,6 +149,16 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 ### Out of scope
 
 ### Allowed source changes
+
+### Local Git Checkpoint Contract
+
+- Task source tree:
+- Dedicated local branch:
+- Baseline revision:
+- Initial dirty paths:
+- Round-commit pathspecs:
+- QEMU subject prefix:
+- Remote publication: forbidden
 
 ### Artifact root
 
