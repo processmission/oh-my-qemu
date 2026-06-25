@@ -1,0 +1,30 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  eyebrow: string;
+  section: "blog" | "docs";
+  meta?: string;
+}
+
+const { title, description, eyebrow, section, meta } = Astro.props;
+---
+
+<BaseLayout title={title} description={description} section={section}>
+  <article class="content-shell section">
+    <a class="text-link back-link" href={section === "blog" ? `${import.meta.env.BASE_URL}blog/` : `${import.meta.env.BASE_URL}docs/`}>
+      ← Back to {section}
+    </a>
+    <header class="content-header">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      {meta && <p class="post-meta">{meta}</p>}
+    </header>
+    <div class="prose">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>

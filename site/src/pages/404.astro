@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Page not found"
+  description="The requested Oh My QEMU page could not be found."
+>
+  <section class="section page-hero">
+    <p class="eyebrow">404</p>
+    <h1>Page not found.</h1>
+    <p>
+      The blog post or documentation page may have moved. Start from the site index,
+      then follow Blog or Docs.
+    </p>
+    <div class="hero-actions">
+      <a class="button primary" href={import.meta.env.BASE_URL}>Go home</a>
+      <a class="button secondary" href={`${import.meta.env.BASE_URL}docs/`}>Read docs</a>
+    </div>
+  </section>
+</BaseLayout>

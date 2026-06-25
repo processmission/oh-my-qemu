@@ -1,0 +1,86 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  section?: "home" | "blog" | "docs";
+}
+
+const { title, description, section = "home" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const link = (path: string) => `${base}${path.replace(/^\//, "")}`;
+const pageTitle = title === "Oh My QEMU" ? title : `${title} — Oh My QEMU`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0b1020" />
+    <title>{pageTitle}</title>
+    <link rel="alternate" type="application/rss+xml" title="Oh My QEMU blog" href={link("rss.xml")} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-elevated="false">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href={link("")} aria-label="Oh My QEMU home">
+          <span class="brand-mark" aria-hidden="true">Q</span>
+          <span>
+            <strong>Oh My QEMU</strong>
+            <small>Agent workflows for QEMU</small>
+          </span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu">Menu</button>
+        <div class="nav-links" id="site-menu">
+          <a aria-current={section === "home" ? "page" : undefined} href={link("")}>Overview</a>
+          <a aria-current={section === "blog" ? "page" : undefined} href={link("blog/")}>Blog</a>
+          <a aria-current={section === "docs" ? "page" : undefined} href={link("docs/")}>Docs</a>
+          <a class="nav-cta" href="https://github.com/processmission/oh-my-qemu">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <p>© <span id="year">2026</span> Process Mission. Oh My QEMU.</p>
+      <a href="#main">Back to top</a>
+    </footer>
+
+    <script is:inline>
+      const header = document.querySelector(".site-header");
+      const button = document.querySelector(".nav-toggle");
+      const setHeader = () => header?.setAttribute("data-elevated", window.scrollY > 8 ? "true" : "false");
+      setHeader();
+      window.addEventListener("scroll", setHeader, { passive: true });
+      button?.addEventListener("click", () => {
+        const open = document.body.classList.toggle("nav-open");
+        button.setAttribute("aria-expanded", String(open));
+      });
+      document.querySelectorAll(".nav-links a").forEach((link) => {
+        link.addEventListener("click", () => {
+          document.body.classList.remove("nav-open");
+          button?.setAttribute("aria-expanded", "false");
+        });
+      });
+      document.querySelectorAll("[data-copy]").forEach((copyButton) => {
+        copyButton.addEventListener("click", async () => {
+          const target = document.getElementById(copyButton.getAttribute("data-copy"));
+          const text = target?.textContent?.trim();
+          if (!text) return;
+          await navigator.clipboard?.writeText(text);
+          copyButton.textContent = "Copied";
+          setTimeout(() => { copyButton.textContent = "Copy"; }, 1600);
+        });
+      });
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

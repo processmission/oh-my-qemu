@@ -1,0 +1,21 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import ContentLayout from "../../layouts/ContentLayout.astro";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("blog")).filter((post) => !post.data.draft);
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: CollectionEntry<"blog">;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const meta = new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric" }).format(post.data.pubDate);
+---
+
+<ContentLayout title={post.data.title} description={post.data.description} eyebrow="Blog" section="blog" meta={`${meta} · ${post.data.author}`}>
+  <Content />
+</ContentLayout>

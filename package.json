@@ -12,7 +12,9 @@
     "omp:workflows:validate": "node scripts/validate-workflows.mjs",
     "omp:workflows:install": "node scripts/install-workflows.mjs",
     "omp:workflows:install:dry-run": "node scripts/install-workflows.mjs --dry-run",
-    "portable:skills:install-global": "node scripts/install-portable-skills-global.mjs"
+    "portable:skills:install-global": "node scripts/install-portable-skills-global.mjs",
+    "site:build": "npm --prefix site run build",
+    "site:check": "npm --prefix site run check"
   },
   "keywords": [
     "oh-my-pi",
