@@ -14,8 +14,8 @@ Complete Oh My QEMU modeling workflow for local QEMU research, implementation,
 and verification runs. It bootstraps the required `build/agent/<task-slug>/`
 workspace, runs the QEMU planning and domain-skill chain, loops through
 coherent implementation plus verification rounds, commits each reviewed round
-locally, and writes a final evidence summary after the reviewer returns
-`COMPLETE`.
+locally, prepares human-owned final-series drafts that atomize the checkpoints,
+and writes a final evidence summary after the reviewer returns `COMPLETE`.
 
 This is a candidate workflow artifact. Run it by explicit path or through
 `OMHFLOW_DIR`; do not treat it as an Oh My Humanize built-in practical flow
@@ -43,6 +43,7 @@ stateSchema:
     fixes: object
     modeling: object
     commit: object
+    finalSeries: object
     verdict: string
     final: object
 resources:
@@ -61,6 +62,8 @@ resources:
   - path: prompts/review-gate.md
     kind: prompt
   - path: prompts/commit-round.md
+    kind: prompt
+  - path: prompts/final-series.md
     kind: prompt
 capabilities:
   agents:
@@ -89,6 +92,7 @@ nodes:
       - /fixes
       - /modeling
       - /commit
+      - /finalSeries
       - /final
   recordProvenance:
     type: script
@@ -319,6 +323,31 @@ nodes:
               node: reviewModeling
               path: /data/verdict
               activation: latest-completed
+  prepareFinalSeries:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /finalSeries
+    prompt:
+      template:
+        file: prompts/final-series.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          modeling:
+            state: /modeling
+          commit:
+            state: /commit
   fixRound:
     type: agent
     agent: task
@@ -394,6 +423,8 @@ edges:
     to: implementationRound
     when: outputs.reviewModeling.verdict == "ADVANCE"
   - from: commitRound
-    to: finalizeEvidence
+    to: prepareFinalSeries
     when: outputs.reviewModeling.verdict == "COMPLETE"
+  - from: prepareFinalSeries
+    to: finalizeEvidence
 ```

@@ -16,7 +16,7 @@ Rules:
 
 - Read and follow `skill://qemu-flow-plan` before planning.
 - Keep every agent-created artifact under `{{taskRoot}}/`.
-- Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
+- Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers. The terminal final-series node may draft suggested sign-off trailers only for human review after `COMPLETE`.
 - Treat any QEMU source edits as local-only workflow output, not upstream-ready contribution material.
 - Do not implement yet. This node freezes the plan and verification contract.
 - For source-changing work, ensure the task uses a dedicated local branch and

@@ -41,9 +41,10 @@ Rules:
 - Keep all scratch files, generated decoders, copied command lines, and logs under `{{taskRoot}}/`.
 - Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
 - Do not hide missing hardware facts with default constants, fake fallbacks, or TODO stubs.
-- Implement one smallest coherent slice that can stand as one logical,
-  verified QEMU-style local commit. If the remaining work contains multiple
-  independent changes, leave them for later rounds.
+- Implement the smallest coherent slice that advances the task and can be
+  reviewed as one local checkpoint. If the remaining work contains multiple
+  independent changes, leave them for later rounds or the terminal final-series
+  split.
 
 Change:
 

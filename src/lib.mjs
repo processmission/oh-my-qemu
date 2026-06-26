@@ -81,7 +81,9 @@ export function initQemuTask(cwd, rawName) {
 
 - QEMU upstream provenance policy applies.
 - Agent-created artifacts stay under build/agent/${slug}/.
-- No DCO or review trailers are added by the agent.
+- Round checkpoint commits carry no DCO/review trailers added by the agent.
+- Final-series drafts, if requested, are human-owned and not upstream-ready until a human rewrites and certifies them.
+- \`AI-used-for:\` is a proposed qemu-devel scope-disclosure trailer, not DCO; draft it only when a human-recorded policy or maintainer exception applies.
 
 ## Scope
 
@@ -131,6 +133,21 @@ Record exact commands, working directories, environment overrides, and output ar
 
 | Component | Path/URL | Revision | Dirty state | Purpose |
 | --- | --- | --- | --- | --- |
+
+## Task Source Baseline
+
+| Tree | Branch | Baseline revision | Initial dirty paths | Commit pathspecs |
+| --- | --- | --- | --- | --- |
+
+## RLCR Round Checkpoints
+
+| Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Final Series Preparation
+
+| Patch | Source round commits | Subject | Message draft | Required evidence | Sign-offs | AI-used-for |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Configurations
 

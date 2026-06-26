@@ -36,7 +36,8 @@ Review contract:
   This routes through `commitRound` before selecting the next slice.
 - Use `COMPLETE` only when the current round is clean and every acceptance
   criterion in `{{taskRoot}}/plan.md` is satisfied with observed evidence.
-  This also routes through `commitRound` before finalization.
+  This routes through `commitRound`, terminal final-series draft preparation,
+  and then final evidence.
 - Use `CONTINUE` for missing source provenance, missing register/IRQ/boot contract facts, untested behavior, build/qtest/boot failures, source-policy violations, fake stubs, TODO implementations, or undocumented blockers.
 - Do not treat a narrowed build, typecheck, or string-only check as proof of runtime/model parity unless the plan explicitly scopes that narrowly.
 - Enforce QEMU policy: no agent-added DCO/review trailers and no claim that output is upstream-ready.

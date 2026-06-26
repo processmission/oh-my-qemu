@@ -146,6 +146,7 @@ async function bootstrapWorkspace() {
       { op: "set", path: "/fixes", value: { status: "pending", round: 0, summary: "No fix round has run yet." } },
       { op: "set", path: "/modeling", value: { status: "bootstrapped", round: 0, attempt: 0, summaries: {}, artifacts: [] } },
       { op: "set", path: "/commit", value: { status: "pending", round: 0, commit: "none" } },
+      { op: "set", path: "/finalSeries", value: { status: "pending", patches: 0 } },
       { op: "set", path: "/final", value: { status: "pending" } },
     ],
   });
@@ -270,20 +271,31 @@ async function finalizeEvidence() {
   const completed = Array.isArray(context.completedActivations) ? context.completedActivations : [];
   const review = latestActivation(completed, "reviewModeling");
   const commit = context.state?.commit ?? {};
+  const finalSeries = context.state?.finalSeries ?? { status: "not-run", patches: 0 };
   const verdict = commit.verdict ?? review?.output?.data?.verdict ?? context.state?.verdict ?? "unknown";
+  const finalSeriesBlocked = finalSeries.status === "blocked";
+  const finalSeriesComplete = finalSeries.status === "drafted";
+  const finalStatus =
+    verdict !== "COMPLETE"
+      ? "incomplete"
+      : finalSeriesBlocked
+        ? "blocked"
+        : finalSeriesComplete
+          ? "complete"
+          : "incomplete";
   const modeling = context.state?.modeling ?? {};
   const final = {
-    status: verdict === "COMPLETE" ? "complete" : "incomplete",
+    status: finalStatus,
     verdict,
     taskRoot,
     workstream,
     completedAt: new Date().toISOString(),
   };
-  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling, commit), "utf8");
+  await writeFile(join(taskRoot, "rlcr", "final-summary.md"), finalSummaryTemplate(final, modeling, commit, finalSeries), "utf8");
   await appendSectionOnce(
     join(taskRoot, "evidence.md"),
     "<!-- qemu-modeling final -->",
-    `\n## Workflow Final Summary\n\n<!-- qemu-modeling final -->\n\n- Verdict: ${verdict}\n- Final summary: rlcr/final-summary.md\n- Artifact root: ${relativeTaskRoot()}\n`,
+    `\n## Workflow Final Summary\n\n<!-- qemu-modeling final -->\n\n- Verdict: ${verdict}\n- Final-series status: ${finalSeries.status}\n- Final summary: rlcr/final-summary.md\n- Artifact root: ${relativeTaskRoot()}\n`,
   );
 
   emit({
@@ -568,7 +580,9 @@ ${taskBrief}
 - QEMU upstream provenance policy applies.
 - Agent-created artifacts stay under build/agent/${slug}/.
 - Source changes are local workflow outputs unless a human independently rewrites and certifies them for upstream.
-- No DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers are added by the agent.
+- Round checkpoint commits carry no DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers.
+- Terminal final-series drafts may suggest DCO trailers for human review; the workflow does not sign on behalf of the human.
+- \`AI-used-for:\` is a proposed qemu-devel scope-disclosure trailer, not DCO; draft it only when a human-recorded policy or maintainer exception applies.
 
 ## Scope
 
@@ -579,8 +593,8 @@ ${taskBrief}
 
 ### Out of scope
 
-- Upstream-ready contribution packaging.
-- Agent-authored contribution trailers.
+- Upstream-ready contribution packaging or publication.
+- Agent-applied contribution trailers.
 
 ### Allowed source changes
 
@@ -593,6 +607,7 @@ ${taskBrief}
 - Round-commit pathspecs:
 - QEMU subject prefix:
 - Remote publication: forbidden
+- AI-used-for proposal/exception source:
 
 ### Artifact root
 
@@ -613,6 +628,13 @@ ${taskBrief}
   - Evidence: source-provenance.md and rlcr/round-NNN-source-state.md.
 - AC-6: Independent review returns COMPLETE.
   - Evidence: reviewModeling verdict and rlcr/final-summary.md.
+
+## Post-Review Terminal Steps
+
+- After COMPLETE, prepare human-owned QEMU-style final-series commit
+  split/message drafts, sign-off trailer drafts, and any human-enabled
+  \`AI-used-for:\` scope-disclosure drafts; otherwise record a blocker.
+  - Evidence: rlcr/final-series-plan.md and scratch/final-series/ when applicable.
 
 ## Verification Gates
 
@@ -656,6 +678,11 @@ function sourceProvenanceTemplate() {
 
 | Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Final Series Preparation
+
+| Patch | Source round commits | Subject | Message draft | Required evidence | Sign-offs | AI-used-for |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Configurations
 
@@ -872,12 +899,12 @@ ${skills.map((skill, index) => `${index + 1}. ${skill}`).join("\n")}
 
 - Start with \`${skills[0]}\`; keep artifacts in this task root.
 - For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: one coherent slice, targeted verification, independent review, and one scoped local commit before advancing.
+- After the reviewer returns COMPLETE, prepare human-owned final-series drafts that atomize the round checkpoints into QEMU-style commits, suggested DCO trailers, and any human-enabled \`AI-used-for:\` scope-disclosure trailers.
 - Use targeted QEMU build/qtest/boot/debug gates that prove the acceptance criteria.
-- Preserve QEMU provenance policy: no agent-added DCO or review trailers, and no claim that source output is upstream-ready.
-
+- Preserve QEMU provenance policy: no agent-added DCO or review trailers on repository commits, no AI-agent sign-off, and no claim that source output is upstream-ready.
 ## Completion Bar
 
-The workflow is complete only when source provenance, modeling/build/debug work, targeted verification, and the reviewer gate all agree that the task acceptance criteria are satisfied.
+The workflow is complete only when source provenance, modeling/build/debug work, targeted verification, the reviewer gate, and terminal final-series draft preparation all agree that the task acceptance criteria are satisfied or record a blocker.
 `;
 }
 
@@ -928,7 +955,7 @@ ${artifacts.length ? artifacts.map((artifact) => `- ${artifact}`).join("\n") : "
 `;
 }
 
-function finalSummaryTemplate(final, modeling, commit) {
+function finalSummaryTemplate(final, modeling, commit, finalSeries) {
   return `# Final Summary
 
 ## Status
@@ -954,10 +981,18 @@ ${JSON.stringify(modeling, null, 2)}
 ${JSON.stringify(commit, null, 2)}
 \`\`\`
 
+## Final Series Preparation
+
+\`\`\`json
+${JSON.stringify(finalSeries, null, 2)}
+\`\`\`
+
 ## Policy Check
 
 - Agent-created artifacts belong under ${relativeTaskRoot()}/.
-- No DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers are added by this workflow.
+- Round checkpoint commits have no DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers added by this workflow.
+- Final-series DCO trailers, if drafted, are human-owned suggestions only.
+- \`AI-used-for:\` trailers, if drafted, are human-enabled scope disclosures only and are not DCO sign-offs.
 - Source output is local workflow output, not an upstream-ready contribution package.
 - Every source-changing reviewed round is committed locally before the workflow advances.
 - The workflow does not push, publish, format, or send round commits.

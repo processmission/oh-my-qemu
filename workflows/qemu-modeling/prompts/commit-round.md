@@ -52,6 +52,8 @@ Rules:
   send-email.
 - Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or
   similar contribution trailers.
+- Final-series DCO trailers belong only in the terminal final-series draft
+  phase after `COMPLETE`, not in per-round checkpoint commits.
 
 Commit procedure:
 
