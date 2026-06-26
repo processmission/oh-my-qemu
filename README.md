@@ -98,7 +98,7 @@ Skills for turning hardware facts into a QEMU model and proving it behaves.
 | `qemu-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
 | `qemu-qtest` | Design, register, run, and debug qtest coverage |
 | `qemu-debug` | Use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis |
-| `qemu-rlcr-loop` | Iterate implementation/debugging rounds with verification, review, and final evidence |
+| `qemu-rlcr-loop` | Iterate implementation/debugging rounds with verification, review, local checkpoints, and final-series draft preparation |
 | `qemu-rst-documentation` | Write QEMU RST docs, board pages, boot examples, Sphinx index updates, and docs validation |
 
 ### Build, image, and boot workflows
@@ -222,7 +222,7 @@ The `.omhflow` runner and workflow registry are provided by
 `qemu-modeling` flow runs the full local QEMU modeling loop: workspace bootstrap,
 planning, source provenance, implementation/debugging, targeted verification,
 review, fix rounds, one scoped local Git checkpoint per reviewed source-changing
-round, and final evidence.
+round, human-owned final-series drafts for atomized QEMU-style commits, and final evidence.
 
 #### Install into the active OMP registry
 
@@ -420,8 +420,8 @@ For the fastest interactive path, use the bundled prompt command:
 
 This writes `qemu-task.md`, starts the workflow by explicit path, creates the
 task root, records a provenance snapshot, plans the modeling work, runs
-implementation/verification/review/commit loops, and writes
-`build/agent/k230-uart-model/rlcr/final-summary.md`.
+implementation/verification/review/commit loops, prepares human-owned
+final-series drafts, and writes `build/agent/k230-uart-model/rlcr/final-summary.md`.
 
 Typical composition:
 
@@ -452,7 +452,12 @@ board modeling -> qtest -> direct linux boot -> RST documentation
 These skills follow QEMU provenance constraints:
 
 - agents do not generate code intended for QEMU upstream submission;
-- agents do not add DCO/review trailers on behalf of humans;
+- agents do not add DCO/review trailers to repository commits or sign on behalf of humans;
+- final-series DCO trailers are drafted only for human review and ownership;
+- QEMU DCO is the standard `Signed-off-by: Name <email>` trailer; the tool-user
+  git identity normally satisfies it unless a distinct second signer is recorded;
+- `AI-used-for:` is only a proposed qemu-devel scope-disclosure trailer for
+  human-enabled final-series drafts; it is not an AI-agent DCO sign-off;
 - local research, debugging, verification, and workflow guidance are allowed.
 
 The workflow design is based on

@@ -38,6 +38,11 @@ Use this structure:
 | Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Final Series Preparation
+
+| Patch | Source round commits | Subject | Message draft | Required evidence | Sign-offs | AI-used-for |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Configurations
 
 | Component | Config path/name | Key options | Notes |
@@ -70,6 +75,12 @@ Use this structure:
 - After each successful round commit, record its parent, commit and tree IDs,
   subject, staged path list, verification/review evidence, and residual dirty
   state. The commit ID is the reproducible source checkpoint for that round.
+- For terminal final-series preparation, record the baseline-to-checkpoint
+  range, proposed patch subjects, source round commits, message draft paths,
+  required per-patch evidence, the DCO sign-off identity source, any distinct
+  second signer source, and any drafted `AI-used-for:` scope. Final-series
+  drafts are provenance records; the human performs any actual history rewrite
+  and DCO signing.
 - Do not commit external input trees merely because their provenance is
   recorded. Automatic round commits apply only to the task source tree and
   pathspecs approved by `qemu-flow-plan`.

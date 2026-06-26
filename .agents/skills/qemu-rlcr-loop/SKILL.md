@@ -1,6 +1,6 @@
 ---
 name: qemu-rlcr-loop
-description: Use for non-trivial local QEMU implementation or debugging after qemu-flow-plan. Runs coherent rounds of work, verification, summary, independent review, scoped local Git checkpoint commits, and fixes until acceptance criteria pass.
+description: Use for non-trivial local QEMU implementation or debugging after qemu-flow-plan. Runs coherent rounds of work, verification, summary, independent review, scoped local Git checkpoint commits, terminal human-owned final-series draft preparation, and fixes until acceptance criteria pass.
 ---
 
 # QEMU RLCR Loop
@@ -11,7 +11,7 @@ RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Round commits created by this flow are local checkpoints only. Never push, publish, export, or describe them as upstream-ready. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Round commits created by this flow are local checkpoints only. Never push, publish, export, or describe them as upstream-ready. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers to round commits. A terminal final-series phase may draft human-owned QEMU-style commit messages and suggested DCO trailers under `build/agent/<task-slug>/`, but the human performs any history rewrite, signing, format-patch, or sending step.
 
 ## Required inputs
 
@@ -74,10 +74,10 @@ Repeat until all acceptance criteria pass and review finds no blocking issue.
 
 ### 1. Select one round objective
 
-Pick the smallest coherent slice that advances one or more ACs and can stand as
-one logical, verified QEMU commit. Avoid mixing unrelated subsystems in one
-round. If a slice needs multiple independently meaningful commits, split it
-into multiple rounds before implementation.
+Pick the smallest coherent slice that advances one or more ACs and leaves a
+reviewed local checkpoint. Avoid mixing unrelated subsystems in one round.
+A round commit may be a workflow checkpoint rather than the eventual QEMU
+patch boundary; the terminal final-series phase performs the atomic split.
 
 ### 2. Do the work
 
@@ -215,6 +215,94 @@ The successful commit is the round boundary and the next round's source
 baseline. Never rewrite a previous round commit; fix later findings in a new
 round.
 
+## Final series preparation
+
+After the reviewer returns `COMPLETE` and the terminal round checkpoint exists,
+prepare a human-owned final QEMU patch series. This phase is separate from
+round commits and does not loosen their staging, hook, or no-trailer rules.
+
+By default, write drafts only:
+
+```text
+build/agent/<task-slug>/rlcr/final-series-plan.md
+build/agent/<task-slug>/scratch/final-series/NNN-commit-message.txt
+```
+
+Do not mutate Git history, commit, format patches, send mail, or add DCO
+trailers to repository commits in this phase. The human applies the final
+split and signs the commits after reviewing the drafts.
+
+The final-series plan must:
+
+- map the completed round checkpoint range back to the baseline revision;
+- propose an atomic QEMU-style patch order split by reviewable behavior, not
+  by workflow round;
+- separate code motion from semantic changes and tests from fixes/features
+  when that improves review or bisection;
+- name per-patch verification evidence already gathered and evidence the
+  human must rerun after rewriting history;
+- record the DCO sign-off identity and any distinct second signer required by
+  the human;
+- classify whether AI/LLM tools produced or substantively shaped each proposed
+  final patch, and record whether the human wants to draft the qemu-devel
+  proposed `AI-used-for:` trailer.
+
+QEMU's DCO trailer spelling is exactly:
+
+```text
+Signed-off-by: Name <email>
+```
+
+There is no separate QEMU-specific trailer name. The Oh My QEMU user sign-off
+from the task tree's `git config user.name` and `git config user.email` is also
+the normal QEMU DCO sign-off when that user is the contributor.
+
+If the human provides a distinct second certifying identity, each final commit
+message draft ends with two `Signed-off-by` trailers in
+authorship/order-of-hand-off order:
+
+```text
+Signed-off-by: <Oh My QEMU user name> <user@email>
+Signed-off-by: <Second certifying signer name> <second@email>
+```
+
+If the same person satisfies both requested roles, draft one `Signed-off-by`
+line and note that it satisfies both the tool-user sign-off and QEMU DCO. Do
+not duplicate an identical trailer, invent a non-QEMU trailer, or fabricate a
+second signer. If a local policy requires two visible signing tags but no
+distinct second signer is recorded, mark final-series preparation blocked for
+human decision.
+
+### AI-use trailer drafts
+
+Current published QEMU provenance policy still declines contributions believed
+to include or derive from AI-generated content. A qemu-devel proposal discusses
+a separate disclosure trailer for limited AI-assisted changes, but that trailer
+is not DCO and is not a settled upstream requirement unless the human records
+that the policy or maintainer exception applies.
+
+When the human explicitly enables that proposal for final-series drafts, and an
+AI/LLM tool produced or substantively shaped the patch, draft one or more
+trailers before the `Signed-off-by` lines:
+
+```text
+AI-used-for: tests, docs
+AI-used-for: code
+AI-used-for: code (refactoring)
+AI-used-for: code (prototype)
+AI-used-for: research
+```
+
+`AI-used-for:` records scope only. It is not an AI-agent DCO sign-off, takes no
+name or email address, and must not identify the model or tool. Do not draft
+`Assisted-by`, `Generated-by`, or `Signed-off-by: AI Agent ...`. If AI output
+entered a proposed final patch and the applicable QEMU policy or maintainer
+approval is not recorded, mark final-series preparation blocked instead of
+drafting an upstream-ready message.
+
+Do not add `Reviewed-by`, `Acked-by`, `Tested-by`, or similar tags unless the
+exact mailing-list or reviewer source for that tag is recorded.
+
 ## Finalization
 
 Before finishing, write `final-summary.md`:
@@ -228,6 +316,8 @@ Before finishing, write `final-summary.md`:
 
 ## Round Commits
 
+## Final Series Drafts
+
 ## Verification Evidence
 
 ## Artifacts
@@ -236,8 +326,10 @@ Before finishing, write `final-summary.md`:
 
 ## Policy Check
 
-- No agent-created artifacts outside build/agent/<task-slug>/.
-- No DCO/review trailers added by the agent.
+- Round checkpoint commits have no DCO/review trailers added by the agent.
+- Final-series DCO trailers, if drafted, are human-owned suggestions only.
+- `AI-used-for:` trailers, if drafted, are human-enabled scope disclosures only
+  and are not AI-agent DCO sign-offs.
 - Round commits remained local and were not pushed or published.
 ```
 

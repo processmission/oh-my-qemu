@@ -11,7 +11,7 @@ For reusable primitive composition rules, read `references/flow-primitives.md` w
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, local-only experiments, and verification guidance. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, local-only experiments, and verification guidance. Round checkpoint commits are local workflow artifacts and must not carry `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers. A human-owned final-series phase may draft QEMU-style commit messages and suggested DCO trailers under `build/agent/<task-slug>/`, but the human performs any final history rewrite, signing, format-patch, or sending step.
 
 ## Artifact root rule
 
@@ -90,16 +90,24 @@ If a task must modify a path that was already dirty at baseline, stop and ask
 the human to resolve or explicitly include that pre-existing change before
 implementation. Never infer that an existing modification belongs to the task.
 
-### 5. Prepare local Git checkpoints
+### 5. Prepare local Git checkpoints and final-series contract
 
 For implementation work, use a dedicated local task branch and record its name,
 HEAD, and initial `git status --short` in `source-provenance.md` before changing
 source. State that RLCR round commits are local workflow checkpoints: never push,
 publish, format, or describe them as QEMU-upstream-ready output.
 
-Derive the expected commit subject prefix from the affected subsystem and nearby
-QEMU history. Keep agent artifacts under `build/agent/<task-slug>/`; they are
-evidence for the commits, not commit content.
+Derive the expected checkpoint subject prefix from the affected subsystem and
+nearby QEMU history. Keep agent artifacts under `build/agent/<task-slug>/`;
+they are evidence for the commits, not commit content.
+
+If the task asks for upstream-adjacent finalization, record that the terminal
+final-series phase is human-owned: the workflow may draft an atomic split and
+commit messages under the artifact root, but it must not apply DCO trailers or
+rewrite history on behalf of the human. Record the source for the Oh My QEMU
+user/QEMU DCO sign-off identity, whether a distinct second signer is required,
+and whether the qemu-devel proposed `AI-used-for:` disclosure trailer is
+enabled for the final-series drafts.
 
 ### 6. Record evidence as it is discovered
 
@@ -140,7 +148,9 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 
 - QEMU upstream provenance policy applies.
 - Agent-created artifacts stay under build/agent/<task-slug>/.
-- No DCO or review trailers are added by the agent.
+- Round checkpoints are local workflow commits and carry no DCO/review trailers.
+- Final-series drafts, if requested, are human-owned and not upstream-ready until a human rewrites and certifies them.
+- `AI-used-for:` drafts, if requested, are scope disclosures based on an accepted policy or maintainer exception, not AI-agent DCO sign-offs.
 
 ## Scope
 
@@ -159,6 +169,11 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 - Round-commit pathspecs:
 - QEMU subject prefix:
 - Remote publication: forbidden
+- Final-series preparation:
+- Oh My QEMU / QEMU DCO sign-off source:
+- Distinct second sign-off source, if required:
+- AI-used-for proposal/exception source:
+- Final history rewrite/publication: human-only
 
 ### Artifact root
 
