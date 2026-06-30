@@ -12,7 +12,7 @@ Use this primitive whenever the task is to run QEMU and observe a boot milestone
 1. Start from `qemu-flow-plan`.
 2. Use `qemu-source-provenance` for binaries, images, DTBs, kernels, initramfs, and firmware.
 3. Use `qemu-image-layout` for boot media or flash images.
-4. Write the runnable command and result to `build/agent/<task-slug>/boot-run.md`.
+4. Write the runnable command and result to `.oh-my-qemu/<task-slug>/boot-run.md`.
 5. Use `qemu-debug` on failures and `qemu-model-verification` for final claims.
 
 ## Command Record
@@ -25,7 +25,7 @@ Record:
 - serial, monitor, display, networking, and storage options;
 - kernel command line or firmware environment assumptions;
 - timeout, expected success marker, and known failure markers;
-- console log path under `build/agent/<task-slug>/logs/`.
+- console log path under `.oh-my-qemu/<task-slug>/logs/`.
 
 ## Run Rules
 

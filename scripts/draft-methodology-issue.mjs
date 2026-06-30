@@ -4,9 +4,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 function usage() {
-  return `Usage: node scripts/draft-methodology-issue.mjs <build/agent/task> [--repo owner/name] [--output path]
+  return `Usage: node scripts/draft-methodology-issue.mjs <.oh-my-qemu/<task-slug>> [--repo owner/name] [--output path]
 
-Creates a GitHub issue draft from build/agent/<task>/methodology-feedback.md.
+Creates a GitHub issue draft from .oh-my-qemu/<task>/methodology-feedback.md.
 The feedback file must already be sanitized and approved for user review.
 
 Options:
@@ -46,7 +46,7 @@ function parseArgs(argv) {
   }
 
   if (!options.taskRoot) {
-    throw new Error("missing build/agent task directory");
+    throw new Error("missing .oh-my-qemu task directory");
   }
   if (!options.repo || !/^[^/\s]+\/[^/\s]+$/.test(options.repo)) {
     throw new Error("--repo must use owner/name form");

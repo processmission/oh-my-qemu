@@ -92,7 +92,7 @@ If the build directory is not configured for docs, inspect available targets fir
 ninja -C build -t targets | rg 'docs|sphinx'
 ```
 
-At minimum, run `git diff --check` and inspect the rendered RST mentally for heading hierarchy, toctree inclusion, literal block indentation, and overlong command examples. Store any docs build logs under `build/agent/<task-slug>/logs/` when the work is part of a larger QEMU task.
+At minimum, run `git diff --check` and inspect the rendered RST mentally for heading hierarchy, toctree inclusion, literal block indentation, and overlong command examples. Store any docs build logs under `.oh-my-qemu/<task-slug>/logs/` when the work is part of a larger QEMU task.
 
 ## Report
 

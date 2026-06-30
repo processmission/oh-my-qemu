@@ -10,7 +10,7 @@ Use this domain skill when changing a QEMU machine or SoC: CPU clusters, memory 
 ## Flow dependencies
 
 1. Start with `qemu-flow-plan` for non-trivial work.
-2. Put all plans, boot logs, UART captures, FDT dumps, trace files, scratch scripts, and review notes under `build/agent/<task-slug>/`.
+2. Put all plans, boot logs, UART captures, FDT dumps, trace files, scratch scripts, and review notes under `.oh-my-qemu/<task-slug>/`.
 3. Use `qemu-rlcr-loop` for implementation/debugging rounds.
 4. Use `qemu-build` for target binary builds.
 5. Use `qemu-qtest` to add or extend board qtest cases for machine creation, memory-map probes, and representative IRQ/device wiring.
@@ -78,7 +78,7 @@ Board-modeling work must be verified through `qemu-qtest`, not only through boot
 - verify reset-visible state when qtest can observe it;
 - test one representative interrupt/device wiring path when practical;
 - run the narrow Meson qtest name from `build/`;
-- store the command, result, and log path under `build/agent/<task-slug>/`.
+- store the command, result, and log path under `.oh-my-qemu/<task-slug>/`.
 
 If a board change cannot be covered by qtest, record the technical reason in the plan and use `qemu-model-verification` for the replacement evidence. A firmware boot log is supplemental evidence, not a substitute for qtest coverage.
 
@@ -91,7 +91,7 @@ At minimum:
 - the qtest can instantiate the machine with minimal arguments;
 - the qtest probes key MMIO/RAM/ROM/unimplemented bases from the memory-map table;
 - the qtest covers one representative IRQ or device wiring path when practical;
-- boot smoke captures UART/console under `build/agent/<task-slug>/logs/` when firmware compatibility is in scope;
+- boot smoke captures UART/console under `.oh-my-qemu/<task-slug>/logs/` when firmware compatibility is in scope;
 - image hashes and exact command lines are recorded.
 
 ## Anti-patterns

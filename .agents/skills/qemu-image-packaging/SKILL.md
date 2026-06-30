@@ -33,7 +33,7 @@ Record:
 - Use partition/filesystem tools appropriate to the local image format.
 - Prefer explicit offsets over implicit tool behavior for firmware regions.
 - Keep large generated images out of source control.
-- Store packaging logs and command transcripts under `build/agent/<task-slug>/`.
+- Store packaging logs and command transcripts under `.oh-my-qemu/<task-slug>/`.
 
 ## Handoff
 

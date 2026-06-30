@@ -30,7 +30,7 @@ Use this workflow when QEMU should load a kernel directly, usually with `-kernel
 - Keep the command copy-pasteable.
 - Route serial output deterministically, usually with `-nographic`.
 - Include a timeout for non-interactive smoke tests.
-- Store the full console log under `build/agent/<task-slug>/logs/`.
+- Store the full console log under `.oh-my-qemu/<task-slug>/logs/`.
 - When the goal is an interactive shell, provide the exact command separately from the timed smoke command.
 
 ## Success Criteria

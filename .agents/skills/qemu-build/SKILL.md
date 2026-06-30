@@ -1,6 +1,6 @@
 ---
 name: qemu-build
-description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build and keeps agent-created logs and reports under a build/agent task workspace.
+description: Use for configuring, reusing, building, or diagnosing QEMU build directories. Defaults to build and keeps agent-created logs and reports under a .oh-my-qemu task workspace.
 ---
 
 # QEMU Build
@@ -11,7 +11,7 @@ Use this operational skill when the task asks to inspect, configure, build, reco
 
 - For non-trivial work, `qemu-flow-plan` owns the plan and artifact root.
 - `qemu-build` owns only build-directory decisions and build evidence.
-- Store copied logs, command transcripts, and diagnosis reports under `build/agent/<task-slug>/`.
+- Store copied logs, command transcripts, and diagnosis reports under `.oh-my-qemu/<task-slug>/`.
 
 ## Hard policy boundary
 
@@ -114,7 +114,7 @@ Write/report:
 - exact command;
 - target list and key options;
 - decisive failure excerpt;
-- full log paths under `build/` and copied notes under `build/agent/<task-slug>/`;
+- full log paths under `build/` and copied notes under `.oh-my-qemu/<task-slug>/`;
 - what the build proves.
 
 ## Upstream references

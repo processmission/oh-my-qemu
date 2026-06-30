@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Claude Code PreToolUse hook that enforces the QEMU artifact policy:
-// agent artifacts must live under build/agent/<task-slug>/ and never as
+// agent artifacts must live under .oh-my-qemu/<task-slug>/ and never as
 // root-level scratch files or .plan/ / .humanize/ directories.
 //
 // Reads the PreToolUse JSON payload on stdin. Blocks Write/Edit/MultiEdit

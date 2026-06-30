@@ -12,7 +12,7 @@ As a flow primitive, use this skill to turn the result of a build, image package
 ## Flow dependencies
 
 - Use `qemu-flow-plan` to define the behavior claim and evidence required.
-- Store every log, trace, replay file, command transcript, image hash list, and report under `build/agent/<task-slug>/`.
+- Store every log, trace, replay file, command transcript, image hash list, and report under `.oh-my-qemu/<task-slug>/`.
 - Use `qemu-build`, `qemu-qtest`, and `qemu-debug` for concrete gates.
 - Use `qemu-rlcr-loop` when verification findings drive source changes.
 
@@ -36,7 +36,7 @@ Do not claim device correctness from a boot banner alone.
 
 ## Required artifact discipline
 
-Record in `build/agent/<task-slug>/evidence.md`:
+Record in `.oh-my-qemu/<task-slug>/evidence.md`:
 
 - exact command line;
 - QEMU binary and build directory;
@@ -91,7 +91,7 @@ Use:
 ```text
 PASS|FAIL|INCONCLUSIVE: <gate>
 Command: <exact command>
-Artifacts: <paths under build/agent/<task-slug>/>
+Artifacts: <paths under .oh-my-qemu/<task-slug>/>
 Evidence: <decisive lines or summary>
 Proves: <specific claim>
 Does not prove: <remaining gap>

@@ -11,12 +11,12 @@ RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Round commits created by this flow are local checkpoints only. Never push, publish, export, or describe them as upstream-ready. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers to round commits. A terminal final-series phase may draft human-owned QEMU-style commit messages and suggested DCO trailers under `build/agent/<task-slug>/`, but the human performs any history rewrite, signing, format-patch, or sending step.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with local-only experiments, research, debugging, and verification. Round commits created by this flow are local checkpoints only. Never push, publish, export, or describe them as upstream-ready. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers to round commits. A terminal final-series phase may draft human-owned QEMU-style commit messages and suggested DCO trailers under `.oh-my-qemu/<task-slug>/`, but the human performs any history rewrite, signing, format-patch, or sending step.
 
 ## Required inputs
 
 - A plan created by `qemu-flow-plan`.
-- Its artifact root, usually `build/agent/<task-slug>/`.
+- Its artifact root, usually `.oh-my-qemu/<task-slug>/`.
 - Frozen acceptance criteria.
 - A chosen domain skill for the technical work.
 - A designated task source tree and dedicated local task branch.
@@ -31,7 +31,7 @@ If there is no plan, run `qemu-flow-plan` first.
 Create or reuse:
 
 ```text
-build/agent/<task-slug>/rlcr/
+.oh-my-qemu/<task-slug>/rlcr/
   goal-tracker.md
   round-001-summary.md
   round-001-review.md
@@ -42,7 +42,7 @@ build/agent/<task-slug>/rlcr/
   final-summary.md
 ```
 
-All logs referenced by summaries/reviews stay under `build/agent/<task-slug>/logs/` or `build/agent/<task-slug>/reviews/`.
+All logs referenced by summaries/reviews stay under `.oh-my-qemu/<task-slug>/logs/` or `.oh-my-qemu/<task-slug>/reviews/`.
 
 ## Goal tracker
 
@@ -96,7 +96,7 @@ Record exact commands and log paths.
 
 ### 4. Write round summary
 
-Write `build/agent/<task-slug>/rlcr/round-NNN-summary.md`:
+Write `.oh-my-qemu/<task-slug>/rlcr/round-NNN-summary.md`:
 
 ```markdown
 # Round N Summary
@@ -169,7 +169,7 @@ Before staging:
 - select only paths changed for the current round and allowed by the plan;
 - stop if a task change overlaps a pre-existing dirty path or cannot be
   separated safely;
-- never stage `build/agent/` artifacts or unrelated user changes.
+- never stage `.oh-my-qemu/` artifacts or unrelated user changes.
 
 Stage exact pathspecs with `git add -- <path>...`. Never use `git add -A`,
 `git add .`, or another repository-wide staging command. Inspect
@@ -178,7 +178,7 @@ staged diff. Run `git diff --cached --check` and confirm that the staged set is
 non-empty, task-related, and limited to the approved pathspecs.
 
 Write the message to
-`build/agent/<task-slug>/scratch/round-NNN-commit-message.txt`, then commit with
+`.oh-my-qemu/<task-slug>/scratch/round-NNN-commit-message.txt`, then commit with
 `git commit -F <message-file>`. Follow QEMU commit-message style:
 
 ```text
@@ -224,8 +224,8 @@ round commits and does not loosen their staging, hook, or no-trailer rules.
 By default, write drafts only:
 
 ```text
-build/agent/<task-slug>/rlcr/final-series-plan.md
-build/agent/<task-slug>/scratch/final-series/NNN-commit-message.txt
+.oh-my-qemu/<task-slug>/rlcr/final-series-plan.md
+.oh-my-qemu/<task-slug>/scratch/final-series/NNN-commit-message.txt
 ```
 
 Do not mutate Git history, commit, format patches, send mail, or add DCO
@@ -341,7 +341,7 @@ After final verification, pause, block, max-iteration exit, or completion of a m
 
 Read `references/methodology-feedback.md` for the full procedure. In short:
 
-- write sanitized workflow lessons to `build/agent/<task-slug>/methodology-feedback.md`;
+- write sanitized workflow lessons to `.oh-my-qemu/<task-slug>/methodology-feedback.md`;
 - if there are no reusable improvements, do not ask the user to file an issue;
 - if there are reusable improvements, ask once whether the user wants to open an upstream issue;
 - show the sanitized issue draft before filing;

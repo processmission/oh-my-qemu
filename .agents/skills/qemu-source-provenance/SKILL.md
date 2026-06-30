@@ -10,7 +10,7 @@ Use this primitive whenever a QEMU task depends on external source trees or prod
 ## Composition
 
 1. Start from `qemu-flow-plan` for non-trivial work.
-2. Write provenance to `build/agent/<task-slug>/source-provenance.md`.
+2. Write provenance to `.oh-my-qemu/<task-slug>/source-provenance.md`.
 3. Record exact commands in `commands.md`.
 4. Feed verified artifacts into `qemu-image-layout`, `qemu-boot-run`, or workflow skills.
 5. For RLCR source changes, record the task-tree baseline before round 1 and

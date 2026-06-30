@@ -12,10 +12,12 @@ Oh My QEMU is not a QEMU upstream contribution branch. It is a local workflow to
 Every agent-created artifact belongs under:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
 ```
 
 That includes plans, logs, traces, copied command lines, temporary scripts, review ledgers, source provenance, and final summaries.
+When the QEMU tree is a Git worktree, the runtime records `.oh-my-qemu/` in the
+checkout's local `.git/info/exclude`.
 
 ## Git boundary
 

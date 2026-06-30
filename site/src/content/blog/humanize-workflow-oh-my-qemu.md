@@ -63,7 +63,7 @@ This is the same direction as Humanize 3.0: the agent executes a workflow, but c
 
 The practical rule is simple: do not trust progress without evidence.
 
-Oh My QEMU stores task artifacts under `build/agent/<task-slug>/`. Plans, logs, traces, source notes, command lines, review ledgers, and final summaries stay there instead of polluting the QEMU source tree.
+Oh My QEMU stores task artifacts under `.oh-my-qemu/<task-slug>/`. Plans, logs, traces, source notes, command lines, review ledgers, and final summaries stay there instead of creating root-level scratch files in the QEMU source tree.
 
 That artifact boundary makes long tasks easier to resume. It also makes the final handoff cleaner. Local checkpoint commits can exist during development, but the final QEMU-style series should be split and reviewed by a human.
 

@@ -11,7 +11,7 @@ Use this domain skill for QEMU hardware blocks: MMIO devices, SysBus/qdev periph
 
 1. Start with `qemu-flow-plan` for any non-trivial work.
 2. If register facts come from drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` first and use its `register-extraction.md` as the source contract.
-3. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `build/agent/<task-slug>/`.
+3. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `.oh-my-qemu/<task-slug>/`.
 4. Use `qemu-rlcr-loop` for implementation/debugging rounds.
 5. Use `qemu-build` and `qemu-qtest` for build and qtest gates.
 6. Use `qemu-model-verification` for runtime/trace/workload evidence.
@@ -88,7 +88,7 @@ Use registerinfo hooks deliberately:
 - use post-read hooks only for guest-visible read side effects;
 - remember that register reset can call write hooks in this framework, so callbacks must be reset-safe.
 
-If a device cannot use registerinfo for a particular window, record the technical reason in `build/agent/<task-slug>/plan.md`. The exception must be narrow, and any custom handler should still delegate to registerinfo for ordinary registers.
+If a device cannot use registerinfo for a particular window, record the technical reason in `.oh-my-qemu/<task-slug>/plan.md`. The exception must be narrow, and any custom handler should still delegate to registerinfo for ordinary registers.
 
 ## MMIO rules
 
@@ -123,7 +123,7 @@ For command-stream or accelerator blocks:
 - record command ranges, DMA windows, and output buffers;
 - validate skipped/unknown operation counts;
 - correlate trace milestones with guest-visible output;
-- record image hashes under `build/agent/<task-slug>/evidence.md`.
+- record image hashes under `.oh-my-qemu/<task-slug>/evidence.md`.
 
 ## Anti-patterns
 

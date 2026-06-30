@@ -15,13 +15,15 @@ QEMU source checkout or discuss output intended for QEMU upstream submission:
 
 ## Artifact policy for QEMU source trees
 
-All agent-created artifacts MUST live under the QEMU build directory:
+All agent-created artifacts MUST live under the local Oh My QEMU artifact directory:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
 ```
 
 This includes plans, goal trackers, reviews, logs, traces, replay files, scratch scripts, decoder dumps, copied command lines, and reports.
+The runtime adds `.oh-my-qemu/` to the QEMU checkout's local `.git/info/exclude`
+when the checkout is a Git worktree.
 
 Never create `.plan/`, `.humanize/`, root-level notes, temporary helper files, or scratch directories in QEMU source paths. Source files should change only when they are the requested deliverable.
 
@@ -52,7 +54,7 @@ This repository is also a Claude Code plugin:
 
 ## Flow skills
 
-- `qemu-flow-plan`: first step for non-trivial tasks; creates the build/agent artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
+- `qemu-flow-plan`: first step for non-trivial tasks; creates the .oh-my-qemu artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
 - `qemu-source-provenance`: flow primitive for source roots, revisions, configs, toolchains, produced artifacts, and hashes.
 - `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
 - `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
@@ -84,7 +86,7 @@ This repository is also a Claude Code plugin:
 
 ## Methodology feedback
 
-At RLCR completion, pause, blocked state, or max-iteration exit, agents may produce sanitized workflow feedback in `build/agent/<task-slug>/methodology-feedback.md` and ask once whether to file an upstream issue. Do not ask after every primitive or every step in a composed workflow. Use `scripts/draft-methodology-issue.mjs` only after the feedback report has been sanitized; it drafts issue title/body files under the task's `scratch/` directory. Default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
+At RLCR completion, pause, blocked state, or max-iteration exit, agents may produce sanitized workflow feedback in `.oh-my-qemu/<task-slug>/methodology-feedback.md` and ask once whether to file an upstream issue. Do not ask after every primitive or every step in a composed workflow. Use `scripts/draft-methodology-issue.mjs` only after the feedback report has been sanitized; it drafts issue title/body files under the task's `scratch/` directory. Default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
 
 ## Codex skill compatibility
 

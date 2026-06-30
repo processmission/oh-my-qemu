@@ -7,7 +7,7 @@ Use these primitives as small, composable steps. Workflow skills should call the
 Every primitive must:
 
 - start from a `qemu-flow-plan` workspace unless the task is trivial;
-- write generated artifacts under `build/agent/<task-slug>/`;
+- write generated artifacts under `.oh-my-qemu/<task-slug>/`;
 - record exact commands in `commands.md`;
 - record decisive evidence paths in `evidence.md`;
 - classify the result as `PASS`, `FAIL`, or `INCONCLUSIVE` when it proves or disproves a claim;

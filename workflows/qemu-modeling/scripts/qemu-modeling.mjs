@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 const ROOT_FILES = [
   "plan.md",
@@ -20,6 +20,15 @@ const ROOT_FILES = [
 ];
 
 const ROOT_DIRS = ["logs", "reviews", "scratch", "rlcr"];
+
+const TASK_ROOT_DIR = ".oh-my-qemu";
+
+const QEMU_SOURCE_ROOT_FILES = [
+  "configure",
+  "meson.build",
+  "VERSION",
+  "docs/devel/code-provenance.rst",
+];
 
 const WORKSTREAM_CHAINS = {
   "register-extraction": ["qemu-flow-plan", "qemu-source-provenance", "qemu-register-extraction"],
@@ -74,12 +83,13 @@ const WORKSTREAM_CHAINS = {
 
 const mode = process.argv[2] ?? "bootstrap";
 const cwd = process.cwd();
+assertQemuSourceRoot(cwd);
 const context = parseWorkflowContext();
 const taskSpec = await readTaskSpec();
 const rawTaskName =
   process.env.QEMU_TASK ?? process.env.QEMU_TASK_SLUG ?? context.state?.slug ?? taskSpec.slug ?? taskSpec.title ?? basename(cwd);
 const slug = slugify(String(rawTaskName));
-const taskRoot = join(cwd, "build", "agent", slug);
+const taskRoot = join(cwd, TASK_ROOT_DIR, slug);
 const taskBrief = await resolveTaskBrief(context.state?.taskBrief, taskSpec);
 const workstream = normalizeWorkstream(
   process.env.QEMU_WORKSTREAM ?? context.state?.workstream ?? taskSpec.workstream ?? inferWorkstream(taskBrief),
@@ -102,6 +112,7 @@ if (mode === "bootstrap") {
 async function bootstrapWorkspace() {
   const provenance = captureProvenance();
   const result = { created: [], kept: [] };
+  await ensureLocalGitExclude(cwd);
   await ensureDir(taskRoot, result);
   for (const dir of ROOT_DIRS) await ensureDir(join(taskRoot, dir), result);
 
@@ -321,6 +332,11 @@ async function readTaskSpec() {
     const raw = process.env.QEMU_TASK_FILE.trim();
     candidates.push(isAbsolute(raw) ? raw : resolve(cwd, raw));
   }
+  const rawSlug = process.env.QEMU_TASK ?? process.env.QEMU_TASK_SLUG ?? context.state?.slug;
+  if (rawSlug) {
+    candidates.push(join(cwd, TASK_ROOT_DIR, slugify(String(rawSlug)), "task.md"));
+  }
+  candidates.push(join(cwd, TASK_ROOT_DIR, "task.md"));
   candidates.push(join(cwd, "qemu-task.md"), join(cwd, "task.md"));
 
   for (const path of candidates) {
@@ -329,6 +345,77 @@ async function readTaskSpec() {
     return { path, ...parseTaskSpec(text) };
   }
   return {};
+}
+
+async function ensureLocalGitExclude(root) {
+  const gitInside = gitLine(root, ["rev-parse", "--is-inside-work-tree"]);
+  if (!gitInside.ok || gitInside.stdout !== "true") {
+    return false;
+  }
+
+  const exclude = gitLine(root, ["rev-parse", "--git-path", "info/exclude"]);
+  if (!exclude.ok || !exclude.stdout) {
+    return false;
+  }
+
+  const excludePath = resolve(root, exclude.stdout);
+  let existing = "";
+  try {
+    existing = await readFile(excludePath, "utf8");
+  } catch {
+    existing = "";
+  }
+
+  if (/^\.oh-my-qemu\/$/m.test(existing)) {
+    return false;
+  }
+
+  await mkdir(dirname(excludePath), { recursive: true });
+  const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+  await appendFile(excludePath, `${prefix}.oh-my-qemu/\n`, "utf8");
+  return true;
+}
+
+function assertQemuSourceRoot(root) {
+  const missing = QEMU_SOURCE_ROOT_FILES.filter((path) => !isRegularFile(join(root, path)));
+  if (missing.length > 0) {
+    throw new Error(
+      `Oh My QEMU must be started from a QEMU source root. Missing required files under ${root}: ${missing.join(", ")}.`,
+    );
+  }
+
+  const gitInside = gitLine(root, ["rev-parse", "--is-inside-work-tree"]);
+  if (gitInside.ok && gitInside.stdout === "true") {
+    const gitRoot = gitLine(root, ["rev-parse", "--show-toplevel"]);
+    if (!gitRoot.ok || !gitRoot.stdout) {
+      throw new Error(`Oh My QEMU could not determine the Git worktree root for ${root}: ${gitRoot.error}.`);
+    }
+
+    const expected = resolve(root);
+    const actual = resolve(gitRoot.stdout);
+    if (actual !== expected) {
+      throw new Error(`Oh My QEMU must be started from the QEMU Git worktree root. CWD is ${expected}, but Git root is ${actual}.`);
+    }
+  }
+}
+
+function isRegularFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function gitLine(root, args) {
+  const result = spawnSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+    timeout: 2000,
+  });
+  if (result.error) return { ok: false, stdout: "", error: result.error.message };
+  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
+  return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
 }
 
 function parseTaskSpec(text) {
@@ -565,7 +652,7 @@ function emit(payload) {
 }
 
 function relativeTaskRoot() {
-  return `build/agent/${slug}`;
+  return `.oh-my-qemu/${slug}`;
 }
 
 function planTemplate() {
@@ -578,7 +665,7 @@ ${taskBrief}
 ## Policy
 
 - QEMU upstream provenance policy applies.
-- Agent-created artifacts stay under build/agent/${slug}/.
+- Agent-created artifacts stay under .oh-my-qemu/${slug}/.
 - Source changes are local workflow outputs unless a human independently rewrites and certifies them for upstream.
 - Round checkpoint commits carry no DCO, Reviewed-by, Acked-by, Tested-by, or similar contribution trailers.
 - Terminal final-series drafts may suggest DCO trailers for human review; the workflow does not sign on behalf of the human.
@@ -611,7 +698,7 @@ ${taskBrief}
 
 ### Artifact root
 
-\`build/agent/${slug}/\`
+\`.oh-my-qemu/${slug}/\`
 
 ## Acceptance Criteria
 
@@ -893,7 +980,7 @@ ${skills.map((skill, index) => `${index + 1}. ${skill}`).join("\n")}
 
 ## Required Artifact Root
 
-\`build/agent/${slug}/\`
+\`.oh-my-qemu/${slug}/\`
 
 ## Workflow Contract
 

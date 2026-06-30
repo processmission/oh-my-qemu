@@ -27,7 +27,7 @@ From a QEMU source tree:
 The workflow writes task artifacts under:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
 ```
 
-This keeps source roots free of scratch notes, copied command lines, decoder dumps, logs, probes, and temporary scripts.
+This keeps source roots free of root-level scratch notes, copied command lines, decoder dumps, logs, probes, and temporary scripts.

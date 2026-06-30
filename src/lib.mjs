@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 
 // Shared, runtime-agnostic logic for the Oh My QEMU plugin.
@@ -28,6 +29,15 @@ export const ROOT_DIRS = {
   reviews: true,
   scratch: true,
 };
+
+export const QEMU_SOURCE_ROOT_FILES = [
+  "configure",
+  "meson.build",
+  "VERSION",
+  "docs/devel/code-provenance.rst",
+];
+
+export const TASK_ROOT_DIR = ".oh-my-qemu";
 
 export function slugify(input) {
   const slug = input
@@ -59,10 +69,13 @@ function writeIfMissing(path, content, result) {
 }
 
 export function taskRoot(cwd, slug) {
-  return join(cwd, "build", "agent", slug);
+  return join(cwd, TASK_ROOT_DIR, slug);
 }
 
 export function initQemuTask(cwd, rawName) {
+  assertQemuSourceRoot(cwd);
+  ensureLocalGitExclude(cwd);
+
   const slug = slugify(rawName);
   const root = taskRoot(cwd, slug);
   const result = { slug, root, created: [], kept: [] };
@@ -80,7 +93,7 @@ export function initQemuTask(cwd, rawName) {
 ## Policy
 
 - QEMU upstream provenance policy applies.
-- Agent-created artifacts stay under build/agent/${slug}/.
+- Agent-created artifacts stay under .oh-my-qemu/${slug}/.
 - Round checkpoint commits carry no DCO/review trailers added by the agent.
 - Final-series drafts, if requested, are human-owned and not upstream-ready until a human rewrites and certifies them.
 - \`AI-used-for:\` is a proposed qemu-devel scope-disclosure trailer, not DCO; draft it only when a human-recorded policy or maintainer exception applies.
@@ -95,7 +108,7 @@ export function initQemuTask(cwd, rawName) {
 
 ### Artifact root
 
-\`build/agent/${slug}/\`
+\`.oh-my-qemu/${slug}/\`
 
 ## Acceptance Criteria
 
@@ -305,20 +318,96 @@ Record exact commands, working directories, environment overrides, and output ar
   return result;
 }
 
-export function isInsideBuildAgent(cwd, rawPath) {
+function isRegularFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function gitLine(cwd, args) {
+  const result = spawnSync("git", ["-C", cwd, ...args], {
+    encoding: "utf8",
+    timeout: 2000,
+  });
+  if (result.error) {
+    return { ok: false, stdout: "", error: result.error.message };
+  }
+  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
+  return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
+}
+
+export function ensureLocalGitExclude(cwd) {
+  const gitInside = gitLine(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  if (!gitInside.ok || gitInside.stdout !== "true") {
+    return false;
+  }
+
+  const exclude = gitLine(cwd, ["rev-parse", "--git-path", "info/exclude"]);
+  if (!exclude.ok || !exclude.stdout) {
+    return false;
+  }
+
+  const excludePath = resolve(cwd, exclude.stdout);
+  let existing = "";
+  try {
+    existing = readFileSync(excludePath, "utf8");
+  } catch {
+    existing = "";
+  }
+
+  if (/^\.oh-my-qemu\/$/m.test(existing)) {
+    return false;
+  }
+
+  const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+  appendFileSync(excludePath, `${prefix}.oh-my-qemu/\n`, "utf8");
+  return true;
+}
+
+export function qemuSourceRootViolation(cwd) {
+  const missing = QEMU_SOURCE_ROOT_FILES.filter((path) => !isRegularFile(join(cwd, path)));
+  if (missing.length > 0) {
+    return `Oh My QEMU must be started from a QEMU source root. Missing required files under ${cwd}: ${missing.join(", ")}.`;
+  }
+
+  const gitInside = gitLine(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  if (gitInside.ok && gitInside.stdout === "true") {
+    const gitRoot = gitLine(cwd, ["rev-parse", "--show-toplevel"]);
+    if (!gitRoot.ok || !gitRoot.stdout) {
+      return `Oh My QEMU could not determine the Git worktree root for ${cwd}: ${gitRoot.error}.`;
+    }
+
+    const expected = resolve(cwd);
+    const actual = resolve(gitRoot.stdout);
+    if (actual !== expected) {
+      return `Oh My QEMU must be started from the QEMU Git worktree root. CWD is ${expected}, but Git root is ${actual}.`;
+    }
+  }
+
+  return null;
+}
+
+export function assertQemuSourceRoot(cwd) {
+  const reason = qemuSourceRootViolation(cwd);
+  if (reason) {
+    throw new Error(reason);
+  }
+}
+
+export function isInsideTaskArtifacts(cwd, rawPath) {
   const absolute = resolve(cwd, rawPath);
-  // cwd-independent: an artifact is "inside build/agent" when its absolute path
-  // sits anywhere under a .../build/agent/<slug>/... tree. The previous
-  // cwd-only check (relative(join(cwd,"build","agent"), absolute)) mis-fired
-  // when the hook ran with a cwd other than the repo root (e.g. a task
-  // subdirectory or a pinned agent cwd): a valid build/agent/<slug>/plan.md
-  // then resolved to a ".." relative path and fell through to the root-level
-  // plan.md block. Matching the path segment anywhere is robust to that.
-  return /[\\/]build[\\/]agent[\\/][^\\/]+[\\/]/.test(absolute);
+  // cwd-independent: an artifact is inside the task root when its absolute
+  // path sits under a .../.oh-my-qemu/<slug>/... tree. Matching the path
+  // segment anywhere is robust when a hook runs from a task subdirectory or
+  // a pinned agent cwd.
+  return /[\\/]\.oh-my-qemu[\\/][^\\/]+[\\/]/.test(absolute);
 }
 
 export function artifactPolicyViolation(cwd, rawPath) {
-  if (!rawPath || isInsideBuildAgent(cwd, rawPath)) {
+  if (!rawPath || isInsideTaskArtifacts(cwd, rawPath)) {
     return null;
   }
 
@@ -333,16 +422,20 @@ export function artifactPolicyViolation(cwd, rawPath) {
     return null;
   }
 
+  if (parts[0] === TASK_ROOT_DIR) {
+    return `QEMU agent artifacts must be written under .oh-my-qemu/<task-slug>/, not ${rel}.`;
+  }
+
   if (parts.includes(".plan") || parts.includes(".humanize")) {
-    return `QEMU agent artifacts must be written under build/agent/<task-slug>/, not ${rel}.`;
+    return `QEMU agent artifacts must be written under .oh-my-qemu/<task-slug>/, not ${rel}.`;
   }
 
   if (parts.length === 1 && ROOT_FILES[parts[0]]) {
-    return `Root-level ${parts[0]} would pollute the QEMU source tree. Use build/agent/<task-slug>/${parts[0]}.`;
+    return `Root-level ${parts[0]} would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/${parts[0]}.`;
   }
 
   if (parts.length === 1 && ROOT_DIRS[parts[0]]) {
-    return `Root-level ${parts[0]}/ would pollute the QEMU source tree. Use build/agent/<task-slug>/${parts[0]}/.`;
+    return `Root-level ${parts[0]}/ would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/${parts[0]}/.`;
   }
 
   return null;
@@ -350,7 +443,7 @@ export function artifactPolicyViolation(cwd, rawPath) {
 
 export function commandPolicyViolation(command) {
   if (/(^|[\s'"`])(\.plan|\.humanize)(\/|\s|$)/.test(command)) {
-    return "QEMU agent artifacts must stay under build/agent/<task-slug>/, not .plan/ or .humanize/.";
+    return "QEMU agent artifacts must stay under .oh-my-qemu/<task-slug>/, not .plan/ or .humanize/.";
   }
   return null;
 }
