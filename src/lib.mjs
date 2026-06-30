@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 
 // Shared, runtime-agnostic logic for the Oh My QEMU plugin.
@@ -28,6 +29,13 @@ export const ROOT_DIRS = {
   reviews: true,
   scratch: true,
 };
+
+export const QEMU_SOURCE_ROOT_FILES = [
+  "configure",
+  "meson.build",
+  "VERSION",
+  "docs/devel/code-provenance.rst",
+];
 
 export function slugify(input) {
   const slug = input
@@ -63,6 +71,8 @@ export function taskRoot(cwd, slug) {
 }
 
 export function initQemuTask(cwd, rawName) {
+  assertQemuSourceRoot(cwd);
+
   const slug = slugify(rawName);
   const root = taskRoot(cwd, slug);
   const result = { slug, root, created: [], kept: [] };
@@ -303,6 +313,57 @@ Record exact commands, working directories, environment overrides, and output ar
 `, result);
 
   return result;
+}
+
+function isRegularFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function gitLine(cwd, args) {
+  const result = spawnSync("git", ["-C", cwd, ...args], {
+    encoding: "utf8",
+    timeout: 2000,
+  });
+  if (result.error) {
+    return { ok: false, stdout: "", error: result.error.message };
+  }
+  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
+  return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
+}
+
+export function qemuSourceRootViolation(cwd) {
+  const missing = QEMU_SOURCE_ROOT_FILES.filter((path) => !isRegularFile(join(cwd, path)));
+  if (missing.length > 0) {
+    return `Oh My QEMU must be started from a QEMU source root. Missing required files under ${cwd}: ${missing.join(", ")}.`;
+  }
+
+  const gitInside = gitLine(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  if (gitInside.ok && gitInside.stdout === "true") {
+    const gitRoot = gitLine(cwd, ["rev-parse", "--show-toplevel"]);
+    if (!gitRoot.ok || !gitRoot.stdout) {
+      return `Oh My QEMU could not determine the Git worktree root for ${cwd}: ${gitRoot.error}.`;
+    }
+
+    const expected = resolve(cwd);
+    const actual = resolve(gitRoot.stdout);
+    if (actual !== expected) {
+      return `Oh My QEMU must be started from the QEMU Git worktree root. CWD is ${expected}, but Git root is ${actual}.`;
+    }
+  }
+
+  return null;
+}
+
+export function assertQemuSourceRoot(cwd) {
+  const reason = qemuSourceRootViolation(cwd);
+  if (reason) {
+    throw new Error(reason);
+  }
 }
 
 export function isInsideBuildAgent(cwd, rawPath) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, isAbsolute, join, resolve } from "node:path";
 
@@ -20,6 +20,13 @@ const ROOT_FILES = [
 ];
 
 const ROOT_DIRS = ["logs", "reviews", "scratch", "rlcr"];
+
+const QEMU_SOURCE_ROOT_FILES = [
+  "configure",
+  "meson.build",
+  "VERSION",
+  "docs/devel/code-provenance.rst",
+];
 
 const WORKSTREAM_CHAINS = {
   "register-extraction": ["qemu-flow-plan", "qemu-source-provenance", "qemu-register-extraction"],
@@ -74,6 +81,7 @@ const WORKSTREAM_CHAINS = {
 
 const mode = process.argv[2] ?? "bootstrap";
 const cwd = process.cwd();
+assertQemuSourceRoot(cwd);
 const context = parseWorkflowContext();
 const taskSpec = await readTaskSpec();
 const rawTaskName =
@@ -329,6 +337,48 @@ async function readTaskSpec() {
     return { path, ...parseTaskSpec(text) };
   }
   return {};
+}
+
+function assertQemuSourceRoot(root) {
+  const missing = QEMU_SOURCE_ROOT_FILES.filter((path) => !isRegularFile(join(root, path)));
+  if (missing.length > 0) {
+    throw new Error(
+      `Oh My QEMU must be started from a QEMU source root. Missing required files under ${root}: ${missing.join(", ")}.`,
+    );
+  }
+
+  const gitInside = gitLine(root, ["rev-parse", "--is-inside-work-tree"]);
+  if (gitInside.ok && gitInside.stdout === "true") {
+    const gitRoot = gitLine(root, ["rev-parse", "--show-toplevel"]);
+    if (!gitRoot.ok || !gitRoot.stdout) {
+      throw new Error(`Oh My QEMU could not determine the Git worktree root for ${root}: ${gitRoot.error}.`);
+    }
+
+    const expected = resolve(root);
+    const actual = resolve(gitRoot.stdout);
+    if (actual !== expected) {
+      throw new Error(`Oh My QEMU must be started from the QEMU Git worktree root. CWD is ${expected}, but Git root is ${actual}.`);
+    }
+  }
+}
+
+function isRegularFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function gitLine(root, args) {
+  const result = spawnSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+    timeout: 2000,
+  });
+  if (result.error) return { ok: false, stdout: "", error: result.error.message };
+  const stdout = (result.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  const stderr = (result.stderr ?? "").trim().split(/\r?\n/)[0] ?? "";
+  return { ok: result.status === 0, stdout, error: stderr || `exit ${result.status}` };
 }
 
 function parseTaskSpec(text) {
