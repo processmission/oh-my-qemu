@@ -10,7 +10,7 @@ Use this domain skill for host backend work under `tcg/<host>/`: instruction enc
 ## Flow dependencies
 
 1. Start with `qemu-flow-plan`.
-2. Put host-code logs, TCG dumps, temporary disassembly, benchmark notes, and review files under `build/agent/<task-slug>/`.
+2. Put host-code logs, TCG dumps, temporary disassembly, benchmark notes, and review files under `.oh-my-qemu/<task-slug>/`.
 3. Use `qemu-rlcr-loop` for implementation/debug rounds.
 4. Use `qemu-build` for host backend builds.
 5. Use `qemu-debug` for TCG logs and `one-insn-per-tb`.

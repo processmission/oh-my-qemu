@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Claude Code entry point for the /qemu-init-task command.
-// Creates build/agent/<task-slug>/ and its plan, evidence, command,
+// Creates .oh-my-qemu/<task-slug>/ and its plan, evidence, command,
 // source-provenance, image-layout, boot-run, methodology-feedback,
 // register-extraction, source-inventory, and conflicts files plus the
 // logs/reviews/scratch/rlcr directories.

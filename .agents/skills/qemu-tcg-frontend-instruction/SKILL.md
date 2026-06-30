@@ -10,7 +10,7 @@ Use this domain skill for guest ISA decode/translation work in `target/<arch>/`:
 ## Flow dependencies
 
 1. Start with `qemu-flow-plan`.
-2. Put decode notes, generated decoder inspection, TCG logs, test outputs, and scratch files under `build/agent/<task-slug>/`.
+2. Put decode notes, generated decoder inspection, TCG logs, test outputs, and scratch files under `.oh-my-qemu/<task-slug>/`.
 3. Use `qemu-rlcr-loop` for iterative work.
 4. Use `qemu-build` for target builds.
 5. Use `qemu-debug` for TCG logs and `one-insn-per-tb` debugging.
@@ -80,7 +80,7 @@ Wrong PC state corrupts exceptions, gdbstub state, and replay/debug evidence.
 - Add/run focused `tests/tcg/<target>/` coverage when applicable.
 - Cover edge values, invalid encodings, feature-disabled behavior, and privilege errors.
 - Use `-accel tcg,one-insn-per-tb=on` when debugging instruction boundaries.
-- Store TCG logs under `build/agent/<task-slug>/logs/`.
+- Store TCG logs under `.oh-my-qemu/<task-slug>/logs/`.
 
 ## Upstream references
 

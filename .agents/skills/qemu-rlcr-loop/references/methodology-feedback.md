@@ -19,7 +19,7 @@ Do not ask after every primitive or workflow step. For a composition such as ker
 Write the sanitized report to:
 
 ```text
-build/agent/<task-slug>/methodology-feedback.md
+.oh-my-qemu/<task-slug>/methodology-feedback.md
 ```
 
 Use only summary-level artifacts:
@@ -105,14 +105,14 @@ QEMU_METHODOLOGY_ISSUE_REPO=owner/repo
 After the feedback file is sanitized, generate a draft:
 
 ```bash
-node /path/to/oh-my-qemu/scripts/draft-methodology-issue.mjs build/agent/<task-slug>
+node /path/to/oh-my-qemu/scripts/draft-methodology-issue.mjs .oh-my-qemu/<task-slug>
 ```
 
 This writes:
 
 ```text
-build/agent/<task-slug>/scratch/methodology-issue.md
-build/agent/<task-slug>/scratch/methodology-issue-title.txt
+.oh-my-qemu/<task-slug>/scratch/methodology-issue.md
+.oh-my-qemu/<task-slug>/scratch/methodology-issue-title.txt
 ```
 
 The helper does not sanitize raw records. It only formats the already-sanitized `methodology-feedback.md` and emits warnings for obvious privacy risks.
@@ -124,8 +124,8 @@ After user confirmation:
 ```bash
 gh issue create \
   --repo "${QEMU_METHODOLOGY_ISSUE_REPO:-processmission/oh-my-qemu}" \
-  --title "$(cat build/agent/<task-slug>/scratch/methodology-issue-title.txt)" \
-  --body-file build/agent/<task-slug>/scratch/methodology-issue.md
+  --title "$(cat .oh-my-qemu/<task-slug>/scratch/methodology-issue-title.txt)" \
+  --body-file .oh-my-qemu/<task-slug>/scratch/methodology-issue.md
 ```
 
 If `gh` is unavailable or unauthenticated, provide the draft path and issue text for manual filing.

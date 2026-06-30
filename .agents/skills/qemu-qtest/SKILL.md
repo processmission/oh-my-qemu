@@ -1,6 +1,6 @@
 ---
 name: qemu-qtest
-description: Use for QEMU qtest design, registration, execution, and debugging. Extends qemu-flow-plan; qtest evidence and logs stay under a build/agent task workspace.
+description: Use for QEMU qtest design, registration, execution, and debugging. Extends qemu-flow-plan; qtest evidence and logs stay under a .oh-my-qemu task workspace.
 ---
 
 # QEMU qtest
@@ -12,7 +12,7 @@ Use this operational/domain skill for QEMU device and board tests using the qtes
 - Use `qemu-flow-plan` to define the behavior claim and artifact root.
 - Use `qemu-build` before running qtests if binaries are stale or missing.
 - Use `qemu-rlcr-loop` when qtest findings drive iterative source changes.
-- Store test logs, copied command lines, and debug notes under `build/agent/<task-slug>/`.
+- Store test logs, copied command lines, and debug notes under `.oh-my-qemu/<task-slug>/`.
 
 ## Hard policy boundary
 

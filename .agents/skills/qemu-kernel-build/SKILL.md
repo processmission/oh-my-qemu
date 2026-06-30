@@ -42,5 +42,5 @@ If Docker is used, record image, mounts, user, working directory, and the comman
 
 - Do not mix outputs from different kernel revisions without recording it.
 - Hash the exact files passed to QEMU or packed into an image.
-- Keep build logs under `build/agent/<task-slug>/logs/`.
+- Keep build logs under `.oh-my-qemu/<task-slug>/logs/`.
 - If the kernel boots but modules fail to load, verify kernel release and module tree before changing QEMU.

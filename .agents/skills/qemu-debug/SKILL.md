@@ -1,6 +1,6 @@
 ---
 name: qemu-debug
-description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, QEMU log flags, trace events, replay, one-insn-per-tb, and structured build/agent artifacts.
+description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, QEMU log flags, trace events, replay, one-insn-per-tb, and structured .oh-my-qemu artifacts.
 ---
 
 # QEMU Debug
@@ -12,7 +12,7 @@ As a flow primitive, use this skill from boot workflows after `qemu-boot-run` ha
 ## Flow dependencies
 
 - Use `qemu-flow-plan` for non-trivial debugging.
-- Store reproducer commands, logs, traces, replay files, host/guest gdb notes, and scratch scripts under `build/agent/<task-slug>/`.
+- Store reproducer commands, logs, traces, replay files, host/guest gdb notes, and scratch scripts under `.oh-my-qemu/<task-slug>/`.
 - Use `qemu-rlcr-loop` if debugging leads to iterative source changes.
 - Use `qemu-model-verification` to state what the evidence proves.
 
@@ -41,8 +41,8 @@ Use host-side GDB or LLDB when debugging QEMU itself: crashes, assertions, hangs
 Before attaching:
 
 - ensure the relevant binary is built with debug info; use `qemu-build` if needed;
-- record the exact QEMU command in `build/agent/<task-slug>/commands.md`;
-- put debugger transcripts and notes under `build/agent/<task-slug>/logs/` or `build/agent/<task-slug>/debugger.md`;
+- record the exact QEMU command in `.oh-my-qemu/<task-slug>/commands.md`;
+- put debugger transcripts and notes under `.oh-my-qemu/<task-slug>/logs/` or `.oh-my-qemu/<task-slug>/debugger.md`;
 - keep guest logs/traces separate from host debugger notes.
 
 Common launch patterns:
@@ -93,22 +93,22 @@ Useful GDB checks:
 
 ## QEMU logs and traces
 
-Use `-d item1,...` with `-D build/agent/<task-slug>/logs/qemu.log`. Use `-d help` on the target binary to discover log items.
+Use `-d item1,...` with `-D .oh-my-qemu/<task-slug>/logs/qemu.log`. Use `-d help` on the target binary to discover log items.
 
 Use `-dfilter` when a target PC range is known. Use `-accel tcg,one-insn-per-tb=on` to isolate guest-instruction boundaries.
 
 Use trace events for structured evidence:
 
 - `--trace "pattern"` for quick checks;
-- `--trace events=build/agent/<task-slug>/trace-events.txt` for repeatable runs;
+- `--trace events=.oh-my-qemu/<task-slug>/trace-events.txt` for repeatable runs;
 - local `trace-events` files for source-side event definitions.
 
 ## Replay and determinism
 
 For intermittent bugs, use record/replay when applicable:
 
-- record: `-icount shift=auto,rr=record,rrfile=build/agent/<task-slug>/replay.bin`;
-- replay: `-icount shift=auto,rr=replay,rrfile=build/agent/<task-slug>/replay.bin`.
+- record: `-icount shift=auto,rr=record,rrfile=.oh-my-qemu/<task-slug>/replay.bin`;
+- replay: `-icount shift=auto,rr=replay,rrfile=.oh-my-qemu/<task-slug>/replay.bin`.
 
 Record QEMU binary, image hashes, machine options, and replay file path.
 
@@ -141,7 +141,7 @@ Record QEMU binary, image hashes, machine options, and replay file path.
 
 ## Debug report
 
-Write reports under `build/agent/<task-slug>/` and include:
+Write reports under `.oh-my-qemu/<task-slug>/` and include:
 
 - command;
 - build directory and QEMU binary;

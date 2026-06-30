@@ -1,6 +1,6 @@
 ---
 name: qemu-flow-plan
-description: Use as the first step for any non-trivial QEMU task. Produces a small implementation or debugging plan under a build/agent task workspace with acceptance criteria, scope boundaries, artifact policy, and verification gates.
+description: Use as the first step for any non-trivial QEMU task. Produces a small implementation or debugging plan under a .oh-my-qemu task workspace with acceptance criteria, scope boundaries, artifact policy, and verification gates.
 ---
 
 # QEMU Flow Plan
@@ -11,19 +11,19 @@ For reusable primitive composition rules, read `references/flow-primitives.md` w
 
 ## Hard policy boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, local-only experiments, and verification guidance. Round checkpoint commits are local workflow artifacts and must not carry `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers. A human-owned final-series phase may draft QEMU-style commit messages and suggested DCO trailers under `build/agent/<task-slug>/`, but the human performs any final history rewrite, signing, format-patch, or sending step.
+Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. You may help with research, debugging, analysis, local-only experiments, and verification guidance. Round checkpoint commits are local workflow artifacts and must not carry `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers. A human-owned final-series phase may draft QEMU-style commit messages and suggested DCO trailers under `.oh-my-qemu/<task-slug>/`, but the human performs any final history rewrite, signing, format-patch, or sending step.
 
 ## Artifact root rule
 
-All agent-created artifacts MUST live under the QEMU build directory:
+All agent-created artifacts MUST live under the local Oh My QEMU artifact directory:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
 ```
 
 This includes plans, notes, logs, traces, decoded dumps, review ledgers, temporary scripts, generated reports, copied command lines, and scratch data.
 
-Never create `.plan/`, `.humanize/`, `tmp/`, root-level notes, or helper files inside source directories. Source files should change only when they are the requested deliverable. If `build/` does not exist, create only the needed `build/agent/<task-slug>/` subtree.
+Never create `.plan/`, `.humanize/`, `tmp/`, root-level notes, or helper files inside source directories. Source files should change only when they are the requested deliverable. Do not create `build/` only to store agent artifacts; create only the needed `.oh-my-qemu/<task-slug>/` subtree.
 
 ## Minimal plan flow
 
@@ -32,7 +32,7 @@ Never create `.plan/`, `.humanize/`, `tmp/`, root-level notes, or helper files i
 Choose a stable lowercase slug from the task, then create this logical layout:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
   plan.md
   evidence.md
   commands.md
@@ -98,7 +98,7 @@ source. State that RLCR round commits are local workflow checkpoints: never push
 publish, format, or describe them as QEMU-upstream-ready output.
 
 Derive the expected checkpoint subject prefix from the affected subsystem and
-nearby QEMU history. Keep agent artifacts under `build/agent/<task-slug>/`;
+nearby QEMU history. Keep agent artifacts under `.oh-my-qemu/<task-slug>/`;
 they are evidence for the commits, not commit content.
 
 If the task asks for upstream-adjacent finalization, record that the terminal
@@ -119,7 +119,7 @@ Use `evidence.md` as a ledger:
 - relevant logs/traces with paths;
 - assumptions and whether they were validated.
 
-Keep evidence short. Link to artifacts in `build/agent/<task-slug>/logs/` instead of pasting large logs into the plan.
+Keep evidence short. Link to artifacts in `.oh-my-qemu/<task-slug>/logs/` instead of pasting large logs into the plan.
 
 ### 7. Hand off to domain skill
 
@@ -147,7 +147,7 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 ## Policy
 
 - QEMU upstream provenance policy applies.
-- Agent-created artifacts stay under build/agent/<task-slug>/.
+- Agent-created artifacts stay under .oh-my-qemu/<task-slug>/.
 - Round checkpoints are local workflow commits and carry no DCO/review trailers.
 - Final-series drafts, if requested, are human-owned and not upstream-ready until a human rewrites and certifies them.
 - `AI-used-for:` drafts, if requested, are scope disclosures based on an accepted policy or maintainer exception, not AI-agent DCO sign-offs.
@@ -177,7 +177,7 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 
 ### Artifact root
 
-`build/agent/<task-slug>/`
+`.oh-my-qemu/<task-slug>/`
 
 ## Acceptance Criteria
 

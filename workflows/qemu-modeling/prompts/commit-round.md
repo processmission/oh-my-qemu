@@ -44,7 +44,7 @@ Rules:
   staging boundaries.
 - Create exactly one local commit for a reviewed round that changed task
   source. Do not create an empty commit for an artifact-only round.
-- Never stage `{{taskRoot}}/`, another `build/agent/` path, a task-spec file,
+- Never stage `{{taskRoot}}/`, another `.oh-my-qemu/` path, a task-spec file,
   or any unrelated or pre-existing user change.
 - Never use `git add -A`, `git add .`, `git commit -a`, or repository-wide
   staging. Use exact `git add -- <path>...` pathspecs.

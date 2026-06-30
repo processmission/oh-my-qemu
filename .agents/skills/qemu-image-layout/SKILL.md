@@ -11,7 +11,7 @@ Use this primitive before packaging or booting any disk, SD, eMMC, flash, pflash
 
 1. Start from `qemu-flow-plan`.
 2. Use `qemu-source-provenance` for every input artifact.
-3. Write the image contract to `build/agent/<task-slug>/image-layout.md`.
+3. Write the image contract to `.oh-my-qemu/<task-slug>/image-layout.md`.
 4. Feed verified image paths into `qemu-boot-run`.
 
 ## Layout Record

@@ -18,9 +18,9 @@ export default function ohMyQemu(pi) {
   pi.registerTool({
     name: "qemu_init_task",
     label: "QEMU Init Task",
-    description: "Create build/agent/<task-slug>/ plan, evidence, command, provenance, image layout, boot run, methodology feedback, register extraction, log, review, scratch, and RLCR files for a QEMU task.",
+    description: "Create .oh-my-qemu/<task-slug>/ plan, evidence, command, provenance, image layout, boot run, methodology feedback, register extraction, log, review, scratch, and RLCR files for a QEMU task.",
     parameters: z.object({
-      name: z.string().describe("Task name or slug. It will be normalized for build/agent/<task-slug>/.").optional(),
+      name: z.string().describe("Task name or slug. It will be normalized for .oh-my-qemu/<task-slug>/.").optional(),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const result = initQemuTask(ctx.cwd, params.name ?? defaultTaskName(ctx.cwd));
@@ -32,7 +32,7 @@ export default function ohMyQemu(pi) {
   });
 
   pi.registerCommand("qemu-init-task", {
-    description: "Create build/agent/<task-slug>/ QEMU task artifacts",
+    description: "Create .oh-my-qemu/<task-slug>/ QEMU task artifacts",
     handler: async (args, ctx) => {
       const result = initQemuTask(ctx.cwd, args.trim() || defaultTaskName(ctx.cwd));
       ctx.ui.notify(resultText(result), "info");

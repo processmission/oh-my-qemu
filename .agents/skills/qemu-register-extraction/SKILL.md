@@ -18,13 +18,13 @@ Do not produce source code intended for QEMU upstream submission. QEMU currently
 All generated artifacts must stay under the task workspace from `qemu-flow-plan`:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
 ```
 
 Recommended files:
 
 ```text
-build/agent/<task-slug>/
+.oh-my-qemu/<task-slug>/
   register-extraction.md
   source-inventory.md
   conflicts.md
@@ -166,7 +166,7 @@ For extracted firmware filesystems or runtime captures, look for:
 - logs showing initialization order or failure markers;
 - userspace tools that poke registers directly.
 
-Store extracted or copied artifacts under `build/agent/<task-slug>/scratch/` only.
+Store extracted or copied artifacts under `.oh-my-qemu/<task-slug>/scratch/` only.
 
 ### 8. Convert regfiles carefully
 
