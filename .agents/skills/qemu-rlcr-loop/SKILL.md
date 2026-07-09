@@ -72,6 +72,10 @@ The immutable section mirrors the plan. Do not alter it without explicit human a
 
 Repeat until all acceptance criteria pass and review finds no blocking issue.
 
+Before the first source edit, create or update `goal-tracker.md`, set
+`Active round`, and select the round objective. Source changes are not allowed
+outside an active round.
+
 ### 1. Select one round objective
 
 Pick the smallest coherent slice that advances one or more ACs and leaves a
@@ -150,6 +154,9 @@ Write the result to `round-NNN-review.md`.
 - Fix `MAJOR` findings unless explicitly deferred in `goal-tracker.md` with a reason.
 - If review requires a fix, remain in the current round, then repeat
   verification, summary, and independent review.
+- A failed verification gate is still a round state: write or update the round
+  summary and review with a `BLOCKER`, record that there is no checkpoint
+  commit, and continue fixing the same round. Do not start the next round.
 - Do not commit a round with a failed verification gate, `BLOCKER`, or
   unresolved `MAJOR` finding.
 - Repeat the current round until its objective has passing evidence and no

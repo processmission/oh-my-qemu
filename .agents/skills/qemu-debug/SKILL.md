@@ -13,7 +13,8 @@ As a flow primitive, use this skill from boot workflows after `qemu-boot-run` ha
 
 - Use `qemu-flow-plan` for non-trivial debugging.
 - Store reproducer commands, logs, traces, replay files, host/guest gdb notes, and scratch scripts under `.oh-my-qemu/<task-slug>/`.
-- Use `qemu-rlcr-loop` if debugging leads to iterative source changes.
+- Before the first source mutation caused by debugging, MUST use
+  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
 - Use `qemu-model-verification` to state what the evidence proves.
 
 ## Hard policy boundary

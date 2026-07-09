@@ -97,6 +97,11 @@ HEAD, and initial `git status --short` in `source-provenance.md` before changing
 source. State that RLCR round commits are local workflow checkpoints: never push,
 publish, format, or describe them as QEMU-upstream-ready output.
 
+Before the first source edit in an implementation task, start the
+`qemu-rlcr-loop` flow over this plan, create or update
+`.oh-my-qemu/<task-slug>/rlcr/goal-tracker.md`, and select the active round
+objective. Do not make source changes outside an active RLCR round.
+
 Derive the expected checkpoint subject prefix from the affected subsystem and
 nearby QEMU history. Keep agent artifacts under `.oh-my-qemu/<task-slug>/`;
 they are evidence for the commits, not commit content.
@@ -135,7 +140,10 @@ After the plan is stable, choose the narrow domain skill:
 - `qemu-debug`
 - `qemu-build`
 
-For implementation work, run the `qemu-rlcr-loop` flow over this plan.
+For implementation work, MUST start the `qemu-rlcr-loop` flow over this plan
+before the first source edit, and keep every source change inside the active
+round until that round is verified, reviewed, and checkpointed or recorded as
+blocked.
 
 ## Plan template
 
