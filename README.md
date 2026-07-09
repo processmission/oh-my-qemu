@@ -67,7 +67,6 @@ want to model and run.
 | `.agents/skills/` | Agent skills, one `SKILL.md` per QEMU workflow |
 | `scripts/` | Skill validation, Codex registration, portable install, task initialization, and methodology issue helpers |
 | `commands/` | Slash command definitions such as `/qemu-init-task` |
-| `workflows/` | OMP `.omhflow` artifacts for complete QEMU modeling loops and deterministic bootstrapping |
 | `hooks/` | Artifact-policy hooks that keep agent scratch files under `.oh-my-qemu/` |
 | `src/` | Oh My Pi plugin runtime glue and shared hook logic |
 | `.claude-plugin/` | Claude Code plugin and marketplace metadata |
@@ -218,123 +217,6 @@ Local development link:
 omp plugin link /path/to/oh-my-qemu
 ```
 
-### OMP workflows with Oh My Humanize
-
-The `.omhflow` runner and workflow registry are provided by
-[Oh My Humanize](https://github.com/PolyArch/oh-my-humanize). The bundled
-`qemu-workflow-modeling` flow runs the full local QEMU modeling loop: workspace bootstrap,
-planning, source provenance, implementation/debugging, targeted verification,
-review, fix rounds, one scoped local Git checkpoint per reviewed source-changing
-round, human-owned final-series drafts for atomized QEMU-style commits, and final evidence.
-
-#### Install into the active OMP registry
-
-Use this when you want `qemu-workflow-modeling` available by name in every OMP
-session that uses the same registry:
-
-```bash
-cd /path/to/oh-my-qemu
-npm run omp:workflows:validate
-npm run omp:workflows:install
-```
-
-Then start it from a QEMU source tree:
-
-```bash
-cd /path/to/qemu
-omp workflow start qemu-workflow-modeling --json
-```
-
-Or from the OMP TUI:
-
-```text
-/workflow start qemu-workflow-modeling --json
-```
-
-#### Install with a local Oh My Humanize checkout
-
-When developing against a local Oh My Humanize checkout, point the installer at
-that checkout's `omp` binary:
-
-```bash
-cd /path/to/oh-my-qemu
-OMP_BIN=/path/to/oh-my-humanize/packages/coding-agent/dist/omp npm run omp:workflows:install
-```
-
-#### Run once without installing
-
-Use an explicit artifact path when you do not want to copy anything into the
-workflow registry:
-
-```bash
-cd /path/to/qemu
-omp workflow start /path/to/oh-my-qemu/workflows/qemu-workflow-modeling.omhflow --json
-```
-
-From the OMP TUI launched in the QEMU tree:
-
-```text
-/workflow start /path/to/oh-my-qemu/workflows/qemu-workflow-modeling.omhflow --json
-```
-
-If OMP was launched elsewhere, add `--cwd /path/to/qemu`.
-
-#### Discover by name without copying
-
-Point `OMHFLOW_DIR` at this checkout's workflow directory before starting OMP:
-
-```bash
-OMHFLOW_DIR=/path/to/oh-my-qemu/workflows omp
-```
-
-Then use the short name:
-
-```text
-/workflow start qemu-workflow-modeling --json
-```
-
-#### Supplying the QEMU task request
-
-The workflow reads a task file from `QEMU_TASK_FILE`. Keep that file under the
-task artifact root:
-
-```bash
-mkdir -p .oh-my-qemu/k230-uart-model
-cat > .oh-my-qemu/k230-uart-model/task.md <<'EOF'
----
-slug: k230-uart-model
-workstream: peripheral-modeling
----
-
-Model the K230 UART and prove it with qtest.
-EOF
-
-QEMU_TASK_FILE=.oh-my-qemu/k230-uart-model/task.md \
-omp workflow start qemu-workflow-modeling --cwd /path/to/qemu --json
-```
-
-Equivalent environment variables are also supported:
-
-```bash
-QEMU_TASK=k230-uart-model \
-QEMU_TASK_BRIEF="Model the K230 UART and prove it with qtest" \
-QEMU_WORKSTREAM=peripheral-modeling \
-omp workflow start qemu-workflow-modeling --cwd /path/to/qemu --json
-```
-
-If the Oh My QEMU plugin is linked or installed, the shortcut command can seed
-`.oh-my-qemu/<task-slug>/task.md` and start the explicit-path workflow:
-
-```text
-/qemu-workflow Model the K230 UART and prove it with qtest.
-```
-
-After a successful run, `.oh-my-qemu/<task-slug>/workflow-handoff.md` contains
-the selected skill chain, and `.oh-my-qemu/<task-slug>/rlcr/final-summary.md`
-contains the final review/evidence summary. The narrower `qemu-workflow-task-bootstrap`
-flow remains available when you only need deterministic workspace setup and a
-handoff file.
-
 ### Claude Code plugin
 
 The Claude Code plugin exposes the same skills, `/qemu-init-task`, and the
@@ -397,8 +279,9 @@ This creates:
   rlcr/
 ```
 
-Alternatively, run the same workspace through the complete OMP modeling
-workflow. In a QEMU tree, create `.oh-my-qemu/k230-uart-model/task.md`:
+For a complete modeling run, keep the request in the task workspace and compose
+the workflow skills from there. In a QEMU tree, create
+`.oh-my-qemu/k230-uart-model/task.md`:
 
 ```bash
 mkdir -p .oh-my-qemu/k230-uart-model
@@ -412,30 +295,11 @@ Model the K230 UART and prove it with qtest.
 EOF
 ```
 
-Then start OMH/OMP from that QEMU tree and run:
-
-```bash
-QEMU_TASK_FILE=.oh-my-qemu/k230-uart-model/task.md \
-omp workflow start /path/to/oh-my-qemu/workflows/qemu-workflow-modeling.omhflow --json
-```
-
-If the flow has been installed, or `OMHFLOW_DIR=/path/to/oh-my-qemu/workflows`
-was set before launching OMH/OMP, the shorter named form also works:
-
-```text
-/workflow start qemu-workflow-modeling --json
-```
-
-For the fastest interactive path, use the bundled prompt command:
-
-```text
-/qemu-workflow Model the K230 UART and prove it with qtest.
-```
-
-This writes `.oh-my-qemu/<task-slug>/task.md`, starts the workflow by explicit
-path, creates the task root, records a provenance snapshot, plans the modeling work, runs
-implementation/verification/review/commit loops, prepares human-owned
-final-series drafts, and writes `.oh-my-qemu/k230-uart-model/rlcr/final-summary.md`.
+Then ask the agent to use the appropriate QEMU workflow skill from that QEMU
+tree. The workflow creates the task root, records a provenance snapshot, plans
+the work, runs implementation/verification/review loops, prepares human-owned
+final-series drafts, and writes
+`.oh-my-qemu/k230-uart-model/rlcr/final-summary.md`.
 
 Typical composition:
 

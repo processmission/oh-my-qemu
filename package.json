@@ -9,9 +9,6 @@
     "codex:skills:register": "node scripts/register-codex-skills.mjs",
     "codex:skills:register:dry-run": "node scripts/register-codex-skills.mjs --dry-run",
     "methodology:issue": "node scripts/draft-methodology-issue.mjs",
-    "omp:workflows:validate": "node scripts/validate-workflows.mjs",
-    "omp:workflows:install": "node scripts/install-workflows.mjs",
-    "omp:workflows:install:dry-run": "node scripts/install-workflows.mjs --dry-run",
     "portable:skills:install-global": "node scripts/install-portable-skills-global.mjs",
     "site:build": "npm --prefix site run build",
     "site:check": "npm --prefix site run check"
