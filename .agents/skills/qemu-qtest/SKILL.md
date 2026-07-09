@@ -11,7 +11,8 @@ Use this operational/domain skill for QEMU device and board tests using the qtes
 
 - Use `qemu-flow-plan` to define the behavior claim and artifact root.
 - Use `qemu-build` before running qtests if binaries are stale or missing.
-- Use `qemu-rlcr-loop` when qtest findings drive iterative source changes.
+- Before the first source mutation caused by qtest findings, MUST use
+  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
 - Store test logs, copied command lines, and debug notes under `.oh-my-qemu/<task-slug>/`.
 
 ## Hard policy boundary

@@ -14,7 +14,8 @@ As a flow primitive, use this skill to turn the result of a build, image package
 - Use `qemu-flow-plan` to define the behavior claim and evidence required.
 - Store every log, trace, replay file, command transcript, image hash list, and report under `.oh-my-qemu/<task-slug>/`.
 - Use `qemu-build`, `qemu-qtest`, and `qemu-debug` for concrete gates.
-- Use `qemu-rlcr-loop` when verification findings drive source changes.
+- Before the first source mutation caused by verification findings, MUST use
+  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
 
 ## Hard policy boundary
 

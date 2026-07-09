@@ -5,7 +5,7 @@ description: Use for non-trivial local QEMU implementation or debugging after qe
 
 # QEMU RLCR Loop
 
-Use this foundational flow after `qemu-flow-plan` when the task needs iterative implementation, debugging, or substantial validation. It adapts Humanize's RLCR idea to QEMU while keeping every agent-created artifact under `build/`.
+Use this foundational flow after `qemu-flow-plan` when the task needs iterative implementation, debugging, or substantial validation. It adapts Humanize's RLCR idea to QEMU while keeping every agent-created artifact under `.oh-my-qemu/<task-slug>/`.
 
 RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
@@ -71,6 +71,10 @@ The immutable section mirrors the plan. Do not alter it without explicit human a
 ## Round loop
 
 Repeat until all acceptance criteria pass and review finds no blocking issue.
+
+Before the first source edit, create or update `goal-tracker.md`, set
+`Active round`, and select the round objective. Source changes are not allowed
+outside an active round.
 
 ### 1. Select one round objective
 
@@ -150,6 +154,9 @@ Write the result to `round-NNN-review.md`.
 - Fix `MAJOR` findings unless explicitly deferred in `goal-tracker.md` with a reason.
 - If review requires a fix, remain in the current round, then repeat
   verification, summary, and independent review.
+- A failed verification gate is still a round state: write or update the round
+  summary and review with a `BLOCKER`, record that there is no checkpoint
+  commit, and continue fixing the same round. Do not start the next round.
 - Do not commit a round with a failed verification gate, `BLOCKER`, or
   unresolved `MAJOR` finding.
 - Repeat the current round until its objective has passing evidence and no
@@ -349,7 +356,7 @@ Read `references/methodology-feedback.md` for the full procedure. In short:
 
 ## When not to use RLCR
 
-Skip this flow for trivial read-only questions, one-line documentation edits, or a single targeted command with no source changes. Still keep artifacts under `build/` if any are created.
+Skip this flow for trivial read-only questions, one-line documentation edits, or a single targeted command with no source changes. Still keep artifacts under `.oh-my-qemu/<task-slug>/` if any are created.
 
 ## Upstream references
 

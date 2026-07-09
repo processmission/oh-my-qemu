@@ -23,7 +23,7 @@ All agent-created artifacts MUST live under the local Oh My QEMU artifact direct
 
 This includes plans, notes, logs, traces, decoded dumps, review ledgers, temporary scripts, generated reports, copied command lines, and scratch data.
 
-Never create `.plan/`, `.humanize/`, `tmp/`, root-level notes, or helper files inside source directories. Source files should change only when they are the requested deliverable. Do not create `build/` only to store agent artifacts; create only the needed `.oh-my-qemu/<task-slug>/` subtree.
+Never create `.plan/`, `.humanize/`, `tmp/`, root-level notes, or helper files inside source directories. Source files should change only when they are the requested deliverable. Create only the needed `.oh-my-qemu/<task-slug>/` subtree.
 
 ## Minimal plan flow
 
@@ -97,6 +97,11 @@ HEAD, and initial `git status --short` in `source-provenance.md` before changing
 source. State that RLCR round commits are local workflow checkpoints: never push,
 publish, format, or describe them as QEMU-upstream-ready output.
 
+Before the first source edit in an implementation task, start the
+`qemu-rlcr-loop` flow over this plan, create or update
+`.oh-my-qemu/<task-slug>/rlcr/goal-tracker.md`, and select the active round
+objective. Do not make source changes outside an active RLCR round.
+
 Derive the expected checkpoint subject prefix from the affected subsystem and
 nearby QEMU history. Keep agent artifacts under `.oh-my-qemu/<task-slug>/`;
 they are evidence for the commits, not commit content.
@@ -135,7 +140,10 @@ After the plan is stable, choose the narrow domain skill:
 - `qemu-debug`
 - `qemu-build`
 
-For implementation work, run the `qemu-rlcr-loop` flow over this plan.
+For implementation work, MUST start the `qemu-rlcr-loop` flow over this plan
+before the first source edit, and keep every source change inside the active
+round until that round is verified, reviewed, and checkpointed or recorded as
+blocked.
 
 ## Plan template
 
@@ -197,4 +205,4 @@ For implementation work, run the `qemu-rlcr-loop` flow over this plan.
 
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
 - QEMU RFC agent skill layout: qemu-devel “AGENTS.md and associated skills” series.
-- Humanize influence: immutable goals, acceptance criteria, evidence ledgers, and review loops, adapted to keep all artifacts under `build/`.
+- Humanize influence: immutable goals, acceptance criteria, evidence ledgers, and review loops, adapted to keep all artifacts under `.oh-my-qemu/<task-slug>/`.

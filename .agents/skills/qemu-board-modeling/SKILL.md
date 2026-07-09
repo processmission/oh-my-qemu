@@ -11,7 +11,8 @@ Use this domain skill when changing a QEMU machine or SoC: CPU clusters, memory 
 
 1. Start with `qemu-flow-plan` for non-trivial work.
 2. Put all plans, boot logs, UART captures, FDT dumps, trace files, scratch scripts, and review notes under `.oh-my-qemu/<task-slug>/`.
-3. Use `qemu-rlcr-loop` for implementation/debugging rounds.
+3. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep
+   implementation/debugging inside RLCR rounds.
 4. Use `qemu-build` for target binary builds.
 5. Use `qemu-qtest` to add or extend board qtest cases for machine creation, memory-map probes, and representative IRQ/device wiring.
 6. Use `qemu-debug` and `qemu-model-verification` for boot/runtime evidence.

@@ -12,7 +12,8 @@ Use this domain skill for QEMU hardware blocks: MMIO devices, SysBus/qdev periph
 1. Start with `qemu-flow-plan` for any non-trivial work.
 2. If register facts come from drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` first and use its `register-extraction.md` as the source contract.
 3. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `.oh-my-qemu/<task-slug>/`.
-4. Use `qemu-rlcr-loop` for implementation/debugging rounds.
+4. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep
+   implementation/debugging inside RLCR rounds.
 5. Use `qemu-build` and `qemu-qtest` for build and qtest gates.
 6. Use `qemu-model-verification` for runtime/trace/workload evidence.
 

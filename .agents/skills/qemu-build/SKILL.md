@@ -114,7 +114,7 @@ Write/report:
 - exact command;
 - target list and key options;
 - decisive failure excerpt;
-- full log paths under `build/` and copied notes under `.oh-my-qemu/<task-slug>/`;
+- full log paths under `.oh-my-qemu/<task-slug>/`;
 - what the build proves.
 
 ## Upstream references
