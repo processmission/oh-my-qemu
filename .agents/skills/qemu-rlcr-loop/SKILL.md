@@ -5,7 +5,7 @@ description: Use for non-trivial local QEMU implementation or debugging after qe
 
 # QEMU RLCR Loop
 
-Use this foundational flow after `qemu-flow-plan` when the task needs iterative implementation, debugging, or substantial validation. It adapts Humanize's RLCR idea to QEMU while keeping every agent-created artifact under `build/`.
+Use this foundational flow after `qemu-flow-plan` when the task needs iterative implementation, debugging, or substantial validation. It adapts Humanize's RLCR idea to QEMU while keeping every agent-created artifact under `.oh-my-qemu/<task-slug>/`.
 
 RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
@@ -349,7 +349,7 @@ Read `references/methodology-feedback.md` for the full procedure. In short:
 
 ## When not to use RLCR
 
-Skip this flow for trivial read-only questions, one-line documentation edits, or a single targeted command with no source changes. Still keep artifacts under `build/` if any are created.
+Skip this flow for trivial read-only questions, one-line documentation edits, or a single targeted command with no source changes. Still keep artifacts under `.oh-my-qemu/<task-slug>/` if any are created.
 
 ## Upstream references
 
