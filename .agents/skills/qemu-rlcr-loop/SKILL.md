@@ -350,17 +350,19 @@ Before finishing, write `final-summary.md`:
 
 Do not report completion if any AC lacks evidence.
 
-## Methodology feedback phase
+## Methodology feedback record
 
-After final verification, pause, block, max-iteration exit, or completion of a multi-workflow composition, run the methodology feedback phase once for the whole task. Do not ask the user after every primitive or workflow step.
+After final verification, pause, block, max-iteration exit, or completion of a
+multi-workflow composition, the outer workflow may ask for one sanitized
+methodology feedback record for the whole task. Do not ask the user after every
+primitive or workflow step.
 
-Read `references/methodology-feedback.md` for the full procedure. In short:
+Read `references/methodology-feedback.md` for the record shape. In short:
 
 - write sanitized workflow lessons to `.oh-my-qemu/<task-slug>/methodology-feedback.md`;
-- if there are no reusable improvements, do not ask the user to file an issue;
-- if there are reusable improvements, ask once whether the user wants to open an upstream issue;
-- show the sanitized issue draft before filing;
-- default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
+- if there are no reusable improvements, record `State: analyzed-no-suggestions`;
+- do not file issues, run GitHub commands, or choose follow-up workflow steps
+  from inside this primitive.
 
 ## When not to use RLCR
 

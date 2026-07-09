@@ -59,7 +59,8 @@ This repository is also a Claude Code plugin:
 - `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
 - `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
 - `qemu-register-extraction`: research flow that extracts register maps, bitfields, cross-register dependencies, side effects, IRQ/DMA behavior, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown for peripheral modeling.
-- `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, scoped local Git checkpoint commits, final evidence, and one-time sanitized methodology feedback at terminal workflow points.
+- `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, scoped local Git checkpoint commits, final evidence, and optional terminal feedback records.
+- `qemu-agent-feedback`: flow primitive for sanitizing reusable oh-my-qemu agent workflow problems, drafting a public improvement issue, and filing it with `gh` when approved.
 
 ## Operational skills
 
@@ -86,7 +87,7 @@ This repository is also a Claude Code plugin:
 
 ## Methodology feedback
 
-At RLCR completion, pause, blocked state, or max-iteration exit, agents may produce sanitized workflow feedback in `.oh-my-qemu/<task-slug>/methodology-feedback.md` and ask once whether to file an upstream issue. Do not ask after every primitive or every step in a composed workflow. Use `scripts/draft-methodology-issue.mjs` only after the feedback report has been sanitized; it drafts issue title/body files under the task's `scratch/` directory. Default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
+At RLCR completion, pause, blocked state, or max-iteration exit, agents may produce sanitized workflow feedback in `.oh-my-qemu/<task-slug>/methodology-feedback.md`. Do not ask after every primitive or every step in a composed workflow. Use `qemu-agent-feedback` only after the feedback report has been sanitized; it drafts issue title/body files under the task's `scratch/` directory and files with `gh` when approved. Default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
 
 ## Codex skill compatibility
 

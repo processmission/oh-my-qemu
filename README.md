@@ -87,6 +87,7 @@ Small building blocks used by larger QEMU workflows.
 | `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
 | `qemu-boot-run` | Build reproducible QEMU run commands, logs, timeout markers, and result classification |
 | `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
+| `qemu-agent-feedback` | Summarize sanitized agent workflow problems and file oh-my-qemu improvement issues with `gh` when approved |
 
 ### Modeling and debugging workflows
 
@@ -348,8 +349,8 @@ the work.
 ## Methodology feedback
 
 At final completion, pause, blocked state, or max-iteration exit of an RLCR or
-composed workflow, `qemu-rlcr-loop` can run a one-time methodology feedback
-phase. It summarizes reusable workflow problems or improvements into:
+composed workflow, the agent can write a one-time methodology feedback record.
+It summarizes reusable workflow problems or improvements into:
 
 ```text
 .oh-my-qemu/<task-slug>/methodology-feedback.md
@@ -360,11 +361,12 @@ branch names, commit hashes, proprietary logs, code snippets, project-specific
 URLs, image paths, or board/customer/product identifiers unless explicitly
 approved.
 
-If reusable improvements exist, the agent asks once whether to create an
-upstream issue. The default target is `processmission/oh-my-qemu`, overrideable
-with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
+If reusable improvements exist, use `qemu-agent-feedback` to draft the
+public issue from the sanitized report and file it with the local GitHub CLI
+when approved. The default target is `processmission/oh-my-qemu`,
+overrideable with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
 
-Draft an issue from a sanitized report:
+Draft an improvement issue from a sanitized report:
 
 ```bash
 npm run methodology:issue -- .oh-my-qemu/<task-slug>
