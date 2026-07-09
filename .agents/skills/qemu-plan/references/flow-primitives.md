@@ -28,7 +28,7 @@ Every primitive must:
 ## Composition Rule
 
 Only workflow skills define ordering between primitives. If a skill needs to
-sequence multiple primitives, classify it as `qmu-workflow-*`, not
+sequence multiple primitives, classify it as `qemu-workflow-*`, not
 `qemu-*`.
 
 ## Failure Discipline

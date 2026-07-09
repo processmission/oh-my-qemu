@@ -1,5 +1,5 @@
 ---
-name: qmu-workflow-tcg-backend-adaptation
+name: qemu-workflow-tcg-backend-adaptation
 description: Use for adapting a QEMU TCG host backend, including optional op support, constraints, register allocation, host code emission, qemu_ld/st, atomics, and vector ops. Extends qemu-plan and qemu-rlcr-loop.
 ---
 

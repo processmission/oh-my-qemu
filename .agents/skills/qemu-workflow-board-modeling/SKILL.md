@@ -1,5 +1,5 @@
 ---
-name: qmu-workflow-board-modeling
+name: qemu-workflow-board-modeling
 description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-plan and qemu-rlcr-loop; board work must add or extend qemu-qtest coverage for verification.
 ---
 

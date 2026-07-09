@@ -1,5 +1,5 @@
 ---
-name: qmu-workflow-peripheral-modeling
+name: qemu-workflow-peripheral-modeling
 description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling. Extends qemu-plan and qemu-rlcr-loop; register-bank modeling must use QEMU's registerinfo framework and qtest verification.
 ---
 

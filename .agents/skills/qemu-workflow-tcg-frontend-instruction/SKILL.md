@@ -1,5 +1,5 @@
 ---
-name: qmu-workflow-tcg-frontend-instruction
+name: qemu-workflow-tcg-frontend-instruction
 description: Use for adding, reviewing, or debugging a guest ISA instruction in a QEMU TCG frontend. Extends qemu-plan and qemu-rlcr-loop; this skill only defines frontend decode/translation decisions.
 ---
 

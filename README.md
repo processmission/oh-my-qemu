@@ -64,7 +64,7 @@ want to model and run.
 
 | Directory | Purpose |
 |-----------|---------|
-| `.agents/skills/` | Agent skills, one `SKILL.md` per QEMU workflow |
+| `.agents/skills/` | Agent skills, one `SKILL.md` per flow primitive or workflow |
 | `scripts/` | Skill validation, Codex registration, portable install, task initialization, and methodology issue helpers |
 | `commands/` | Slash command definitions such as `/qemu-init-task` |
 | `hooks/` | Artifact-policy hooks that keep agent scratch files under `.oh-my-qemu/` |
@@ -76,53 +76,45 @@ want to model and run.
 
 ## Skills
 
-### Flow primitives
+### Skill schema
 
-Small building blocks used by larger QEMU workflows.
+Oh My QEMU uses two skill schemas:
+
+| Schema | Naming | Role |
+|--------|--------|------|
+| Flow primitive | `qemu-<capability>` | Owns one bounded action, record, or evidence contract. It does not orchestrate other primitives or workflows. |
+| Workflow | `qemu-workflow-<name>` | Composes primitives to complete a larger QEMU task path. |
+
+Flow primitives are the stable building blocks. Workflows choose and order
+those primitives based on the task input.
+
+### Flow primitive list
 
 | Skill | Purpose |
 |-------|---------|
-| `qemu-plan` | Define task scope, acceptance criteria, artifact root, and verification gates |
-| `qemu-source-provenance` | Record source trees, revisions, configs, toolchains, outputs, and hashes |
-| `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
+| `qemu-agent-feedback` | Summarize sanitized oh-my-qemu agent workflow problems and file improvement issues with `gh` when approved |
 | `qemu-boot-run` | Build reproducible QEMU run commands, logs, timeout markers, and result classification |
-| `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
-| `qemu-agent-feedback` | Summarize sanitized agent workflow problems and file oh-my-qemu improvement issues with `gh` when approved |
-
-### Modeling and debugging workflows
-
-Skills for turning hardware facts into a QEMU model and proving it behaves.
-
-| Skill | Purpose |
-|-------|---------|
-| `qemu-register-extraction` | Extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences |
-| `qemu-workflow-peripheral-modeling` | Model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices |
-| `qemu-workflow-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
-| `qemu-qtest` | Design, register, run, and debug qtest coverage |
+| `qemu-build` | Configure, build, reuse, and diagnose QEMU build directories |
 | `qemu-debug` | Use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis |
+| `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
+| `qemu-image-packaging` | Package kernels, firmware, DTBs, rootfs, modules, and boot media images |
+| `qemu-kernel-build` | Build Linux kernel artifacts for QEMU boot tests |
+| `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
+| `qemu-plan` | Define task scope, acceptance criteria, artifact root, and verification gates |
+| `qemu-qtest` | Design, register, run, and debug qtest coverage |
+| `qemu-register-extraction` | Extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences |
 | `qemu-rlcr-loop` | Iterate implementation/debugging rounds with verification, review, local checkpoints, and final-series draft preparation |
 | `qemu-rst-documentation` | Write QEMU RST docs, board pages, boot examples, Sphinx index updates, and docs validation |
-
-### Build, image, and boot
-
-Flow primitives compile/package artifacts; workflow skills run realistic boot
-paths.
-
-| Skill | Purpose |
-|-------|---------|
-| `qemu-build` | Configure, build, reuse, and diagnose QEMU build directories |
-| `qemu-kernel-build` | Build Linux kernel artifacts for QEMU boot tests |
+| `qemu-source-provenance` | Record source trees, revisions, configs, toolchains, outputs, and hashes |
 | `qemu-uboot-build` | Build U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts |
-| `qemu-image-packaging` | Package kernels, firmware, DTBs, rootfs, modules, and boot media images |
-| `qemu-workflow-direct-linux-boot` | Boot Linux directly with QEMU `-kernel`, DTB, initrd, console, and rootfs options |
-| `qemu-workflow-firmware-linux-boot` | Boot Linux through firmware or bootloader stages and preserve handoff evidence |
 
-### TCG workflows
-
-Skills for guest instruction frontend work and host backend adaptation.
+### Workflow list
 
 | Skill | Purpose |
 |-------|---------|
+| `qemu-workflow-linux-boot` | Boot Linux directly or through firmware based on task inputs and preserve handoff evidence |
+| `qemu-workflow-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
+| `qemu-workflow-peripheral-modeling` | Model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices |
 | `qemu-workflow-tcg-frontend-instruction` | Add, review, or debug guest ISA decode and TCG translation |
 | `qemu-workflow-tcg-backend-adaptation` | Adapt TCG host backend ops, constraints, register allocation, emission, atomics, and vectors |
 
@@ -318,10 +310,10 @@ Typical composition:
 Common workflows:
 
 ```text
-kernel build -> direct linux boot -> verification
-uboot build -> image packaging -> firmware linux boot -> debug if needed -> verification
+kernel build -> linux boot (direct path) -> verification
+uboot build -> image packaging -> linux boot (firmware path) -> debug if needed -> verification
 register extraction -> peripheral modeling -> qtest -> model verification
-board modeling -> qtest -> direct linux boot -> RST documentation
+board modeling -> qtest -> linux boot (selected path) -> RST documentation
 ```
 
 ---

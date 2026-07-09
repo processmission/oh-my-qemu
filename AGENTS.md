@@ -82,8 +82,7 @@ This repository is also a Claude Code plugin:
 - `qemu-kernel-build`: flow primitive for building Linux kernel artifacts for QEMU boot testing.
 - `qemu-uboot-build`: flow primitive for building U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts.
 - `qemu-image-packaging`: flow primitive for packaging boot media.
-- `qemu-workflow-direct-linux-boot`: workflow for direct Linux boot commands.
-- `qemu-workflow-firmware-linux-boot`: workflow for firmware-to-Linux paths.
+- `qemu-workflow-linux-boot`: workflow for direct or firmware-to-Linux boot paths, selected from task inputs.
 
 ## Methodology feedback
 
