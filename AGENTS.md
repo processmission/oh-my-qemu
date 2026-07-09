@@ -54,7 +54,7 @@ This repository is also a Claude Code plugin:
 
 ## Flow skills
 
-- `qemu-flow-plan`: first step for non-trivial tasks; creates the .oh-my-qemu artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
+- `qemu-plan`: first step for non-trivial tasks; creates the .oh-my-qemu artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
 - `qemu-source-provenance`: flow primitive for source roots, revisions, configs, toolchains, produced artifacts, and hashes.
 - `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
 - `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
@@ -70,19 +70,19 @@ This repository is also a Claude Code plugin:
 
 ## Domain skills
 
-- `qemu-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling, using the checked-out QEMU registerinfo framework for guest-visible register banks.
-- `qemu-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
-- `qemu-rst-documentation`: QEMU reStructuredText documentation workflow for board, machine, system, device, and developer docs, including toctree/index updates and docs build validation.
-- `qemu-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
-- `qemu-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
+- `qemu-workflow-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling, using the checked-out QEMU registerinfo framework for guest-visible register banks.
+- `qemu-workflow-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
+- `qemu-rst-documentation`: flow primitive for QEMU reStructuredText docs, including toctree/index updates and docs build validation.
+- `qemu-workflow-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
+- `qemu-workflow-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
 
-## Boot and build workflow skills
+## Boot and build skills
 
-- `qemu-kernel-build`: composes flow plan and source provenance to build Linux kernel artifacts for QEMU boot testing.
-- `qemu-uboot-build`: composes flow plan and source provenance to build U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts.
-- `qemu-image-packaging`: composes source provenance and image layout to package boot media.
-- `qemu-direct-linux-boot`: composes source provenance, boot run, and model verification for direct Linux boot commands.
-- `qemu-firmware-linux-boot`: composes source provenance, image layout, boot run, debug, and verification for firmware-to-Linux paths.
+- `qemu-kernel-build`: flow primitive for building Linux kernel artifacts for QEMU boot testing.
+- `qemu-uboot-build`: flow primitive for building U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts.
+- `qemu-image-packaging`: flow primitive for packaging boot media.
+- `qemu-workflow-direct-linux-boot`: workflow for direct Linux boot commands.
+- `qemu-workflow-firmware-linux-boot`: workflow for firmware-to-Linux paths.
 
 ## Methodology feedback
 

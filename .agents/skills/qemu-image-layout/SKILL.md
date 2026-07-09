@@ -1,18 +1,18 @@
 ---
 name: qemu-image-layout
-description: Use as a QEMU workflow primitive to describe and verify raw, qcow2, SD, eMMC, flash, or firmware image layouts, including partitions, offsets, write operations, mutation policy, and hashes.
+description: Use as a QEMU flow primitive to describe and verify raw, qcow2, SD, eMMC, flash, or firmware image layouts, including partitions, offsets, write operations, mutation policy, and hashes.
 ---
 
 # QEMU Image Layout
 
 Use this primitive before packaging or booting any disk, SD, eMMC, flash, pflash, firmware, or multi-partition image.
 
-## Composition
+## Primitive Boundary
 
-1. Start from `qemu-flow-plan`.
-2. Use `qemu-source-provenance` for every input artifact.
-3. Write the image contract to `.oh-my-qemu/<task-slug>/image-layout.md`.
-4. Feed verified image paths into `qemu-boot-run`.
+This primitive owns only the image layout contract: format, size, partitions,
+regions, offsets, write order, mutation policy, and hashes. It consumes
+already selected input artifact paths and does not choose provenance,
+packaging, boot-run, or debug workflow steps.
 
 ## Layout Record
 

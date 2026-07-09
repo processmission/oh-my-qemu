@@ -37,7 +37,7 @@ Procedure:
    ```bash
    QEMU_TASK="<task-slug>" \
    QEMU_TASK_FILE=".oh-my-qemu/<task-slug>/task.md" \
-   omp workflow start "${CLAUDE_PLUGIN_ROOT}/workflows/qemu-modeling.omhflow" --cwd "$PWD" --json
+   omp workflow start "${CLAUDE_PLUGIN_ROOT}/workflows/qemu-workflow-modeling.omhflow" --cwd "$PWD" --json
    ```
 
 6. Report the workflow status, run id, task root, and `workflow-handoff.md` path. The workflow owns planning, implementation, verification, review looping, scoped local round commits, and final evidence.

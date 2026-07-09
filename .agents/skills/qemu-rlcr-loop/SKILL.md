@@ -1,11 +1,14 @@
 ---
 name: qemu-rlcr-loop
-description: Use for non-trivial local QEMU implementation or debugging after qemu-flow-plan. Runs coherent rounds of work, verification, summary, independent review, scoped local Git checkpoint commits, terminal human-owned final-series draft preparation, and fixes until acceptance criteria pass.
+description: Use as a QEMU flow primitive for local iterative implementation or debugging rounds with summaries, independent review, scoped local checkpoint commits, terminal human-owned final-series draft preparation, and fixes until acceptance criteria pass.
 ---
 
 # QEMU RLCR Loop
 
-Use this foundational flow after `qemu-flow-plan` when the task needs iterative implementation, debugging, or substantial validation. It adapts Humanize's RLCR idea to QEMU while keeping every agent-created artifact under `.oh-my-qemu/<task-slug>/`.
+Use this flow primitive when a workflow has already selected iterative
+implementation, debugging, or substantial validation. It adapts Humanize's
+RLCR idea to QEMU while keeping every agent-created artifact under
+`.oh-my-qemu/<task-slug>/`.
 
 RLCR here means: **Ralph Loop with Codex/Reviewer Review**.
 
@@ -15,16 +18,17 @@ Do not produce source code intended for QEMU upstream submission. QEMU currently
 
 ## Required inputs
 
-- A plan created by `qemu-flow-plan`.
+- A frozen task plan.
 - Its artifact root, usually `.oh-my-qemu/<task-slug>/`.
 - Frozen acceptance criteria.
 - A chosen domain skill for the technical work.
 - A designated task source tree and dedicated local task branch.
 - A baseline revision, initial dirty-path inventory, allowed round-commit
   pathspecs, and expected QEMU subsystem prefix recorded by
-  `qemu-source-provenance`.
+  the task provenance record.
 
-If there is no plan, run `qemu-flow-plan` first.
+If there is no frozen task plan, stop and ask the outer workflow or human to
+provide one.
 
 ## Artifact layout
 
@@ -95,14 +99,8 @@ Use the domain skill for technical decisions. Keep scratch artifacts under the t
 
 ### 3. Verify the slice
 
-Run the narrowest relevant gate:
-
-- `qemu-build` for compile/configure gates;
-- `qemu-qtest` for device/board behavior;
-- `qemu-model-verification` for runtime, trace, and workload evidence;
-- `qemu-debug` for failure reproduction and classification.
-
-Record exact commands and log paths.
+Run the narrowest relevant gate selected by the plan or outer workflow. Record
+exact commands and log paths.
 
 ### 4. Write round summary
 

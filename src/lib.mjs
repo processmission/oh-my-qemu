@@ -300,7 +300,7 @@ Record exact commands, working directories, environment overrides, and output ar
 
 ## Unknowns and Conflicts
 
-## Handoff Checklist for qemu-peripheral-modeling
+## Handoff Checklist for qemu-workflow-peripheral-modeling
 `, result);
 
   writeIfMissing(join(root, "source-inventory.md"), `# ${slug} Source Inventory

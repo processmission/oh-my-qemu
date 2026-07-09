@@ -1,6 +1,6 @@
 ---
 name: qemu-model-verification
-description: Use to prove QEMU device, board, TCG, or runtime behavior with qtest, traces, logs, replay, and boot/workload evidence. Extends qemu-flow-plan by defining evidence ladders and reporting rules.
+description: Use as a QEMU flow primitive to prove QEMU device, board, TCG, or runtime behavior with qtest, traces, logs, replay, and boot/workload evidence.
 ---
 
 # QEMU Model Verification
@@ -9,13 +9,12 @@ Use this skill when a QEMU model, board, TCG change, or debug hypothesis must be
 
 As a flow primitive, use this skill to turn the result of a build, image package, boot run, trace, or debugger session into a clear PASS, FAIL, or INCONCLUSIVE claim.
 
-## Flow dependencies
+## Primitive Boundary
 
-- Use `qemu-flow-plan` to define the behavior claim and evidence required.
-- Store every log, trace, replay file, command transcript, image hash list, and report under `.oh-my-qemu/<task-slug>/`.
-- Use `qemu-build`, `qemu-qtest`, and `qemu-debug` for concrete gates.
-- Before the first source mutation caused by verification findings, MUST use
-  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
+This primitive owns only evidence interpretation and reporting. It consumes a
+behavior claim, evidence paths, commands, hashes, traces, and logs supplied by
+the caller, then reports `PASS`, `FAIL`, or `INCONCLUSIVE`. It does not choose
+build, qtest, debug, boot, or iterative-fix workflow steps.
 
 ## Hard policy boundary
 

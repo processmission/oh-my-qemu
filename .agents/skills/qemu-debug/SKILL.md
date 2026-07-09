@@ -7,15 +7,13 @@ description: Use for debugging QEMU itself or guests under QEMU with host-side g
 
 Use this skill to reproduce, classify, and narrow QEMU failures: QEMU process crashes/assertions, guest boot hangs, wrong device behavior, TCG bugs, migration/runtime assertions, or intermittent behavior.
 
-As a flow primitive, use this skill from boot workflows after `qemu-boot-run` has captured the exact command, failure marker, and log path.
+## Primitive Boundary
 
-## Flow dependencies
-
-- Use `qemu-flow-plan` for non-trivial debugging.
-- Store reproducer commands, logs, traces, replay files, host/guest gdb notes, and scratch scripts under `.oh-my-qemu/<task-slug>/`.
-- Before the first source mutation caused by debugging, MUST use
-  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
-- Use `qemu-model-verification` to state what the evidence proves.
+This primitive owns only failure reproduction and narrowing: host debugger,
+guest gdbstub, QEMU logs, trace events, replay, and instruction-window data.
+It consumes a reproducer command, failure marker, relevant artifacts, and an
+artifact root supplied by the caller. It does not choose build, boot-run,
+verification, or iterative-fix workflow steps.
 
 ## Hard policy boundary
 
@@ -41,7 +39,7 @@ Use host-side GDB or LLDB when debugging QEMU itself: crashes, assertions, hangs
 
 Before attaching:
 
-- ensure the relevant binary is built with debug info; use `qemu-build` if needed;
+- ensure the relevant binary is built with debug info;
 - record the exact QEMU command in `.oh-my-qemu/<task-slug>/commands.md`;
 - put debugger transcripts and notes under `.oh-my-qemu/<task-slug>/logs/` or `.oh-my-qemu/<task-slug>/debugger.md`;
 - keep guest logs/traces separate from host debugger notes.

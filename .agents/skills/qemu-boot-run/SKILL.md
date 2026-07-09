@@ -1,19 +1,18 @@
 ---
 name: qemu-boot-run
-description: Use as a QEMU workflow primitive to construct, run, log, and classify reproducible QEMU boot commands for kernels, firmware, disks, initramfs images, serial consoles, timeouts, and success or failure markers.
+description: Use as a QEMU flow primitive to construct, run, log, and classify reproducible QEMU boot commands for kernels, firmware, disks, initramfs images, serial consoles, timeouts, and success or failure markers.
 ---
 
 # QEMU Boot Run
 
 Use this primitive whenever the task is to run QEMU and observe a boot milestone, whether the boot path is direct kernel boot, firmware boot, a guest OS shell, a test appliance, or a boot hang reproducer.
 
-## Composition
+## Primitive Boundary
 
-1. Start from `qemu-flow-plan`.
-2. Use `qemu-source-provenance` for binaries, images, DTBs, kernels, initramfs, and firmware.
-3. Use `qemu-image-layout` for boot media or flash images.
-4. Write the runnable command and result to `.oh-my-qemu/<task-slug>/boot-run.md`.
-5. Use `qemu-debug` on failures and `qemu-model-verification` for final claims.
+This primitive owns only the QEMU command, run log, timeout behavior, marker
+matching, and immediate result classification. It consumes already selected
+binary/image paths and does not choose provenance, image-layout, debug, or
+verification workflow steps.
 
 ## Command Record
 
@@ -47,4 +46,5 @@ When a run fails or times out, classify the first suspect before editing source:
 - missing device behavior;
 - guest OS or rootfs issue.
 
-Then use `qemu-debug` with a focused window: guest gdbstub, host debugger, QEMU log flags, trace events, or instruction logs.
+Expose the classification, command, and log path so an outer workflow can
+choose the next step.

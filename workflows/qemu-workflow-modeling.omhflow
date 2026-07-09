@@ -1,0 +1,431 @@
+---
+name: qemu-workflow-modeling
+version: 1
+schema: omhflow/v1
+checkpoint:
+  stopDeadlineMs: 300000
+changePolicy:
+  agentsCanPropose: false
+  humansCanApprove: true
+---
+# QEMU Modeling Workflow
+
+Complete Oh My QEMU modeling workflow for local QEMU research, implementation,
+and verification runs. It bootstraps the required `.oh-my-qemu/<task-slug>/`
+workspace, runs the QEMU planning and domain-skill chain, loops through
+coherent implementation plus verification rounds, commits each reviewed round
+locally, prepares human-owned final-series drafts that atomize the checkpoints,
+and writes a final evidence summary after the reviewer returns `COMPLETE`.
+
+This is a candidate workflow artifact. Run it by explicit path or through
+`OMHFLOW_DIR`; do not treat it as an Oh My Humanize built-in practical flow
+without separate long-running validation evidence.
+
+Use `QEMU_TASK`, `QEMU_TASK_BRIEF`, `QEMU_TASK_FILE`, and `QEMU_WORKSTREAM` to
+override the default slug, brief, task file, and workstream. Prefer task files
+under `.oh-my-qemu/<task-slug>/task.md`; legacy root-level `qemu-task.md` and
+`task.md` are read only as fallback inputs.
+
+```yaml workflow
+stateSchema:
+  version: 1
+  shape:
+    slug: string
+    taskRoot: string
+    taskBrief: string
+    workstream: string
+    workspace: object
+    provenance: object
+    handoff: object
+    plan: object
+    research: object
+    implementation: object
+    verification: object
+    fixes: object
+    modeling: object
+    commit: object
+    finalSeries: object
+    verdict: string
+    final: object
+resources:
+  - path: scripts/qemu-workflow-modeling.mjs
+    kind: script
+  - path: prompts/plan-work.md
+    kind: prompt
+  - path: prompts/research-contract.md
+    kind: prompt
+  - path: prompts/implementation-round.md
+    kind: prompt
+  - path: prompts/verification-round.md
+    kind: prompt
+  - path: prompts/fix-round.md
+    kind: prompt
+  - path: prompts/review-gate.md
+    kind: prompt
+  - path: prompts/commit-round.md
+    kind: prompt
+  - path: prompts/final-series.md
+    kind: prompt
+capabilities:
+  agents:
+    - task
+    - reviewer
+  tools:
+    - bash
+nodes:
+  bootstrapWorkspace:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-modeling.mjs" bootstrap
+    writes:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+      - /workspace
+      - /provenance
+      - /plan
+      - /research
+      - /implementation
+      - /verification
+      - /fixes
+      - /modeling
+      - /commit
+      - /finalSeries
+      - /final
+  recordProvenance:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-modeling.mjs" provenance
+    reads:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+    writes:
+      - /provenance
+  writeHandoff:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-modeling.mjs" handoff
+    reads:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+      - /workspace
+      - /provenance
+    writes:
+      - /handoff
+  planWork:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /plan
+    prompt:
+      template:
+        file: prompts/plan-work.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+  researchContract:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /research
+    prompt:
+      template:
+        file: prompts/research-contract.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          planSummary:
+            output:
+              node: planWork
+              path: /summary
+              activation: latest-completed
+  implementationRound:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /implementation
+    prompt:
+      template:
+        file: prompts/implementation-round.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          planSummary:
+            output:
+              node: planWork
+              path: /summary
+              activation: latest-completed
+          researchSummary:
+            output:
+              node: researchContract
+              path: /summary
+              activation: latest-completed
+          modeling:
+            state: /modeling
+          commit:
+            state: /commit
+  verificationRound:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /verification
+    prompt:
+      template:
+        file: prompts/verification-round.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          modeling:
+            state: /modeling
+          fixes:
+            state: /fixes
+          implementationSummary:
+            output:
+              node: implementationRound
+              path: /summary
+              activation: latest-completed
+  recordRound:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-modeling.mjs" record-round
+    reads:
+      - /
+    writes:
+      - /modeling
+  reviewModeling:
+    type: review
+    agent: reviewer
+    reads:
+      - /
+    writes:
+      - /verdict
+    prompt:
+      template:
+        file: prompts/review-gate.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          modeling:
+            state: /modeling
+          round:
+            state: /modeling/round
+          attempt:
+            state: /modeling/attempt
+          verificationSummary:
+            output:
+              node: verificationRound
+              path: /summary
+              activation: latest-completed
+    gates:
+      - CONTINUE
+      - ADVANCE
+      - COMPLETE
+    fallbackVerdict: CONTINUE
+  commitRound:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /commit
+    prompt:
+      template:
+        file: prompts/commit-round.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          provenance:
+            state: /provenance
+          modeling:
+            state: /modeling
+          round:
+            state: /modeling/round
+          attempt:
+            state: /modeling/attempt
+          verificationSummary:
+            output:
+              node: verificationRound
+              path: /summary
+              activation: latest-completed
+          reviewSummary:
+            output:
+              node: reviewModeling
+              path: /summary
+              activation: latest-completed
+          reviewVerdict:
+            output:
+              node: reviewModeling
+              path: /data/verdict
+              activation: latest-completed
+  prepareFinalSeries:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /finalSeries
+    prompt:
+      template:
+        file: prompts/final-series.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          modeling:
+            state: /modeling
+          commit:
+            state: /commit
+  fixRound:
+    type: agent
+    agent: task
+    reads:
+      - /
+    writes:
+      - /fixes
+    prompt:
+      template:
+        file: prompts/fix-round.md
+        bindings:
+          slug:
+            state: /slug
+          taskRoot:
+            state: /taskRoot
+          taskBrief:
+            state: /taskBrief
+          workstream:
+            state: /workstream
+          handoff:
+            state: /handoff
+          modeling:
+            state: /modeling
+          reviewSummary:
+            output:
+              node: reviewModeling
+              path: /summary
+              activation: latest-completed
+          reviewVerdict:
+            output:
+              node: reviewModeling
+              path: /data/verdict
+              activation: latest-completed
+  finalizeEvidence:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-modeling.mjs" finalize
+    reads:
+      - /
+    writes:
+      - /final
+edges:
+  - from: bootstrapWorkspace
+    to: recordProvenance
+  - from: recordProvenance
+    to: writeHandoff
+  - from: writeHandoff
+    to: planWork
+  - from: planWork
+    to: researchContract
+  - from: researchContract
+    to: implementationRound
+  - from: implementationRound
+    to: verificationRound
+  - from: verificationRound
+    to: recordRound
+  - from: recordRound
+    to: reviewModeling
+  - from: reviewModeling
+    to: fixRound
+    when: outputs.reviewModeling.verdict == "CONTINUE"
+  - from: reviewModeling
+    to: commitRound
+    when: outputs.reviewModeling.verdict == "ADVANCE"
+  - from: reviewModeling
+    to: commitRound
+    when: outputs.reviewModeling.verdict == "COMPLETE"
+  - from: fixRound
+    to: verificationRound
+  - from: commitRound
+    to: implementationRound
+    when: outputs.reviewModeling.verdict == "ADVANCE"
+  - from: commitRound
+    to: prepareFinalSeries
+    when: outputs.reviewModeling.verdict == "COMPLETE"
+  - from: prepareFinalSeries
+    to: finalizeEvidence
+```

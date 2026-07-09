@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Direct Linux Boot"
+  short_description: "Boot Linux directly with QEMU kernel options."
+  default_prompt: "Use $qmu-workflow-direct-linux-boot to generate and test a direct Linux boot command for QEMU."

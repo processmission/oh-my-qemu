@@ -1,0 +1,87 @@
+---
+name: qemu-workflow-task-bootstrap
+version: 1
+schema: omhflow/v1
+models:
+  roles: {}
+  defaults: {}
+checkpoint:
+  stopDeadlineMs: 30000
+changePolicy:
+  agentsCanPropose: false
+  humansCanApprove: true
+---
+# QEMU Task Bootstrap
+
+Deterministic Oh My QEMU bootstrap workflow. It creates the required
+`.oh-my-qemu/<task-slug>/` workspace, records a lightweight provenance snapshot,
+and writes a handoff that points the next agent turn at the appropriate QEMU
+skills. It is intentionally script-only so it can run headless without model or
+human input.
+
+Use `QEMU_TASK`, `QEMU_TASK_BRIEF`, `QEMU_TASK_FILE`, and `QEMU_WORKSTREAM` to
+override the default slug, brief, task file, and workstream. Prefer task files
+under `.oh-my-qemu/<task-slug>/task.md`; legacy root-level `qemu-task.md` and
+`task.md` are read only as fallback inputs.
+
+```yaml workflow
+stateSchema:
+  version: 1
+  shape:
+    slug: string
+    taskRoot: string
+    taskBrief: string
+    workstream: string
+    workspace: object
+    provenance: object
+    handoff: object
+resources:
+  - path: scripts/qemu-workflow-task-bootstrap.mjs
+    kind: script
+nodes:
+  bootstrapWorkspace:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-task-bootstrap.mjs" bootstrap
+    writes:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+      - /workspace
+  recordProvenance:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-task-bootstrap.mjs" provenance
+    reads:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+    writes:
+      - /provenance
+  writeHandoff:
+    type: script
+    script:
+      language: sh
+      inline: |
+        node "$OMP_WORKFLOW_RESOURCE_DIR/scripts/qemu-workflow-task-bootstrap.mjs" handoff
+    reads:
+      - /slug
+      - /taskRoot
+      - /taskBrief
+      - /workstream
+      - /workspace
+      - /provenance
+    writes:
+      - /handoff
+edges:
+  - from: bootstrapWorkspace
+    to: recordProvenance
+  - from: recordProvenance
+    to: writeHandoff
+```
