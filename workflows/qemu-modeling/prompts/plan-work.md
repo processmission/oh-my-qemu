@@ -19,6 +19,9 @@ Rules:
 - Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers. The terminal final-series node may draft suggested sign-off trailers only for human review after `COMPLETE`.
 - Treat any QEMU source edits as local-only workflow output, not upstream-ready contribution material.
 - Do not implement yet. This node freezes the plan and verification contract.
+- For firmware Linux boot tasks, convert the firmware stage checklist into
+  explicit RLCR round milestones. Separate final acceptance criteria, such as
+  reaching a Linux shell, from the narrower current-round verification gates.
 - For source-changing work, ensure the task uses a dedicated local branch and
   preserve every dirty path recorded by the bootstrap provenance snapshot.
 - If the current branch is not dedicated to this task, create a local
@@ -30,6 +33,9 @@ Change:
 
 1. Inspect only the files needed to understand the task and current QEMU tree shape.
 2. Update `{{taskRoot}}/plan.md` with a complete goal, scope boundaries, allowed source changes, acceptance criteria, verification gates, open questions, and decision log.
+   For firmware boot tasks, include the stage milestone list and state that
+   one round may not cross more than one firmware handoff stage unless the
+   plan records a specific justification.
 3. Complete its Local Git Checkpoint Contract with the task source tree,
    dedicated local branch, baseline revision, initial dirty paths, exact
    round-commit pathspecs, and expected QEMU subject prefix. If a task change

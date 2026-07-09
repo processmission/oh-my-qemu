@@ -725,6 +725,13 @@ ${taskBrief}
 
 ## Verification Gates
 
+## Round Milestones
+
+- Current round gates:
+- Final acceptance criteria:
+- Firmware boot stage milestones, if applicable:
+- Cross-stage round justifications, if any:
+
 ## Evidence Ledger
 
 ## Open Questions
@@ -986,6 +993,9 @@ ${skills.map((skill, index) => `${index + 1}. ${skill}`).join("\n")}
 
 - Start with \`${skills[0]}\`; keep artifacts in this task root.
 - For implementation/debugging rounds, use \`qemu-rlcr-loop\` mechanics: one coherent slice, targeted verification, independent review, and one scoped local commit before advancing.
+- For firmware Linux boot tasks, convert the firmware stage checklist into
+  RLCR milestones and keep the final Linux shell/full boot result as final
+  acceptance unless earlier handoff stages are already proven.
 - After the reviewer returns COMPLETE, prepare human-owned final-series drafts that atomize the round checkpoints into QEMU-style commits, suggested DCO trailers, and any human-enabled \`AI-used-for:\` scope-disclosure trailers.
 - Use targeted QEMU build/qtest/boot/debug gates that prove the acceptance criteria.
 - Preserve QEMU provenance policy: no agent-added DCO or review trailers on repository commits, no AI-agent sign-off, and no claim that source output is upstream-ready.

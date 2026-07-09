@@ -83,6 +83,12 @@ reviewed local checkpoint. Avoid mixing unrelated subsystems in one round.
 A round commit may be a workflow checkpoint rather than the eventual QEMU
 patch boundary; the terminal final-series phase performs the atomic split.
 
+When the plan provides staged boot, debug, or implementation milestones,
+derive round objectives from those milestones. The final workload marker
+remains a final acceptance criterion unless the plan records that all earlier
+stages are already proven. A round objective must not span more than one
+handoff stage unless `plan.md` records a specific justification.
+
 ### 2. Do the work
 
 Use the domain skill for technical decisions. Keep scratch artifacts under the task artifact root. Make source changes only when they are the requested deliverable.
@@ -157,6 +163,10 @@ Write the result to `round-NNN-review.md`.
 - A failed verification gate is still a round state: write or update the round
   summary and review with a `BLOCKER`, record that there is no checkpoint
   commit, and continue fixing the same round. Do not start the next round.
+- For staged boot or debug rounds, apply this rule to the current round
+  milestone gate, not to a later final gate. If the current stage marker passed
+  but a later stage failed, checkpoint the proven current stage after review
+  and record the later failure as the next round objective.
 - Do not commit a round with a failed verification gate, `BLOCKER`, or
   unresolved `MAJOR` finding.
 - Repeat the current round until its objective has passing evidence and no

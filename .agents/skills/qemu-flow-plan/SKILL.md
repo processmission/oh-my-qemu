@@ -194,6 +194,13 @@ blocked.
 
 ## Verification Gates
 
+## Round Milestones
+
+- Current round gates:
+- Final acceptance criteria:
+- Firmware boot stage milestones, if applicable:
+- Cross-stage round justifications, if any:
+
 ## Evidence Ledger
 
 ## Open Questions

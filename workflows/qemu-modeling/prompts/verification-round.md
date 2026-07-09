@@ -30,6 +30,9 @@ Rules:
   - `skill://qemu-debug` for hangs or failure classification.
   - `skill://qemu-rst-documentation` for documentation build gates.
 - Run only targeted gates that prove the plan acceptance criteria.
+- For firmware Linux boot tasks, verify the current stage milestone. If that
+  marker is reached and a later stage then fails, record the later failure as
+  the next blocker instead of failing the current milestone gate.
 - Never suppress a failure to make the workflow pass. Classify failures and record log paths.
 - Store logs, traces, qtest output, boot consoles, and scratch data under `{{taskRoot}}/logs/` or another `{{taskRoot}}/` subdirectory.
 - Verify only the current logical round. Do not stage or commit source; the

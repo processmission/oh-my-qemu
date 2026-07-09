@@ -45,12 +45,18 @@ Rules:
   reviewed as one local checkpoint. If the remaining work contains multiple
   independent changes, leave them for later rounds or the terminal final-series
   split.
+- For firmware Linux boot tasks, select the next unproven firmware stage
+  milestone as the round objective. Do not use the final Linux shell or full
+  boot result as the first round objective unless every earlier handoff stage
+  is already proven in the plan evidence.
 
 Change:
 
 1. Use `{{taskRoot}}/plan.md` and the research artifacts as the contract.
 2. Select the next unproven acceptance-criteria slice and record it as the
    active round objective in `{{taskRoot}}/rlcr/goal-tracker.md`.
+   For firmware boot tasks, this slice is the next stage milestone and its
+   marker, not the whole boot path.
 3. Make the smallest local QEMU source, docs, build, debug, image, or boot changes needed by that objective.
 4. Use existing QEMU conventions; do not introduce parallel abstractions when an in-tree pattern exists.
 5. Update `{{taskRoot}}/commands.md` with exact commands that should be run or were run during this implementation node.

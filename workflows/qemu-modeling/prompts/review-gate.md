@@ -39,6 +39,10 @@ Review contract:
   This routes through `commitRound`, terminal final-series draft preparation,
   and then final evidence.
 - Use `CONTINUE` for missing source provenance, missing register/IRQ/boot contract facts, untested behavior, build/qtest/boot failures, source-policy violations, fake stubs, TODO implementations, or undocumented blockers.
+- For firmware Linux boot tasks, use `CONTINUE` if the current round objective
+  spans multiple firmware handoff stages without a plan justification, or if
+  the final Linux shell/full boot gate was used as the first round objective
+  while earlier stage milestones were not already proven.
 - Do not treat a narrowed build, typecheck, or string-only check as proof of runtime/model parity unless the plan explicitly scopes that narrowly.
 - Enforce QEMU policy: no agent-added DCO/review trailers and no claim that output is upstream-ready.
 - Write the full review to both the current

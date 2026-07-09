@@ -5,16 +5,21 @@ description: Use for booting Linux through firmware or bootloader stages in QEMU
 
 # QEMU Firmware Linux Boot
 
-Use this workflow when Linux must be reached through firmware or bootloader code rather than direct kernel loading.
+Use this primitive when Linux must be reached through firmware or bootloader code rather than direct kernel loading.
 
-## Primitive Composition
+## Primitive Boundary
 
-1. Use `qemu-flow-plan`.
-2. Use `qemu-source-provenance` for firmware, bootloader, kernel, DTB, rootfs, and QEMU.
-3. Use `qemu-image-layout` for boot media, pflash, ROM, or disk images.
-4. Use `qemu-boot-run` to run and log the firmware path.
-5. Use `qemu-debug` to isolate the failing stage if boot stalls.
-6. Use `qemu-model-verification` to report the reached milestone.
+This skill describes only the firmware-to-Linux boot path contract:
+
+- firmware, bootloader, kernel, DTB, rootfs, and QEMU inputs;
+- boot media, pflash, ROM, or disk image expectations;
+- serial markers for each firmware handoff stage;
+- the first failing stage when boot stalls;
+- the reached Linux milestone when boot succeeds.
+
+Do not use this skill to orchestrate other flow primitives. Dynamic workflow
+skills decide whether and how to combine this primitive with other
+primitives.
 
 ## Stage Checklist
 
@@ -25,8 +30,38 @@ Record each expected stage and marker:
 - SPL/TPL or early loader milestone;
 - trusted firmware or monitor handoff if present;
 - bootloader prompt or autoboot path;
+- boot media access;
 - kernel entry;
 - Linux console and rootfs or shell marker.
+
+## Stage Milestones
+
+For implementation or debugging work, expose the stage checklist as explicit
+milestones that an outer workflow can consume. The final Linux shell or full
+boot result is the final acceptance criterion, not the default first
+milestone.
+
+Default round boundaries are:
+
+- reset vector or ROM entry;
+- early firmware services;
+- SPL/TPL or early loader milestone;
+- trusted firmware or monitor handoff if present;
+- bootloader entry or autoboot path;
+- boot media access;
+- kernel entry;
+- Linux console and rootfs or shell marker;
+- documentation or handoff notes.
+
+Each milestone must name:
+
+- the expected serial, trace, or debugger marker;
+- the current verification gate;
+- the next firmware handoff stage it unlocks.
+
+By default, a single debugging or implementation step should not span more
+than one firmware handoff stage. If it must cross stages, record why before
+making changes.
 
 ## Command Rules
 
