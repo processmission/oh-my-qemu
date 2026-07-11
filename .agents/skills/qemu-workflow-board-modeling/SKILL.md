@@ -1,6 +1,6 @@
 ---
-name: qemu-board-modeling
-description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-flow-plan and qemu-rlcr-loop; board work must add or extend qemu-qtest coverage for verification.
+name: qemu-workflow-board-modeling
+description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, and IRQ topology modeling. Extends qemu-plan and qemu-rlcr-loop; board work must add or extend qemu-qtest coverage for verification.
 ---
 
 # QEMU Board and Machine Modeling
@@ -9,7 +9,7 @@ Use this domain skill when changing a QEMU machine or SoC: CPU clusters, memory 
 
 ## Flow dependencies
 
-1. Start with `qemu-flow-plan` for non-trivial work.
+1. Start with `qemu-plan` for non-trivial work.
 2. Put all plans, boot logs, UART captures, FDT dumps, trace files, scratch scripts, and review notes under `.oh-my-qemu/<task-slug>/`.
 3. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep
    implementation/debugging inside RLCR rounds.

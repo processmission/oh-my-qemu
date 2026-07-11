@@ -1,6 +1,6 @@
 ---
-name: qemu-tcg-frontend-instruction
-description: Use for adding, reviewing, or debugging a guest ISA instruction in a QEMU TCG frontend. Extends qemu-flow-plan and qemu-rlcr-loop; this skill only defines frontend decode/translation decisions.
+name: qemu-workflow-tcg-frontend-instruction
+description: Use for adding, reviewing, or debugging a guest ISA instruction in a QEMU TCG frontend. Extends qemu-plan and qemu-rlcr-loop; this skill only defines frontend decode/translation decisions.
 ---
 
 # QEMU TCG Frontend Instruction
@@ -9,7 +9,7 @@ Use this domain skill for guest ISA decode/translation work in `target/<arch>/`:
 
 ## Flow dependencies
 
-1. Start with `qemu-flow-plan`.
+1. Start with `qemu-plan`.
 2. Put decode notes, generated decoder inspection, TCG logs, test outputs, and scratch files under `.oh-my-qemu/<task-slug>/`.
 3. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep
    iterative work inside RLCR rounds.

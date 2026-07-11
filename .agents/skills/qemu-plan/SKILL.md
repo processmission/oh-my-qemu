@@ -1,13 +1,14 @@
 ---
-name: qemu-flow-plan
+name: qemu-plan
 description: Use as the first step for any non-trivial QEMU task. Produces a small implementation or debugging plan under a .oh-my-qemu task workspace with acceptance criteria, scope boundaries, artifact policy, and verification gates.
 ---
 
 # QEMU Flow Plan
 
-Use this foundational flow before any non-trivial QEMU modeling, TCG, qtest, debug, build, image packaging, or boot task. Domain and workflow skills extend this flow; they should not duplicate planning mechanics.
-
-For reusable primitive composition rules, read `references/flow-primitives.md` when a task combines source builds, image packaging, boot runs, verification, or debug windows.
+Use this flow primitive to create or update a QEMU task plan. It owns only the
+task workspace contract, scope, acceptance criteria, artifact policy,
+verification gates, and evidence ledger. Workflow skills decide which other
+flow primitives to apply after the plan exists.
 
 ## Hard policy boundary
 
@@ -97,10 +98,9 @@ HEAD, and initial `git status --short` in `source-provenance.md` before changing
 source. State that RLCR round commits are local workflow checkpoints: never push,
 publish, format, or describe them as QEMU-upstream-ready output.
 
-Before the first source edit in an implementation task, start the
-`qemu-rlcr-loop` flow over this plan, create or update
-`.oh-my-qemu/<task-slug>/rlcr/goal-tracker.md`, and select the active round
-objective. Do not make source changes outside an active RLCR round.
+Before the first source edit in an implementation task, record the required
+iteration policy, goal-tracker path, and active-round requirement. The outer
+workflow owns the actual iteration primitive selection.
 
 Derive the expected checkpoint subject prefix from the affected subsystem and
 nearby QEMU history. Keep agent artifacts under `.oh-my-qemu/<task-slug>/`;
@@ -126,24 +126,18 @@ Use `evidence.md` as a ledger:
 
 Keep evidence short. Link to artifacts in `.oh-my-qemu/<task-slug>/logs/` instead of pasting large logs into the plan.
 
-### 7. Hand off to domain skill
+### 7. Workflow handoff contract
 
-After the plan is stable, choose the narrow domain skill:
+After the plan is stable, record what the next workflow needs:
 
-- `qemu-register-extraction`
-- `qemu-peripheral-modeling`
-- `qemu-board-modeling`
-- `qemu-rst-documentation`
-- `qemu-tcg-frontend-instruction`
-- `qemu-tcg-backend-adaptation`
-- `qemu-qtest`
-- `qemu-debug`
-- `qemu-build`
+- applicable workstream or domain;
+- artifact root;
+- allowed source pathspecs;
+- verification gates;
+- open blockers or required human decisions.
 
-For implementation work, MUST start the `qemu-rlcr-loop` flow over this plan
-before the first source edit, and keep every source change inside the active
-round until that round is verified, reviewed, and checkpointed or recorded as
-blocked.
+Do not name the next primitive in this plan unless the user or workflow has
+already selected it.
 
 ## Plan template
 
@@ -193,6 +187,13 @@ blocked.
   - Evidence:
 
 ## Verification Gates
+
+## Round Milestones
+
+- Current round gates:
+- Final acceptance criteria:
+- Firmware boot stage milestones, if applicable:
+- Cross-stage round justifications, if any:
 
 ## Evidence Ledger
 

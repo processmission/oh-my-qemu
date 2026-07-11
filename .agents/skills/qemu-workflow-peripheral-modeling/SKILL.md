@@ -1,6 +1,6 @@
 ---
-name: qemu-peripheral-modeling
-description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling. Extends qemu-flow-plan and qemu-rlcr-loop; register-bank modeling must use QEMU's registerinfo framework and qtest verification.
+name: qemu-workflow-peripheral-modeling
+description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling. Extends qemu-plan and qemu-rlcr-loop; register-bank modeling must use QEMU's registerinfo framework and qtest verification.
 ---
 
 # QEMU Peripheral Modeling
@@ -9,7 +9,7 @@ Use this domain skill for QEMU hardware blocks: MMIO devices, SysBus/qdev periph
 
 ## Flow dependencies
 
-1. Start with `qemu-flow-plan` for any non-trivial work.
+1. Start with `qemu-plan` for any non-trivial work.
 2. If register facts come from drivers, datasheets, firmware filesystems, or regfiles, run `qemu-register-extraction` first and use its `register-extraction.md` as the source contract.
 3. Store all plans, traces, scratch scripts, logs, review notes, and decoded dumps under `.oh-my-qemu/<task-slug>/`.
 4. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep

@@ -5,15 +5,14 @@ description: Use for building U-Boot artifacts for QEMU firmware boot testing, i
 
 # QEMU U-Boot Build
 
-Use this workflow when a QEMU task needs U-Boot, SPL, TPL, FIT, ITB, or firmware-chain artifacts.
+Use this primitive when a QEMU task needs U-Boot, SPL, TPL, FIT, ITB, or firmware-chain artifacts.
 
-## Primitive Composition
+## Primitive Boundary
 
-1. Use `qemu-flow-plan` for the task workspace.
-2. Use `qemu-source-provenance` for U-Boot and every external binary input.
-3. Build with the local U-Boot tree's board documentation.
-4. Update `source-provenance.md` with all boot-stage outputs and hashes.
-5. Hand off to `qemu-image-packaging` or `qemu-firmware-linux-boot`.
+This primitive owns only U-Boot build actions and output evidence: defconfig,
+toolchain, external inputs, build command, logs, boot-stage artifacts, and
+hashes. It consumes a U-Boot source tree and build goal supplied by the caller
+and does not choose provenance, image packaging, or boot workflow steps.
 
 ## Build Flow
 

@@ -5,15 +5,15 @@ description: Use for building Linux kernels for QEMU boot testing, including def
 
 # QEMU Kernel Build
 
-Use this workflow when a QEMU task needs a Linux kernel artifact to boot or debug a modeled board.
+Use this primitive when a QEMU task needs a Linux kernel artifact to boot or debug a modeled board.
 
-## Primitive Composition
+## Primitive Boundary
 
-1. Use `qemu-flow-plan` for scope, acceptance criteria, and artifact root.
-2. Use `qemu-source-provenance` before building.
-3. Build the kernel with the local tree's documented method.
-4. Update `source-provenance.md` with produced `Image`, `vmlinux`, DTBs, modules, initramfs inputs, and hashes.
-5. Hand off to `qemu-direct-linux-boot`, `qemu-firmware-linux-boot`, or `qemu-image-packaging`.
+This primitive owns only Linux kernel build actions and output evidence:
+configuration, toolchain, build command, logs, produced kernel artifacts,
+modules, DTBs, and hashes. It consumes a kernel source tree and build goal
+supplied by the caller and does not choose provenance, packaging, or boot
+workflow steps.
 
 ## Build Flow
 

@@ -1,19 +1,18 @@
 ---
 name: qemu-qtest
-description: Use for QEMU qtest design, registration, execution, and debugging. Extends qemu-flow-plan; qtest evidence and logs stay under a .oh-my-qemu task workspace.
+description: Use as a QEMU flow primitive for QEMU qtest design, registration, execution, and immediate qtest evidence capture.
 ---
 
 # QEMU qtest
 
 Use this operational/domain skill for QEMU device and board tests using the qtest framework.
 
-## Flow relationship
+## Primitive Boundary
 
-- Use `qemu-flow-plan` to define the behavior claim and artifact root.
-- Use `qemu-build` before running qtests if binaries are stale or missing.
-- Before the first source mutation caused by qtest findings, MUST use
-  `qemu-rlcr-loop` and keep fixes inside RLCR rounds.
-- Store test logs, copied command lines, and debug notes under `.oh-my-qemu/<task-slug>/`.
+This primitive owns only qtest design, registration, execution commands, and
+immediate qtest evidence. It consumes a behavior claim, source tree, build
+directory, and artifact root supplied by the caller and does not choose build,
+debug, verification, or iterative-fix workflow steps.
 
 ## Hard policy boundary
 

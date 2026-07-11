@@ -5,14 +5,15 @@ description: Use for writing or updating QEMU reStructuredText documentation, in
 
 # QEMU RST Documentation
 
-Use this workflow when creating or updating QEMU `.rst` documentation, especially board or machine pages under `docs/system/`, device documentation, developer documentation, and boot-command examples tied to modeled hardware.
+Use this primitive when creating or updating QEMU `.rst` documentation, especially board or machine pages under `docs/system/`, device documentation, developer documentation, and boot-command examples tied to modeled hardware.
 
-## Composition
+## Primitive Boundary
 
-- Use `qemu-flow-plan` for non-trivial docs tied to modeling, boot, or verification work.
-- Use `qemu-source-provenance`, `qemu-image-layout`, and `qemu-boot-run` as evidence sources for command examples and supported boot paths.
-- Use `qemu-model-verification` for claims about what has been tested.
-- For a simple typo or one-line docs fix, skip the full flow but still keep scratch artifacts out of source directories.
+This primitive owns only RST documentation edits and documentation-specific
+validation. It consumes implementation facts, evidence paths, command examples,
+and limitations supplied by the caller and does not choose provenance, boot,
+verification, or iterative-fix workflow steps. For a simple typo or one-line
+docs fix, still keep scratch artifacts out of source directories.
 
 ## Source-First Rule
 

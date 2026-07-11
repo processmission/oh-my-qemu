@@ -28,7 +28,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat("en", { month: "short
     <aside class="hero-panel" aria-label="Workflow snapshot">
       <div class="terminal-card">
         <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span></div>
-        <pre><code>/qemu-workflow Model the K230 UART and prove it with qtest.
+        <pre><code>/qemu-init-task k230-uart-model
 
 plan → provenance → register extraction
 model → qtest → review → local checkpoint

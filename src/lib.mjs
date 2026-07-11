@@ -230,8 +230,7 @@ Record exact commands, working directories, environment overrides, and output ar
 
 - State: not-analyzed
 - Exit reason:
-- User asked for issue: no
-- Issue filed: no
+- Follow-up issue: outside this primitive
 
 ## Sanitized Workflow Context
 
@@ -242,12 +241,6 @@ Record exact commands, working directories, environment overrides, and output ar
 ## Observed Patterns
 
 ## Improvement Suggestions
-
-## Issue Draft
-
-### Title
-
-### Body
 
 ## Privacy Check
 
@@ -300,7 +293,7 @@ Record exact commands, working directories, environment overrides, and output ar
 
 ## Unknowns and Conflicts
 
-## Handoff Checklist for qemu-peripheral-modeling
+## Handoff Checklist for qemu-workflow-peripheral-modeling
 `, result);
 
   writeIfMissing(join(root, "source-inventory.md"), `# ${slug} Source Inventory

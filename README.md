@@ -64,10 +64,9 @@ want to model and run.
 
 | Directory | Purpose |
 |-----------|---------|
-| `.agents/skills/` | Agent skills, one `SKILL.md` per QEMU workflow |
+| `.agents/skills/` | Agent skills, one `SKILL.md` per flow primitive or workflow |
 | `scripts/` | Skill validation, Codex registration, portable install, task initialization, and methodology issue helpers |
 | `commands/` | Slash command definitions such as `/qemu-init-task` |
-| `workflows/` | OMP `.omhflow` artifacts for complete QEMU modeling loops and deterministic bootstrapping |
 | `hooks/` | Artifact-policy hooks that keep agent scratch files under `.oh-my-qemu/` |
 | `src/` | Oh My Pi plugin runtime glue and shared hook logic |
 | `.claude-plugin/` | Claude Code plugin and marketplace metadata |
@@ -77,53 +76,47 @@ want to model and run.
 
 ## Skills
 
-### Flow primitives
+### Skill schema
 
-Small building blocks used by larger QEMU workflows.
+Oh My QEMU uses two skill schemas:
+
+| Schema | Naming | Role |
+|--------|--------|------|
+| Flow primitive | `qemu-<capability>` | Owns one bounded action, record, or evidence contract. It does not orchestrate other primitives or workflows. |
+| Workflow | `qemu-workflow-<name>` | Composes primitives to complete a larger QEMU task path. |
+
+Flow primitives are the stable building blocks. Workflows choose and order
+those primitives based on the task input.
+
+### Flow primitive list
 
 | Skill | Purpose |
 |-------|---------|
-| `qemu-flow-plan` | Define task scope, acceptance criteria, artifact root, and verification gates |
-| `qemu-source-provenance` | Record source trees, revisions, configs, toolchains, outputs, and hashes |
-| `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
+| `qemu-agent-feedback` | Summarize sanitized oh-my-qemu agent workflow problems and file improvement issues with `gh` when approved |
 | `qemu-boot-run` | Build reproducible QEMU run commands, logs, timeout markers, and result classification |
-| `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
-
-### Modeling and debugging workflows
-
-Skills for turning hardware facts into a QEMU model and proving it behaves.
-
-| Skill | Purpose |
-|-------|---------|
-| `qemu-register-extraction` | Extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences |
-| `qemu-peripheral-modeling` | Model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices |
-| `qemu-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
-| `qemu-qtest` | Design, register, run, and debug qtest coverage |
+| `qemu-build` | Configure, build, reuse, and diagnose QEMU build directories |
 | `qemu-debug` | Use gdbstub, host debugger, QEMU logs, trace events, replay, and instruction-window analysis |
+| `qemu-image-layout` | Describe and verify boot media formats, partitions, offsets, writes, and hashes |
+| `qemu-image-packaging` | Package kernels, firmware, DTBs, rootfs, modules, and boot media images |
+| `qemu-kernel-build` | Build Linux kernel artifacts for QEMU boot tests |
+| `qemu-model-verification` | Produce PASS/FAIL/INCONCLUSIVE evidence for model, board, device, and runtime behavior |
+| `qemu-plan` | Define task scope, acceptance criteria, artifact root, and verification gates |
+| `qemu-qtest` | Design, register, run, and debug qtest coverage |
+| `qemu-register-extraction` | Extract register maps, bitfields, side effects, IRQ/DMA behavior, and driver sequences |
 | `qemu-rlcr-loop` | Iterate implementation/debugging rounds with verification, review, local checkpoints, and final-series draft preparation |
 | `qemu-rst-documentation` | Write QEMU RST docs, board pages, boot examples, Sphinx index updates, and docs validation |
-
-### Build, image, and boot workflows
-
-Skills for compiling artifacts and running realistic boot paths.
-
-| Skill | Purpose |
-|-------|---------|
-| `qemu-build` | Configure, build, reuse, and diagnose QEMU build directories |
-| `qemu-kernel-build` | Build Linux kernel artifacts for QEMU boot tests |
+| `qemu-source-provenance` | Record source trees, revisions, configs, toolchains, outputs, and hashes |
 | `qemu-uboot-build` | Build U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts |
-| `qemu-image-packaging` | Package kernels, firmware, DTBs, rootfs, modules, and boot media images |
-| `qemu-direct-linux-boot` | Boot Linux directly with QEMU `-kernel`, DTB, initrd, console, and rootfs options |
-| `qemu-firmware-linux-boot` | Boot Linux through firmware or bootloader stages and preserve handoff evidence |
 
-### TCG workflows
-
-Skills for guest instruction frontend work and host backend adaptation.
+### Workflow list
 
 | Skill | Purpose |
 |-------|---------|
-| `qemu-tcg-frontend-instruction` | Add, review, or debug guest ISA decode and TCG translation |
-| `qemu-tcg-backend-adaptation` | Adapt TCG host backend ops, constraints, register allocation, emission, atomics, and vectors |
+| `qemu-workflow-linux-boot` | Boot Linux directly or through firmware based on task inputs and preserve handoff evidence |
+| `qemu-workflow-board-modeling` | Model boards, SoCs, memory maps, boot paths, firmware handoff, FDT, and IRQ topology |
+| `qemu-workflow-peripheral-modeling` | Model MMIO, qdev, SysBus, IRQ, timer, DMA, and register-bank devices |
+| `qemu-workflow-tcg-frontend-instruction` | Add, review, or debug guest ISA decode and TCG translation |
+| `qemu-workflow-tcg-backend-adaptation` | Adapt TCG host backend ops, constraints, register allocation, emission, atomics, and vectors |
 
 ---
 
@@ -217,123 +210,6 @@ Local development link:
 omp plugin link /path/to/oh-my-qemu
 ```
 
-### OMP workflows with Oh My Humanize
-
-The `.omhflow` runner and workflow registry are provided by
-[Oh My Humanize](https://github.com/PolyArch/oh-my-humanize). The bundled
-`qemu-modeling` flow runs the full local QEMU modeling loop: workspace bootstrap,
-planning, source provenance, implementation/debugging, targeted verification,
-review, fix rounds, one scoped local Git checkpoint per reviewed source-changing
-round, human-owned final-series drafts for atomized QEMU-style commits, and final evidence.
-
-#### Install into the active OMP registry
-
-Use this when you want `qemu-modeling` available by name in every OMP
-session that uses the same registry:
-
-```bash
-cd /path/to/oh-my-qemu
-npm run omp:workflows:validate
-npm run omp:workflows:install
-```
-
-Then start it from a QEMU source tree:
-
-```bash
-cd /path/to/qemu
-omp workflow start qemu-modeling --json
-```
-
-Or from the OMP TUI:
-
-```text
-/workflow start qemu-modeling --json
-```
-
-#### Install with a local Oh My Humanize checkout
-
-When developing against a local Oh My Humanize checkout, point the installer at
-that checkout's `omp` binary:
-
-```bash
-cd /path/to/oh-my-qemu
-OMP_BIN=/path/to/oh-my-humanize/packages/coding-agent/dist/omp npm run omp:workflows:install
-```
-
-#### Run once without installing
-
-Use an explicit artifact path when you do not want to copy anything into the
-workflow registry:
-
-```bash
-cd /path/to/qemu
-omp workflow start /path/to/oh-my-qemu/workflows/qemu-modeling.omhflow --json
-```
-
-From the OMP TUI launched in the QEMU tree:
-
-```text
-/workflow start /path/to/oh-my-qemu/workflows/qemu-modeling.omhflow --json
-```
-
-If OMP was launched elsewhere, add `--cwd /path/to/qemu`.
-
-#### Discover by name without copying
-
-Point `OMHFLOW_DIR` at this checkout's workflow directory before starting OMP:
-
-```bash
-OMHFLOW_DIR=/path/to/oh-my-qemu/workflows omp
-```
-
-Then use the short name:
-
-```text
-/workflow start qemu-modeling --json
-```
-
-#### Supplying the QEMU task request
-
-The workflow reads a task file from `QEMU_TASK_FILE`. Keep that file under the
-task artifact root:
-
-```bash
-mkdir -p .oh-my-qemu/k230-uart-model
-cat > .oh-my-qemu/k230-uart-model/task.md <<'EOF'
----
-slug: k230-uart-model
-workstream: peripheral-modeling
----
-
-Model the K230 UART and prove it with qtest.
-EOF
-
-QEMU_TASK_FILE=.oh-my-qemu/k230-uart-model/task.md \
-omp workflow start qemu-modeling --cwd /path/to/qemu --json
-```
-
-Equivalent environment variables are also supported:
-
-```bash
-QEMU_TASK=k230-uart-model \
-QEMU_TASK_BRIEF="Model the K230 UART and prove it with qtest" \
-QEMU_WORKSTREAM=peripheral-modeling \
-omp workflow start qemu-modeling --cwd /path/to/qemu --json
-```
-
-If the Oh My QEMU plugin is linked or installed, the shortcut command can seed
-`.oh-my-qemu/<task-slug>/task.md` and start the explicit-path workflow:
-
-```text
-/qemu-workflow Model the K230 UART and prove it with qtest.
-```
-
-After a successful run, `.oh-my-qemu/<task-slug>/workflow-handoff.md` contains
-the selected skill chain, and `.oh-my-qemu/<task-slug>/rlcr/final-summary.md`
-contains the final review/evidence summary. The narrower `qemu-task-bootstrap`
-flow remains available when you only need deterministic workspace setup and a
-handoff file.
-
 ### Claude Code plugin
 
 The Claude Code plugin exposes the same skills, `/qemu-init-task`, and the
@@ -364,7 +240,7 @@ claude plugin details oh-my-qemu@processmission
 ```
 
 Installed plugin skills are namespaced as `oh-my-qemu:<skill>`, for example
-`oh-my-qemu:qemu-flow-plan`.
+`oh-my-qemu:qemu-plan`.
 
 ---
 
@@ -396,8 +272,9 @@ This creates:
   rlcr/
 ```
 
-Alternatively, run the same workspace through the complete OMP modeling
-workflow. In a QEMU tree, create `.oh-my-qemu/k230-uart-model/task.md`:
+For a complete modeling run, keep the request in the task workspace and compose
+the workflow skills from there. In a QEMU tree, create
+`.oh-my-qemu/k230-uart-model/task.md`:
 
 ```bash
 mkdir -p .oh-my-qemu/k230-uart-model
@@ -411,38 +288,19 @@ Model the K230 UART and prove it with qtest.
 EOF
 ```
 
-Then start OMH/OMP from that QEMU tree and run:
-
-```bash
-QEMU_TASK_FILE=.oh-my-qemu/k230-uart-model/task.md \
-omp workflow start /path/to/oh-my-qemu/workflows/qemu-modeling.omhflow --json
-```
-
-If the flow has been installed, or `OMHFLOW_DIR=/path/to/oh-my-qemu/workflows`
-was set before launching OMH/OMP, the shorter named form also works:
-
-```text
-/workflow start qemu-modeling --json
-```
-
-For the fastest interactive path, use the bundled prompt command:
-
-```text
-/qemu-workflow Model the K230 UART and prove it with qtest.
-```
-
-This writes `.oh-my-qemu/<task-slug>/task.md`, starts the workflow by explicit
-path, creates the task root, records a provenance snapshot, plans the modeling work, runs
-implementation/verification/review/commit loops, prepares human-owned
-final-series drafts, and writes `.oh-my-qemu/k230-uart-model/rlcr/final-summary.md`.
+Then ask the agent to use the appropriate QEMU workflow skill from that QEMU
+tree. The workflow creates the task root, records a provenance snapshot, plans
+the work, runs implementation/verification/review loops, prepares human-owned
+final-series drafts, and writes
+`.oh-my-qemu/k230-uart-model/rlcr/final-summary.md`.
 
 Typical composition:
 
-1. `qemu-flow-plan` - define goal, scope, acceptance criteria, and evidence.
+1. `qemu-plan` - define goal, scope, acceptance criteria, and evidence.
 2. `qemu-source-provenance`, `qemu-image-layout`, and `qemu-boot-run` - record
    sources, artifacts, media layout, and run commands.
-3. `qemu-register-extraction`, `qemu-peripheral-modeling`, or
-   `qemu-board-modeling` - build the model from verified hardware facts.
+3. `qemu-register-extraction`, `qemu-workflow-peripheral-modeling`, or
+   `qemu-workflow-board-modeling` - build the model from verified hardware facts.
 4. `qemu-build`, `qemu-qtest`, `qemu-debug`, and `qemu-model-verification` -
    prove the model with build, tests, traces, and boot evidence.
 5. `qemu-rst-documentation` - document supported hardware, boot commands, tests,
@@ -452,10 +310,10 @@ Typical composition:
 Common workflows:
 
 ```text
-kernel build -> direct linux boot -> verification
-uboot build -> image packaging -> firmware linux boot -> debug if needed -> verification
+kernel build -> linux boot (direct path) -> verification
+uboot build -> image packaging -> linux boot (firmware path) -> debug if needed -> verification
 register extraction -> peripheral modeling -> qtest -> model verification
-board modeling -> qtest -> direct linux boot -> RST documentation
+board modeling -> qtest -> linux boot (selected path) -> RST documentation
 ```
 
 ---
@@ -483,8 +341,8 @@ the work.
 ## Methodology feedback
 
 At final completion, pause, blocked state, or max-iteration exit of an RLCR or
-composed workflow, `qemu-rlcr-loop` can run a one-time methodology feedback
-phase. It summarizes reusable workflow problems or improvements into:
+composed workflow, the agent can write a one-time methodology feedback record.
+It summarizes reusable workflow problems or improvements into:
 
 ```text
 .oh-my-qemu/<task-slug>/methodology-feedback.md
@@ -495,11 +353,12 @@ branch names, commit hashes, proprietary logs, code snippets, project-specific
 URLs, image paths, or board/customer/product identifiers unless explicitly
 approved.
 
-If reusable improvements exist, the agent asks once whether to create an
-upstream issue. The default target is `processmission/oh-my-qemu`, overrideable
-with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
+If reusable improvements exist, use `qemu-agent-feedback` to draft the
+public issue from the sanitized report and file it with the local GitHub CLI
+when approved. The default target is `processmission/oh-my-qemu`,
+overrideable with `QEMU_METHODOLOGY_ISSUE_REPO=owner/repo`.
 
-Draft an issue from a sanitized report:
+Draft an improvement issue from a sanitized report:
 
 ```bash
 npm run methodology:issue -- .oh-my-qemu/<task-slug>

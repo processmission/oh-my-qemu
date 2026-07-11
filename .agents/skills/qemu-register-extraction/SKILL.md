@@ -1,13 +1,17 @@
 ---
 name: qemu-register-extraction
-description: Use as a research flow before qemu-peripheral-modeling to extract register maps, bitfields, cross-register dependencies, side effects, IRQs, DMA behavior, clocks, resets, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown.
+description: Use as a QEMU flow primitive to extract register maps, bitfields, cross-register dependencies, side effects, IRQs, DMA behavior, clocks, resets, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown.
 ---
 
 # QEMU Register Extraction
 
-Use this foundational research flow before `qemu-peripheral-modeling` when the source of truth is outside QEMU: OS drivers, bare-metal SDKs, firmware, bootloader code, datasheets/reference manuals, extracted firmware filesystems, device trees, SVD/IP-XACT/SystemRDL/regfiles, generated headers, or runtime register dumps.
+Use this flow primitive when the source of truth is outside QEMU: OS drivers,
+bare-metal SDKs, firmware, bootloader code, datasheets/reference manuals,
+extracted firmware filesystems, device trees, SVD/IP-XACT/SystemRDL/regfiles,
+generated headers, or runtime register dumps.
 
-The output is a markdown register/function specification for the modeling skill. This flow does not produce QEMU source code.
+The output is a markdown register/function contract for the caller. This flow
+does not produce QEMU source code and does not choose the modeling workflow.
 
 ## Hard policy boundary
 
@@ -15,7 +19,8 @@ Do not produce source code intended for QEMU upstream submission. QEMU currently
 
 ## Artifact root rule
 
-All generated artifacts must stay under the task workspace from `qemu-flow-plan`:
+All generated artifacts must stay under the task workspace supplied by the
+caller:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -135,7 +140,9 @@ For each dependency, record:
 - driver function or datasheet section proving the relationship;
 - qtest candidate that exercises the complete feature path, not only individual fields.
 
-Represent dependencies as named feature flows, not just prose attached to one register. This lets the downstream modeling skill decide which QEMU registerinfo hooks need to coordinate multiple register values.
+Represent dependencies as named feature flows, not just prose attached to one
+register. This lets the consumer decide which implementation hooks need to
+coordinate multiple register values.
 
 ### 6. Use driver search patterns
 
@@ -251,14 +258,15 @@ Describe each cross-register feature flow in enough detail that a model can impl
 
 ## Unknowns and Conflicts
 
-## Handoff Checklist for qemu-peripheral-modeling
+## Consumer Checklist
 ```
 
-Do not include C code templates. The downstream modeling skill must inspect the checked-out QEMU registerinfo API and choose the implementation details.
+Do not include C code templates. The consumer must inspect the checked-out QEMU
+registerinfo API and choose the implementation details.
 
-## Handoff requirements
+## Output requirements
 
-Before handing off to `qemu-peripheral-modeling`, ensure the markdown contains:
+Before treating the extraction as complete, ensure the markdown contains:
 
 - all known register offsets and fields;
 - access semantics for every software-touched register;
@@ -276,4 +284,3 @@ If any of these are missing, mark the gap explicitly. Do not hide unknowns by in
 
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
 - QEMU registerinfo framework to inspect during handoff: `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and `hw/core/register.c` in the checked-out tree.
-- Downstream modeling skill: `qemu-peripheral-modeling`.

@@ -1,20 +1,19 @@
 ---
 name: qemu-source-provenance
-description: Use as a QEMU workflow primitive to record source trees, revisions, configs, toolchains, containers, build commands, output artifacts, hashes, assumptions, and RLCR round Git checkpoints before builds or during iterative local QEMU work.
+description: Use as a QEMU flow primitive to record source trees, revisions, configs, toolchains, containers, build commands, output artifacts, hashes, assumptions, and local round checkpoint provenance.
 ---
 
 # QEMU Source Provenance
 
 Use this primitive whenever a QEMU task depends on external source trees or produced artifacts: Linux, U-Boot, TF-A, EDK2, Zephyr, firmware blobs, root filesystems, disk images, DTBs, modules, initramfs files, or vendor SDKs.
 
-## Composition
+## Primitive Boundary
 
-1. Start from `qemu-flow-plan` for non-trivial work.
-2. Write provenance to `.oh-my-qemu/<task-slug>/source-provenance.md`.
-3. Record exact commands in `commands.md`.
-4. Feed verified artifacts into `qemu-image-layout`, `qemu-boot-run`, or workflow skills.
-5. For RLCR source changes, record the task-tree baseline before round 1 and
-   append one checkpoint row after every successful round commit.
+This primitive owns only provenance records: source roots, revisions, dirty
+state, configs, toolchains, commands, output artifacts, hashes, assumptions,
+and local round checkpoint rows. It consumes a task source tree and artifact
+root supplied by the caller and does not choose build, image-layout, boot, or
+workflow steps.
 
 ## Required Record
 
@@ -83,7 +82,7 @@ Use this structure:
   and DCO signing.
 - Do not commit external input trees merely because their provenance is
   recorded. Automatic round commits apply only to the task source tree and
-  pathspecs approved by `qemu-flow-plan`.
+  pathspecs approved by the task plan.
 - If Docker or another container is used, record the image name, digest if available, mounted paths, and command.
 - Hash final artifacts consumed by QEMU, not only intermediate build directories.
 - If an artifact is copied, record both source and destination paths.

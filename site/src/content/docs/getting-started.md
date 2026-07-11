@@ -16,15 +16,16 @@ Use the path that matches your agent runtime:
 - **Portable skills**: install `.agents/skills/` with the portable `npx skills` flow.
 - **Codex development**: validate and register local skill symlinks from this checkout.
 
-## Start a workflow
+## Start a task
 
 From a QEMU source tree:
 
 ```text
-/qemu-workflow Model the K230 UART and prove it with qtest.
+/qemu-init-task k230-uart-model
 ```
 
-The workflow writes task artifacts under:
+Then ask the agent to use the relevant QEMU workflow skill for the task. The
+workflow writes artifacts under:
 
 ```text
 .oh-my-qemu/<task-slug>/

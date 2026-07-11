@@ -1,6 +1,6 @@
 ---
-name: qemu-tcg-backend-adaptation
-description: Use for adapting a QEMU TCG host backend, including optional op support, constraints, register allocation, host code emission, qemu_ld/st, atomics, and vector ops. Extends qemu-flow-plan and qemu-rlcr-loop.
+name: qemu-workflow-tcg-backend-adaptation
+description: Use for adapting a QEMU TCG host backend, including optional op support, constraints, register allocation, host code emission, qemu_ld/st, atomics, and vector ops. Extends qemu-plan and qemu-rlcr-loop.
 ---
 
 # QEMU TCG Backend Adaptation
@@ -9,7 +9,7 @@ Use this domain skill for host backend work under `tcg/<host>/`: instruction enc
 
 ## Flow dependencies
 
-1. Start with `qemu-flow-plan`.
+1. Start with `qemu-plan`.
 2. Put host-code logs, TCG dumps, temporary disassembly, benchmark notes, and review files under `.oh-my-qemu/<task-slug>/`.
 3. Before the first source mutation, MUST use `qemu-rlcr-loop` and keep
    implementation/debugging inside RLCR rounds.

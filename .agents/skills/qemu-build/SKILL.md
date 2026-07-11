@@ -7,11 +7,12 @@ description: Use for configuring, reusing, building, or diagnosing QEMU build di
 
 Use this operational skill when the task asks to inspect, configure, build, reconfigure, or diagnose a QEMU build.
 
-## Flow relationship
+## Primitive Boundary
 
-- For non-trivial work, `qemu-flow-plan` owns the plan and artifact root.
-- `qemu-build` owns only build-directory decisions and build evidence.
-- Store copied logs, command transcripts, and diagnosis reports under `.oh-my-qemu/<task-slug>/`.
+This primitive owns only build-directory inspection, configure/build commands,
+build logs, and build-failure diagnosis. It consumes an artifact root supplied
+by the caller and does not choose planning, verification, debug, or review
+workflow steps.
 
 ## Hard policy boundary
 
