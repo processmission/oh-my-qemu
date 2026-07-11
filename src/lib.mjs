@@ -230,8 +230,7 @@ Record exact commands, working directories, environment overrides, and output ar
 
 - State: not-analyzed
 - Exit reason:
-- User asked for issue: no
-- Issue filed: no
+- Follow-up issue: outside this primitive
 
 ## Sanitized Workflow Context
 
@@ -242,12 +241,6 @@ Record exact commands, working directories, environment overrides, and output ar
 ## Observed Patterns
 
 ## Improvement Suggestions
-
-## Issue Draft
-
-### Title
-
-### Body
 
 ## Privacy Check
 
