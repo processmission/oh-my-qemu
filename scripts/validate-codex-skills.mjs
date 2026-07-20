@@ -274,6 +274,8 @@ function validateRepositoryConsistency() {
       ["all-skills default", "install_command+=(--skill '*')"],
       ["Codex and Claude Code defaults", "install_command+=(--agent codex claude-code)"],
       ["non-interactive default", "install_command+=(-y)"],
+      ["equals-form skill override", 'forwarded+=(--skill "${1#--skill=}")'],
+      ["equals-form agent override", 'forwarded+=(--agent "${1#--agent=}")'],
       ["Claude Code local exclude", '".claude/skills/"'],
       ["lockfile local exclude", '"skills-lock.json"'],
       ["tracked destination guard", 'ls-files -- "${MANAGED_INSTALL_PATHS[@]}"'],

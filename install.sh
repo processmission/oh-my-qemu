@@ -121,11 +121,23 @@ while (($# > 0)); do
             forwarded+=("$1")
             shift
             ;;
+        --skill=*)
+            [[ -n "${1#--skill=}" ]] || die "--skill requires at least one skill name"
+            has_skill_arg=true
+            forwarded+=(--skill "${1#--skill=}")
+            shift
+            ;;
         -a|--agent)
             (($# >= 2)) || die "$1 requires at least one agent name"
             [[ "$2" != -* ]] || die "$1 requires at least one agent name"
             has_agent_arg=true
             forwarded+=("$1")
+            shift
+            ;;
+        --agent=*)
+            [[ -n "${1#--agent=}" ]] || die "--agent requires at least one agent name"
+            has_agent_arg=true
+            forwarded+=(--agent "${1#--agent=}")
             shift
             ;;
         -y|--yes)
