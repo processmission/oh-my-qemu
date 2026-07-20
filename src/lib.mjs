@@ -302,9 +302,11 @@ function shellClauses(command) {
       continue;
     }
 
-    const separator =
-      char === ";" || char === "\n" || char === "|" ||
-      (char === "&" && next === "&");
+    const previous = command[index - 1];
+    const ampersandSeparator = char === "&" && previous !== ">" &&
+      previous !== "<" && next !== ">";
+    const separator = char === ";" || char === "\n" || char === "|" ||
+      ampersandSeparator;
     if (separator) {
       if (current.trim()) {
         clauses.push(current);
@@ -421,6 +423,10 @@ function optionTargetsPath(words, matchesPath) {
   for (let index = 1; index < words.length; index += 1) {
     const word = words[index];
     if (separateOptions.has(word) && matchesPath(words[index + 1] ?? "")) {
+      return true;
+    }
+    const attachedShortOption = word.match(/^-(?:B|C|o)(.+)$/);
+    if (attachedShortOption && matchesPath(attachedShortOption[1])) {
       return true;
     }
     const assignment = word.match(/^(?:O|of|--build|--build-dir|--builddir|--directory|--out-dir|--output)=(.+)$/);
