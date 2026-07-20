@@ -25,6 +25,10 @@ repository-local Git exclude, preserving existing entries and deduplicating
 slash variants. It does not modify the shared `.gitignore`. Linked worktrees
 that use one Git common directory share the exclude file.
 
+The installer stops before making changes if the target already tracks
+`.agents/skills/`, `.claude/skills/`, or `skills-lock.json`, because local Git
+exclude rules cannot hide modifications to tracked files.
+
 The lockfile remains available locally for updates but does not appear in
 `git status`.
 

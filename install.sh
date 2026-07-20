@@ -10,6 +10,11 @@ readonly REQUIRED_EXCLUDES=(
     "builds/"
     "skills-lock.json"
 )
+readonly MANAGED_INSTALL_PATHS=(
+    ".agents/skills"
+    ".claude/skills"
+    "skills-lock.json"
+)
 
 resolve_skill_source() {
     if [[ -n "${OH_MY_QEMU_SKILL_SOURCE:-}" ]]; then
@@ -149,6 +154,15 @@ git_root="$(cd "$git_root" && pwd -P)"
 [[ "$target_dir" == "$git_root" ]] ||
     die "target must be the Git project root: $git_root"
 
+tracked_install_paths="$(git -C "$target_dir" ls-files -- "${MANAGED_INSTALL_PATHS[@]}")"
+if [[ -n "$tracked_install_paths" ]]; then
+    printf 'oh-my-qemu: target already tracks installer-managed paths:\n' >&2
+    while IFS= read -r tracked_path; do
+        printf '  %s\n' "$tracked_path" >&2
+    done <<<"$tracked_install_paths"
+    die "untrack or preserve those paths manually before using the project-local installer"
+fi
+
 printf 'Installing Oh My QEMU skills into %s\n' "$target_dir"
 install_command=(npx --yes skills add "$SKILL_SOURCE")
 if ((${#forwarded[@]} > 0)); then
@@ -208,6 +222,16 @@ for entry in "${REQUIRED_EXCLUDES[@]}"; do
     git -C "$target_dir" check-ignore --no-index -q "$probe" ||
         die "could not verify repository-local Git exclude for $entry"
 done
+
+visible_install_paths="$(
+    git -C "$target_dir" status --short --untracked-files=all -- \
+        "${MANAGED_INSTALL_PATHS[@]}"
+)"
+if [[ -n "$visible_install_paths" ]]; then
+    printf 'oh-my-qemu: installation left managed paths visible to Git:\n%s\n' \
+        "$visible_install_paths" >&2
+    die "review the target repository before continuing"
+fi
 
 printf 'Project-local installation complete.\n'
 printf 'Git exclude: %s\n' "$exclude_file"

@@ -62,7 +62,9 @@ also excludes `.claude/skills/` and `skills-lock.json`; the shared audit
 workspace contract above remains the three tool-independent directories. An
 explicit `--skill` selects a subset. When invoked from a repository checkout,
 it installs that local skill tree into the target, which supports contributor
-testing. Direct
+testing. It rejects targets that already track an installer-managed skill path
+or lockfile because repository-local excludes cannot hide tracked changes.
+Direct
 `npx skills add` installs skill directories only; it does not execute source
 repository hooks, update Git excludes, or install plugin command/runtime
 scripts. Each skill still enforces the audit contract when it runs alone.

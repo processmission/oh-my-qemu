@@ -27,6 +27,10 @@ leading/trailing-slash variants, and does not change the shared `.gitignore`.
 Linked worktrees sharing one Git common directory also share this exclude file.
 Global flags are rejected.
 
+To avoid claiming a clean local install when Git would still show changes, the
+installer refuses targets that already track `.agents/skills/`,
+`.claude/skills/`, or `skills-lock.json`.
+
 The generated lockfile remains available locally for updates but does not appear
 in `git status`.
 

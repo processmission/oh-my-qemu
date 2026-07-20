@@ -276,6 +276,7 @@ function validateRepositoryConsistency() {
       ["non-interactive default", "install_command+=(-y)"],
       ["Claude Code local exclude", '".claude/skills/"'],
       ["lockfile local exclude", '"skills-lock.json"'],
+      ["tracked destination guard", 'ls-files -- "${MANAGED_INSTALL_PATHS[@]}"'],
     ]) {
       if (!installerContent.includes(marker)) {
         errors.push(`install.sh: missing ${label}: ${marker}`);
@@ -353,10 +354,19 @@ function validateCommandPolicy() {
     ["dd if=input of=build/file", true],
     ["mkdir .plan", true],
     ["long_running_probe & mkdir build", true],
+    ["cd .oh-my-qemu/task/output & mkdir build", true],
+    ["cd build && ../configure", true],
+    ["cd build && ninja", true],
+    ["cd build && touch log", true],
     ["mkdir builds/build-aarch64", false],
     ["ninja -Cbuilds/build-aarch64", false],
     ["cmake -Bbuilds/build-aarch64", false],
+    ["cd builds/build-aarch64 && ../../configure", false],
+    ["cd builds/build-aarch64 && ninja", false],
     ["mkdir .oh-my-qemu/task/output/build", false],
+    ["cd .oh-my-qemu/task/output && mkdir build", false],
+    ["cd .oh-my-qemu/task/output && touch build/log", false],
+    ["cd /tmp && mkdir build", false],
     ["mkdir /tmp/build", false],
     ["touch .oh-my-qemu/task/scripts/scratch/probe.sh", false],
     ["cd docs && rg build README.md", false],

@@ -7,7 +7,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, posix, relative, resolve } from "node:path";
 
 // Shared, runtime-agnostic workspace and artifact-policy logic for the Oh My
 // Pi extension and Claude Code plugin scripts.
@@ -309,7 +309,9 @@ function shellClauses(command) {
       ampersandSeparator;
     if (separator) {
       if (current.trim()) {
-        clauses.push(current);
+        const operator = (char === "|" && next === "|") ||
+          (char === "&" && next === "&") ? char + next : char;
+        clauses.push({ command: current, separator: operator });
       }
       current = "";
       if ((char === "|" && next === "|") || (char === "&" && next === "&")) {
@@ -321,7 +323,7 @@ function shellClauses(command) {
   }
 
   if (current.trim()) {
-    clauses.push(current);
+    clauses.push({ command: current, separator: null });
   }
   return clauses;
 }
@@ -393,13 +395,41 @@ function shellExecutable(words) {
     if (words[index] === "--") {
       index += 1;
     } else if ((words[index] ?? "").startsWith("-")) {
-      return "";
+      return { name: "", index: -1 };
     }
   } else if (words[index] === "sudo") {
-    return "";
+    return { name: "", index: -1 };
   }
 
-  return words[index] ? basename(words[index]) : "";
+  return words[index]
+    ? { name: basename(words[index]), index }
+    : { name: "", index: -1 };
+}
+
+function effectiveRelativePath(cwd, word) {
+  if (cwd === null || !word || word.startsWith("/") || word.startsWith("~")) {
+    return null;
+  }
+
+  const path = posix.normalize(posix.join(cwd || ".", word));
+  if (path === ".") {
+    return "";
+  }
+  if (path === ".." || path.startsWith("../")) {
+    return null;
+  }
+  return path.startsWith("./") ? path.slice(2) : path;
+}
+
+function changedDirectory(cwd, words, executableIndex) {
+  let target = words[executableIndex + 1];
+  if (target === "--") {
+    target = words[executableIndex + 2];
+  }
+  if (!target || target.startsWith("-")) {
+    return null;
+  }
+  return effectiveRelativePath(cwd, target);
 }
 
 function rootRelativePath(word, name) {
@@ -444,6 +474,7 @@ export function commandPolicyViolation(command) {
   const policies = [
     {
       matches: (word) => rootRelativePath(word, "build"),
+      blocksBuildCwd: true,
       reason: "QEMU build output must use builds/build-<target>/, not an unqualified build/ path.",
     },
     {
@@ -456,27 +487,40 @@ export function commandPolicyViolation(command) {
     },
   ];
 
+  let effectiveCwd = "";
   for (const clause of shellClauses(command)) {
-    const words = shellWords(clause);
-    const executable = shellExecutable(words);
+    const words = shellWords(clause.command);
+    const executableInfo = shellExecutable(words);
+    const executable = executableInfo.name;
     if (!executable) {
       continue;
     }
 
     for (const policy of policies) {
+      const matchesPath = (word) => {
+        const path = effectiveRelativePath(effectiveCwd, word);
+        return path !== null && policy.matches(path);
+      };
       const redirect = words.some(
-        (word, index) => (word === ">" || word === ">>") && policy.matches(words[index + 1] ?? ""),
+        (word, index) => (word === ">" || word === ">>") && matchesPath(words[index + 1] ?? ""),
       );
-      const direct = directWriters.has(executable) && words.slice(1).some(policy.matches);
-      const copied = copyLikeWriters.has(executable) && policy.matches(words.at(-1) ?? "");
+      const direct = directWriters.has(executable) && words.slice(1).some(matchesPath);
+      const copied = copyLikeWriters.has(executable) && matchesPath(words.at(-1) ?? "");
       const buildOutput = buildTools.has(executable) &&
-        (optionTargetsPath(words, policy.matches) ||
-          (executable === "meson" && words.includes("setup") && words.some(policy.matches)));
-      const ddOutput = executable === "dd" && optionTargetsPath(words, policy.matches);
+        (optionTargetsPath(words, matchesPath) ||
+          (executable === "meson" && words.includes("setup") && words.some(matchesPath)));
+      const buildInCwd = policy.blocksBuildCwd &&
+        (buildTools.has(executable) || executable === "configure") &&
+        effectiveCwd !== null && policy.matches(effectiveCwd);
+      const ddOutput = executable === "dd" && optionTargetsPath(words, matchesPath);
 
-      if (redirect || direct || copied || buildOutput || ddOutput) {
+      if (redirect || direct || copied || buildOutput || buildInCwd || ddOutput) {
         return policy.reason;
       }
+    }
+
+    if (executable === "cd" && ["&&", ";", "\n"].includes(clause.separator)) {
+      effectiveCwd = changedDirectory(effectiveCwd, words, executableInfo.index);
     }
   }
   return null;
