@@ -101,12 +101,13 @@ After the user approves the exact title, body, and target repository, check
 `gh auth status`, then run:
 
 ```bash
+approved_repo="<approved owner/repository>"
 gh issue create \
-  --repo processmission/oh-my-qemu \
+  --repo "$approved_repo" \
   --title "<approved title>" \
   --body-file .oh-my-qemu/<task-slug>/output/methodology-issue.md
 ```
 
-Record the approved command and resulting issue URL in `commands.md` and
-`audit.md`. If `gh` is unavailable, unauthenticated, or fails, leave the two
-sanitized draft files for manual filing and report the gap.
+Record the resolved `approved_repo`, approved command, and resulting issue URL
+in `commands.md` and `audit.md`. If `gh` is unavailable, unauthenticated, or
+fails, leave the two sanitized draft files for manual filing and report the gap.
