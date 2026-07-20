@@ -488,6 +488,7 @@ export function commandPolicyViolation(command) {
   ];
 
   let effectiveCwd = "";
+  let guardedCwd;
   for (const clause of shellClauses(command)) {
     const words = shellWords(clause.command);
     const executableInfo = shellExecutable(words);
@@ -519,8 +520,21 @@ export function commandPolicyViolation(command) {
       }
     }
 
-    if (executable === "cd" && ["&&", ";", "\n"].includes(clause.separator)) {
-      effectiveCwd = changedDirectory(effectiveCwd, words, executableInfo.index);
+    if (guardedCwd !== undefined) {
+      if (["exit", "return"].includes(executable) &&
+          ["&&", ";", "\n"].includes(clause.separator)) {
+        effectiveCwd = guardedCwd;
+      }
+      guardedCwd = undefined;
+    }
+
+    if (executable === "cd") {
+      const nextCwd = changedDirectory(effectiveCwd, words, executableInfo.index);
+      if (["&&", ";", "\n"].includes(clause.separator)) {
+        effectiveCwd = nextCwd;
+      } else if (clause.separator === "||" && nextCwd !== null) {
+        guardedCwd = nextCwd;
+      }
     }
   }
   return null;
