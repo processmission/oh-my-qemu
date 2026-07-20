@@ -63,7 +63,7 @@ export default function ohMyQemu(pi) {
 
     if (event.toolName === "bash") {
       const command = typeof input?.command === "string" ? input.command : "";
-      const reason = commandPolicyViolation(command);
+      const reason = commandPolicyViolation(ctx.cwd, command);
       if (reason) {
         return { block: true, reason };
       }

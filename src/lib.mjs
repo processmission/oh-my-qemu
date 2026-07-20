@@ -422,8 +422,22 @@ function shellExecutable(words) {
     : { name: "", index: -1 };
 }
 
-function effectiveRelativePath(cwd, word) {
-  if (cwd === null || !word || word.startsWith("/") || word.startsWith("~")) {
+function effectiveRelativePath(root, cwd, word) {
+  if (!word || word.startsWith("~")) {
+    return null;
+  }
+
+  if (word.startsWith("/")) {
+    const path = relative(root, resolve(word)).replaceAll("\\", "/");
+    if (path === "") {
+      return "";
+    }
+    if (path === ".." || path.startsWith("../") || path.startsWith("/")) {
+      return null;
+    }
+    return path;
+  }
+  if (cwd === null) {
     return null;
   }
 
@@ -437,7 +451,7 @@ function effectiveRelativePath(cwd, word) {
   return path.startsWith("./") ? path.slice(2) : path;
 }
 
-function changedDirectory(cwd, words, executableIndex) {
+function changedDirectory(root, cwd, words, executableIndex) {
   let target = words[executableIndex + 1];
   if (target === "--") {
     target = words[executableIndex + 2];
@@ -445,7 +459,17 @@ function changedDirectory(cwd, words, executableIndex) {
   if (!target || target.startsWith("-")) {
     return null;
   }
-  return effectiveRelativePath(cwd, target);
+  return effectiveRelativePath(root, cwd, target);
+}
+
+function uniqueCwds(...groups) {
+  return [...new Set(groups.flat())];
+}
+
+function changedDirectories(root, cwds, words, executableIndex) {
+  return uniqueCwds(cwds.map(
+    (cwd) => changedDirectory(root, cwd, words, executableIndex),
+  ));
 }
 
 function rootRelativePath(word, name) {
@@ -483,7 +507,8 @@ function optionTargetsPath(words, matchesPath) {
   return false;
 }
 
-export function commandPolicyViolation(command) {
+export function commandPolicyViolation(cwd, command) {
+  const root = resolve(cwd);
   const directWriters = new Set(["mkdir", "rm", "rmdir", "tee", "touch", "truncate"]);
   const copyLikeWriters = new Set(["cp", "install", "mv", "rsync"]);
   const buildTools = new Set(["cmake", "make", "meson", "ninja"]);
@@ -503,8 +528,8 @@ export function commandPolicyViolation(command) {
     },
   ];
 
-  let effectiveCwd = "";
-  let guardedCwd;
+  let effectiveCwds = [""];
+  let guardedCwds;
   const subshellCwds = [];
   for (const clause of shellClauses(command)) {
     const words = shellWords(clause.command);
@@ -519,13 +544,15 @@ export function commandPolicyViolation(command) {
       .filter((word) => word === shellGroupWord["("])
       .length;
     for (let index = 0; index < subshellOpenCount; index += 1) {
-      subshellCwds.push(effectiveCwd);
+      subshellCwds.push([...effectiveCwds]);
     }
 
     for (const policy of policies) {
       const matchesPath = (word) => {
-        const path = effectiveRelativePath(effectiveCwd, word);
-        return path !== null && policy.matches(path);
+        return effectiveCwds.some((effectiveCwd) => {
+          const path = effectiveRelativePath(root, effectiveCwd, word);
+          return path !== null && policy.matches(path);
+        });
       };
       const redirect = words.some(
         (word, index) => (word === ">" || word === ">>") && matchesPath(words[index + 1] ?? ""),
@@ -537,7 +564,9 @@ export function commandPolicyViolation(command) {
           (executable === "meson" && words.includes("setup") && words.some(matchesPath)));
       const buildInCwd = policy.blocksBuildCwd &&
         (buildTools.has(executable) || executable === "configure") &&
-        effectiveCwd !== null && policy.matches(effectiveCwd);
+        effectiveCwds.some(
+          (effectiveCwd) => effectiveCwd !== null && policy.matches(effectiveCwd),
+        );
       const ddOutput = executable === "dd" && optionTargetsPath(words, matchesPath);
 
       if (redirect || direct || copied || buildOutput || buildInCwd || ddOutput) {
@@ -545,20 +574,36 @@ export function commandPolicyViolation(command) {
       }
     }
 
-    if (guardedCwd !== undefined) {
-      if (["exit", "return"].includes(executable) &&
-          ["&&", ";", "\n"].includes(clause.separator)) {
-        effectiveCwd = guardedCwd;
-      }
-      guardedCwd = undefined;
-    }
+    const previousGuardedCwds = guardedCwds;
+    guardedCwds = undefined;
 
     if (executable === "cd") {
-      const nextCwd = changedDirectory(effectiveCwd, words, executableInfo.index);
-      if (["&&", ";", "\n"].includes(clause.separator)) {
-        effectiveCwd = nextCwd;
-      } else if (clause.separator === "||" && nextCwd !== null) {
-        guardedCwd = nextCwd;
+      const nextCwds = changedDirectories(
+        root,
+        effectiveCwds,
+        words,
+        executableInfo.index,
+      );
+      if (clause.separator === "&&") {
+        effectiveCwds = nextCwds;
+      } else if ([";", "\n"].includes(clause.separator)) {
+        effectiveCwds = uniqueCwds(effectiveCwds, nextCwds);
+      } else if (clause.separator === "||") {
+        guardedCwds = nextCwds;
+      }
+    }
+
+    if (previousGuardedCwds !== undefined) {
+      if (["exit", "return"].includes(executable) &&
+          ["&&", ";", "\n"].includes(clause.separator)) {
+        effectiveCwds = previousGuardedCwds;
+      } else if (clause.separator === "||") {
+        guardedCwds = uniqueCwds(
+          previousGuardedCwds,
+          guardedCwds ?? effectiveCwds,
+        );
+      } else {
+        effectiveCwds = uniqueCwds(previousGuardedCwds, effectiveCwds);
       }
     }
 
@@ -567,7 +612,7 @@ export function commandPolicyViolation(command) {
       .length;
     for (let index = 0; index < subshellCloseCount; index += 1) {
       if (subshellCwds.length > 0) {
-        effectiveCwd = subshellCwds.pop();
+        effectiveCwds = subshellCwds.pop();
       }
     }
   }

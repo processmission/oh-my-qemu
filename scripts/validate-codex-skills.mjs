@@ -343,6 +343,7 @@ function validateCatalog(skills) {
 }
 
 function validateCommandPolicy() {
+  const qemuRoot = "/checkout/qemu";
   const cases = [
     ["mkdir -p build", true],
     ["mkdir -p scratch/probe", true],
@@ -362,6 +363,15 @@ function validateCommandPolicy() {
     ["cd build && touch log", true],
     ["cd build || exit 1; ../configure", true],
     ["cd build || exit 1\nninja", true],
+    ["cd missing; mkdir build", true],
+    ["cd missing\nmkdir build", true],
+    ["cd build; ninja", true],
+    ["cd build || echo missing; ninja", true],
+    ["cd .oh-my-qemu/task/output; mkdir build", true],
+    ["cd /tmp; mkdir build", true],
+    ["mkdir /checkout/qemu/build", true],
+    ["ninja -C /checkout/qemu/build", true],
+    ["cd /checkout/qemu/build && ninja", true],
     ["(mkdir -p build)", true],
     ["{ mkdir -p build; }", true],
     ["(cd build && ninja)", true],
@@ -379,6 +389,8 @@ function validateCommandPolicy() {
     ["(cd .oh-my-qemu/task/output && mkdir build)", false],
     ["{ cd .oh-my-qemu/task/output && mkdir build; }; mkdir build", false],
     ["(cd builds/build-aarch64 && ninja)", false],
+    ["mkdir /checkout/qemu/builds/build-aarch64", false],
+    ["mkdir /checkout/qemu/.oh-my-qemu/task/output/build", false],
     ["cd /tmp && mkdir build", false],
     ["mkdir /tmp/build", false],
     ["touch .oh-my-qemu/task/scripts/scratch/probe.sh", false],
@@ -396,7 +408,7 @@ function validateCommandPolicy() {
   ];
 
   return cases.flatMap(([command, shouldBlock]) => {
-    const blocked = Boolean(commandPolicyViolation(command));
+    const blocked = Boolean(commandPolicyViolation(qemuRoot, command));
     return blocked === shouldBlock
       ? []
       : [`command policy: ${command} expected blocked=${shouldBlock}, got ${blocked}`];

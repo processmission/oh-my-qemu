@@ -51,7 +51,7 @@ if (toolName === "write" || toolName === "edit" || toolName === "multiedit") {
   reason = artifactPolicyViolation(cwd, path);
 } else if (toolName === "bash") {
   const command = typeof input.command === "string" ? input.command : "";
-  reason = commandPolicyViolation(command);
+  reason = commandPolicyViolation(cwd, command);
 }
 
 if (reason) {
