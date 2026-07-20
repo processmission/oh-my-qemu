@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Model Verification"
+  short_description: "Classify QEMU model evidence with explicit results."
+  default_prompt: "Use $qemu-model-verification to test this QEMU model claim and classify it as PASS, FAIL, or INCONCLUSIVE."

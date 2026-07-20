@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Peripheral Modeling"
+  short_description: "Model and verify QEMU MMIO peripherals."
+  default_prompt: "Use $qemu-peripheral-modeling to model this QEMU peripheral from a source-cited register contract and focused qtests."

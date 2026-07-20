@@ -1,18 +1,48 @@
 ---
 name: qemu-qtest
-description: Use as a QEMU flow primitive for QEMU qtest design, registration, execution, and immediate qtest evidence capture.
+description: Use for QEMU qtest design, registration, execution, debugging, and immediate evidence capture for device, board, QMP, timer, IRQ, DMA, and memory behavior.
 ---
 
 # QEMU qtest
 
 Use this operational/domain skill for QEMU device and board tests using the qtest framework.
 
-## Primitive Boundary
+## Audit workflow
 
-This primitive owns only qtest design, registration, execution commands, and
-immediate qtest evidence. It consumes a behavior claim, source tree, build
-directory, and artifact root supplied by the caller and does not choose build,
-debug, verification, or iterative-fix workflow steps.
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
+
+```text
+.oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
+```
+
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
+
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
+
+## Scope
+
+This skill owns qtest design, registration, execution commands, and
+immediate qtest evidence for a named QEMU build under `builds/`.
 
 ## Hard policy boundary
 
@@ -34,26 +64,29 @@ Prefer qtest over boot smoke for device contracts.
 
 ## Running qtests
 
-Run from a configured build directory. Default to `build/`.
+Run from the named build directory that matches the target, such as
+`builds/build-riscv64/`. Do not fall back to an unqualified `build/`.
 
 List tests:
 
 ```bash
-build/pyvenv/bin/meson test -C build --list
+builds/build-riscv64/pyvenv/bin/meson test \
+  -C builds/build-riscv64 --list
 ```
 
 Run one test:
 
 ```bash
-build/pyvenv/bin/meson test -C build qtest-riscv64/<test-name>
+builds/build-riscv64/pyvenv/bin/meson test \
+  -C builds/build-riscv64 qtest-riscv64/<test-name>
 ```
 
-Make frontends from inside `build/`:
+Make frontends can target the same directory:
 
 ```bash
-make check-qtest
-make check-qtest-riscv64
-V=1 make check-qtest-riscv64
+make -C builds/build-riscv64 check-qtest
+make -C builds/build-riscv64 check-qtest-riscv64
+V=1 make -C builds/build-riscv64 check-qtest-riscv64
 ```
 
 Use the narrow Meson test name when possible.
@@ -65,7 +98,7 @@ Inspect:
 - `tests/qtest/meson.build` for architecture buckets;
 - `tests/qtest/<name>.c` for source;
 - `tests/qtest/libqtest.h` for API;
-- `build/meson-logs/testlog.txt` for failures.
+- `builds/build-<target>/meson-logs/testlog.txt` for failures.
 
 Register architecture-specific tests under the matching `qtests_<arch>` list. Use `qtests_generic` only when the test is truly architecture-independent.
 

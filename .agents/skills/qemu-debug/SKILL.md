@@ -7,13 +7,42 @@ description: Use for debugging QEMU itself or guests under QEMU with host-side g
 
 Use this skill to reproduce, classify, and narrow QEMU failures: QEMU process crashes/assertions, guest boot hangs, wrong device behavior, TCG bugs, migration/runtime assertions, or intermittent behavior.
 
-## Primitive Boundary
+## Audit workflow
 
-This primitive owns only failure reproduction and narrowing: host debugger,
-guest gdbstub, QEMU logs, trace events, replay, and instruction-window data.
-It consumes a reproducer command, failure marker, relevant artifacts, and an
-artifact root supplied by the caller. It does not choose build, boot-run,
-verification, or iterative-fix workflow steps.
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
+
+```text
+.oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
+```
+
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
+
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
+
+## Scope
+
+This skill owns failure reproduction and narrowing: host debugger, guest
+gdbstub, QEMU logs, trace events, replay, and instruction-window data.
 
 ## Hard policy boundary
 
@@ -41,15 +70,15 @@ Before attaching:
 
 - ensure the relevant binary is built with debug info;
 - record the exact QEMU command in `.oh-my-qemu/<task-slug>/commands.md`;
-- put debugger transcripts and notes under `.oh-my-qemu/<task-slug>/logs/` or `.oh-my-qemu/<task-slug>/debugger.md`;
+- put debugger transcripts and notes under `.oh-my-qemu/<task-slug>/logs/`;
 - keep guest logs/traces separate from host debugger notes.
 
 Common launch patterns:
 
 ```bash
-gdb --args build/qemu-system-riscv64 <qemu-options>
-gdb -ex 'run' --args build/qemu-system-riscv64 <qemu-options>
-lldb -- build/qemu-system-riscv64 <qemu-options>
+gdb --args builds/build-riscv64/qemu-system-riscv64 <qemu-options>
+gdb -ex 'run' --args builds/build-riscv64/qemu-system-riscv64 <qemu-options>
+lldb -- builds/build-riscv64/qemu-system-riscv64 <qemu-options>
 ```
 
 Common attach patterns:
@@ -99,15 +128,15 @@ Use `-dfilter` when a target PC range is known. Use `-accel tcg,one-insn-per-tb=
 Use trace events for structured evidence:
 
 - `--trace "pattern"` for quick checks;
-- `--trace events=.oh-my-qemu/<task-slug>/trace-events.txt` for repeatable runs;
+- `--trace events=.oh-my-qemu/<task-slug>/scripts/trace-events.txt` for repeatable runs;
 - local `trace-events` files for source-side event definitions.
 
 ## Replay and determinism
 
 For intermittent bugs, use record/replay when applicable:
 
-- record: `-icount shift=auto,rr=record,rrfile=.oh-my-qemu/<task-slug>/replay.bin`;
-- replay: `-icount shift=auto,rr=replay,rrfile=.oh-my-qemu/<task-slug>/replay.bin`.
+- record: `-icount shift=auto,rr=record,rrfile=.oh-my-qemu/<task-slug>/logs/replay.bin`;
+- replay: `-icount shift=auto,rr=replay,rrfile=.oh-my-qemu/<task-slug>/logs/replay.bin`.
 
 Record QEMU binary, image hashes, machine options, and replay file path.
 
@@ -140,7 +169,7 @@ Record QEMU binary, image hashes, machine options, and replay file path.
 
 ## Debug report
 
-Write reports under `.oh-my-qemu/<task-slug>/` and include:
+Write the report in `.oh-my-qemu/<task-slug>/audit.md` and include:
 
 - command;
 - build directory and QEMU binary;
@@ -150,6 +179,9 @@ Write reports under `.oh-my-qemu/<task-slug>/` and include:
 - decisive log/trace paths;
 - classification;
 - next narrow check.
+
+Stop only QEMU processes, debugger servers, and terminal sessions started for
+this task. Record cleanup and any target-state-changing operation.
 
 ## Upstream references
 

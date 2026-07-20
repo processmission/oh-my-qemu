@@ -1,6 +1,6 @@
 {
   "name": "oh-my-qemu",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "QEMU agent skills, a /qemu-init-task command, and an artifact-policy hook for modeling, source builds, image packaging, boot testing, qtest, debugging, and TCG workflows.",
   "homepage": "https://github.com/processmission/oh-my-qemu",
   "repository": "https://github.com/processmission/oh-my-qemu",

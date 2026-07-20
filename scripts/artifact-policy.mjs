@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 // Claude Code PreToolUse hook that enforces the QEMU artifact policy:
 // agent artifacts must live under .oh-my-qemu/<task-slug>/ and never as
-// root-level scratch files or .plan/ / .humanize/ directories.
+// identifiable root-level scratch/build writes or .plan/.humanize paths.
 //
 // Reads the PreToolUse JSON payload on stdin. Blocks Write/Edit/MultiEdit
-// of policy-violating paths and Bash commands referencing .plan/.humanize.
+// of policy-violating paths and identifiable Bash writes.
 // Blocking uses Claude Code's "exit code 2 -> stderr fed back to the model"
 // contract, which is stable across versions.
 
-import { artifactPolicyViolation, commandPolicyViolation } from "../src/lib.mjs";
+import {
+  artifactPolicyViolation,
+  commandPolicyViolation,
+  qemuSourceRootViolation,
+} from "../src/lib.mjs";
 
 async function readStdin() {
   let data = "";
@@ -29,6 +33,12 @@ try {
 const toolName = String(payload?.tool_name ?? payload?.toolName ?? "").toLowerCase();
 const input = payload?.tool_input ?? payload?.input ?? {};
 const cwd = payload?.cwd ?? process.cwd();
+
+// Claude Code plugins can be enabled outside QEMU. Leave unrelated projects
+// untouched and enforce this hook only at a verified QEMU source root.
+if (qemuSourceRootViolation(cwd)) {
+  process.exit(0);
+}
 
 let reason = null;
 

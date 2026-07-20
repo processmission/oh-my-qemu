@@ -1,286 +1,104 @@
 ---
 name: qemu-register-extraction
-description: Use as a QEMU flow primitive to extract register maps, bitfields, cross-register dependencies, side effects, IRQs, DMA behavior, clocks, resets, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown.
+description: Use to extract a source-cited QEMU register and behavior contract from drivers, datasheets, firmware, device trees, runtime traces, and SVD, IP-XACT, SystemRDL, or vendor regfiles before modeling a hardware block.
 ---
 
 # QEMU Register Extraction
 
-Use this flow primitive when the source of truth is outside QEMU: OS drivers,
-bare-metal SDKs, firmware, bootloader code, datasheets/reference manuals,
-extracted firmware filesystems, device trees, SVD/IP-XACT/SystemRDL/regfiles,
-generated headers, or runtime register dumps.
+Turn external hardware evidence into a markdown register/function contract. Do
+not produce QEMU source code or fill undocumented behavior from memory.
 
-The output is a markdown register/function contract for the caller. This flow
-does not produce QEMU source code and does not choose the modeling workflow.
+## Audit workflow
 
-## Hard policy boundary
-
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. This flow is research and analysis only. Do not add `Signed-off-by`, `Reviewed-by`, `Acked-by`, `Tested-by`, or similar contribution trailers.
-
-## Artifact root rule
-
-All generated artifacts must stay under the task workspace supplied by the
-caller:
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
 
 ```text
 .oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
 ```
 
-Recommended files:
-
-```text
-.oh-my-qemu/<task-slug>/
-  register-extraction.md
-  source-inventory.md
-  conflicts.md
-  evidence.md
-  logs/
-  scratch/
-```
-
-Never write notes, converted datasheet excerpts, extracted filesystem files, generated tables, or scratch scripts into QEMU source directories.
-
-## Required inputs
-
-Record every input source in `source-inventory.md`:
-
-- driver source path, repository URL, branch/commit, OS/project, and version;
-- datasheet/reference manual title, revision, date, page/section, and errata source;
-- firmware filesystem or image path, hash, extraction method, and relevant files;
-- device tree/DTS/DTB paths and node names;
-- regfile format and path, such as SVD, IP-XACT, SystemRDL, CSV, JSON, YAML, XML, vendor headers, or generated register descriptions;
-- runtime dumps or traces, including command, image hash, and capture path.
-
-If a source is proprietary or large, summarize technical facts and cite location. Do not paste large copyrighted sections into the markdown.
-
-## Extraction order
-
-### 1. Identify device variants
-
-Extract:
-
-- block name, vendor name, aliases, and IP version;
-- SoC/board variants and compatibility strings;
-- register-window count, base addresses, sizes, and endianness;
-- bus type and access width requirements;
-- clock, reset, power-domain, and pinctrl dependencies;
-- interrupt lines and interrupt-controller source numbers;
-- DMA channels, stream endpoints, or bus-master capability.
-
-### 2. Build the source cross-reference
-
-For each register or behavior, note which source mentions it:
-
-- datasheet table or section;
-- driver macro/header;
-- driver read/write path;
-- firmware initialization sequence;
-- device tree property;
-- regfile field;
-- runtime trace or dump.
-
-Use source paths and line/page references. When two sources disagree, do not choose silently; record the conflict in `conflicts.md`.
-
-### 3. Extract register facts
-
-For each register, extract:
-
-- offset and width;
-- reset value;
-- access type: RO, WO, RW, W1C, W1S, clear-on-read, write-only trigger, read-side effect;
-- reserved bits and unimplemented bits;
-- bitfield name, shift, width, mask, and enumerated values;
-- aliasing, banked registers, indexed windows, FIFOs, or shadow registers;
-- valid access sizes and alignment behavior;
-- behavior on unsupported access size or unknown offset.
-
-Keep numeric values in hex where hardware docs use hex. Normalize units and bit numbering.
-
-### 4. Extract behavior, not only registers
-
-Driver code often reveals semantics absent from datasheets. Extract:
-
-- initialization sequence and required ordering;
-- reset/unlock/lock sequences;
-- polling loops and timeout conditions;
-- IRQ enable, mask, status, clear, and acknowledge flow;
-- timer/counter progression and clock dependency;
-- DMA descriptor layout, ownership bits, completion status, and error paths;
-- FIFO push/pop semantics and overflow/underflow behavior;
-- command-stream format for accelerator-like blocks;
-- required delays, busy bits, and self-clearing bits;
-- feature-detection registers and version-dependent behavior;
-- multi-register feature-enable conditions, where a feature works only when specific bits across control, mode, mask, status, clock, reset, descriptor, or threshold registers are combined correctly.
-
-Do not assume a register is passive because it is a scalar field. Check driver call paths around every write with side effects.
-
-### 5. Analyze cross-register dependencies
-
-Many peripherals expose features that are not represented by a single register. Extract the dependency graph between registers and bitfields whenever software combines them.
-
-Look for:
-
-- enable chains, such as clock gate plus reset release plus mode enable plus start bit;
-- IRQ paths, such as raw status plus mask/enable plus global interrupt enable plus W1C acknowledge;
-- DMA paths, such as source/destination address registers plus length plus control bits plus descriptor ownership plus completion status;
-- FIFO or threshold behavior, such as depth, watermark, interrupt enable, push/pop side effects, and overflow status;
-- timer/counter behavior, such as load value plus prescaler plus enable plus auto-reload plus status clear;
-- lock/unlock or write-protect sequences affecting later writes to other registers;
-- mode-dependent interpretation where one register changes the meaning or valid bits of another;
-- bank select, index/data, page select, or window registers controlling which logical register is accessed;
-- reset dependencies where one bit resets multiple registers or where reset completion is observed through another register;
-- feature-detection bits that gate whether other registers or fields exist.
-
-For each dependency, record:
-
-- participating registers and bitfields;
-- required order of operations;
-- whether the dependency is level, edge, latch, write-trigger, self-clearing, or polling-based;
-- what happens when only part of the dependency is satisfied;
-- driver function or datasheet section proving the relationship;
-- qtest candidate that exercises the complete feature path, not only individual fields.
-
-Represent dependencies as named feature flows, not just prose attached to one
-register. This lets the consumer decide which implementation hooks need to
-coordinate multiple register values.
-
-### 6. Use driver search patterns
-
-Search drivers by symbol and behavior, not only file names:
-
-- compatible strings and device names;
-- register macro prefixes;
-- base-address constants;
-- IRQ names and status bit names;
-- reset/clock names;
-- polling helpers and timeout loops;
-- read/write helper wrappers;
-- probe/init/remove/reset/suspend/resume paths;
-- firmware boot or board init code;
-- generated headers imported by the driver.
-
-For Linux-like trees, inspect driver, binding schema, DTS nodes, reset/clock providers, and subsystem helpers. For U-Boot, TF-A, EDK2, Zephyr, RTOS, and bare-metal SDKs, inspect board init plus low-level HAL accessors.
-
-### 7. Use filesystem and firmware evidence
-
-For extracted firmware filesystems or runtime captures, look for:
-
-- `/proc/device-tree` or decompiled DTB equivalents;
-- kernel modules and module parameters;
-- init scripts that configure the device;
-- firmware blobs loaded into the device;
-- config files naming MMIO bases, IRQs, clocks, or DMA buffers;
-- logs showing initialization order or failure markers;
-- userspace tools that poke registers directly.
-
-Store extracted or copied artifacts under `.oh-my-qemu/<task-slug>/scratch/` only.
-
-### 8. Convert regfiles carefully
-
-For SVD/IP-XACT/SystemRDL/vendor regfiles:
-
-- preserve register grouping and arrays;
-- verify address-unit assumptions;
-- verify reset values and access policies against drivers;
-- extract enumerated field values;
-- mark fields present in regfile but unused by software;
-- mark driver-used fields missing from regfile.
-
-Generated headers are evidence, not authority. Cross-check them against the manual or driver behavior.
-
-## Confidence and conflict policy
-
-Assign each extracted fact one confidence level:
-
-- **HIGH**: datasheet/regfile and driver agree, or runtime confirms behavior.
-- **MEDIUM**: one strong source exists, but no independent confirmation.
-- **LOW**: inferred from naming, nearby code, or incomplete traces.
-- **CONFLICT**: sources disagree.
-
-For conflicts, record:
-
-- exact conflicting sources;
-- the values/semantics that differ;
-- which source is newer or closer to the target workload;
-- what qtest/runtime check would resolve it;
-- chosen modeling assumption, if one is necessary.
-
-## Markdown output template
-
-Write `register-extraction.md` using this structure:
-
-```markdown
-# <Device/IP Name> Register Extraction
-
-## Target
-
-## Source Inventory Summary
-
-## Variants and Compatibility
-
-## Memory Map
-
-## Interrupts, Clocks, Resets, and DMA
-
-## Register Summary Table
-
-| Name | Offset | Width | Reset | Access | Side Effects | Confidence | Sources |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Field Tables
-
-### <REGISTER_NAME>
-
-| Field | Bits | Access | Reset | Meaning | Side Effects | Confidence | Sources |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Driver Sequences
-
-## IRQ and Status Flow
-
-## DMA, FIFO, Timer, or Command Behavior
-
-## Cross-Register Dependencies
-
-| Feature/Flow | Registers and Fields | Required Sequence | Coupling Semantics | Failure/Partial State | Confidence | Sources | qtest Candidate |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Feature Flow Details
-
-Describe each cross-register feature flow in enough detail that a model can implement coordinated registerinfo hooks without guessing.
-
-## QEMU RegisterInfo Mapping Notes
-
-| Register | RegisterAccessInfo facts | Hook needed | Dependent registers/fields | qtest coverage |
-| --- | --- | --- | --- | --- |
-
-## qtest Candidates
-
-## Unknowns and Conflicts
-
-## Consumer Checklist
-```
-
-Do not include C code templates. The consumer must inspect the checked-out QEMU
-registerinfo API and choose the implementation details.
-
-## Output requirements
-
-Before treating the extraction as complete, ensure the markdown contains:
-
-- all known register offsets and fields;
-- access semantics for every software-touched register;
-- reset values or explicit unknowns;
-- side-effect registers requiring pre-write, post-write, or post-read hooks;
-- cross-register dependencies and feature flows involving multiple registers or bitfields;
-- IRQ/status clear behavior;
-- DMA/FIFO/timer/command semantics when present;
-- qtest candidates for reset, masks, W1C, IRQ, timer, DMA, cross-register feature enablement, and unknown-offset behavior;
-- unresolved conflicts with source references.
-
-If any of these are missing, mark the gap explicitly. Do not hide unknowns by inventing defaults.
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
+
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
+
+## Research boundary
+
+This skill is research and analysis only. Do not produce source, documentation,
+commit messages, or patches intended for QEMU upstream submission. Summarize
+proprietary or copyrighted sources and cite page, section, revision, or source
+location; do not copy long passages.
+
+Before extracting, read
+[the register contract reference](references/register-contract.md) in full. It
+defines the source inventory, required facts, confidence policy, detailed
+output schema, and completion checklist.
+
+## Extract the contract
+
+1. **Bound the target.** Record the IP name/version, SoC or board variants,
+   compatibility strings, register windows, endianness, access widths, IRQs,
+   clocks, resets, power domains, DMA endpoints, and intended workload.
+2. **Inventory sources.** Record the exact revision or document edition plus
+   path, line, page, section, hash, or capture command for every driver,
+   datasheet, firmware image, DTB, regfile, and runtime trace used.
+3. **Cross-reference facts.** Tie each register or behavior to specific source
+   locations. Treat generated headers and names as evidence, not authority.
+4. **Extract semantics.** Capture offset, width, reset, access type, masks,
+   reserved bits, valid access sizes, aliases, banking, read/write side effects,
+   unsupported access behavior, and version differences.
+5. **Extract feature flows.** Record initialization order, polling, IRQ and W1C
+   paths, FIFO/timer/DMA/descriptor behavior, unlock sequences, and every
+   cross-register enable or completion dependency.
+6. **Resolve evidence quality.** Mark each fact `HIGH`, `MEDIUM`, `LOW`, or
+   `CONFLICT`. Never choose silently between disagreeing sources or invent a
+   default for a gap; name the check that could resolve it.
+7. **Produce the handoff.** Write the contract to
+   `.oh-my-qemu/<task-slug>/output/register-contract.md`, with source-cited
+   qtest candidates and explicit unknowns. Keep extraction/conversion scripts
+   in `scripts/` and copied or generated third-party artifacts in `output/`.
+
+## Evidence rules
+
+- Separate observed facts from inference and modeling suggestions.
+- Cite source revision plus line/page/section for every decisive field or
+  sequence.
+- Follow driver call paths around writes; a scalar register can still trigger
+  reset, DMA, IRQ, FIFO, timer, or command behavior.
+- Model cross-register dependencies as named feature flows with required order,
+  partial-state behavior, and a verification candidate.
+- Preserve conflicts and unavailable sources as gaps.
+- Do not include C implementation templates. The consumer must inspect the
+  checked-out QEMU registerinfo API before any local-only model experiment.
+
+## Handoff
+
+Report the target and variants covered, source inventory, contract path,
+confidence/conflict summary, missing facts, qtest candidates, and unresolved
+gaps. The extraction is incomplete if software-touched registers lack access
+semantics, side effects, source citations, or explicit unknowns.
 
 ## Upstream references
 
-- QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
-- QEMU registerinfo framework to inspect during handoff: `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and `hw/core/register.c` in the checked-out tree.
+- QEMU code provenance policy: `docs/devel/code-provenance.rst`.
+- Registerinfo API to inspect in the checked-out tree:
+  `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and
+  `hw/core/register.c`.

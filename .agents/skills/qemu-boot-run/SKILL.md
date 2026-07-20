@@ -1,18 +1,49 @@
 ---
 name: qemu-boot-run
-description: Use as a QEMU flow primitive to construct, run, log, and classify reproducible QEMU boot commands for kernels, firmware, disks, initramfs images, serial consoles, timeouts, and success or failure markers.
+description: Use when the QEMU binary and boot inputs are selected and one reproducible QEMU run must be constructed, logged, timed out, and classified by explicit success or failure markers.
 ---
 
 # QEMU Boot Run
 
-Use this primitive whenever the task is to run QEMU and observe a boot milestone, whether the boot path is direct kernel boot, firmware boot, a guest OS shell, a test appliance, or a boot hang reproducer.
+Use this skill whenever the task is to run QEMU and observe a boot milestone, whether the boot path is direct kernel boot, firmware boot, a guest OS shell, a test appliance, or a boot hang reproducer.
 
-## Primitive Boundary
+## Audit workflow
 
-This primitive owns only the QEMU command, run log, timeout behavior, marker
-matching, and immediate result classification. It consumes already selected
-binary/image paths and does not choose provenance, image-layout, debug, or
-verification workflow steps.
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
+
+```text
+.oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
+```
+
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
+
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
+
+## Scope
+
+Own the QEMU command, run log, timeout behavior, marker matching, and immediate
+result classification. If a required binary or image identity is missing,
+record the gap instead of silently choosing a substitute.
 
 ## Command Record
 
@@ -32,7 +63,8 @@ Record:
 - Use `-nographic` or explicit chardev routing for deterministic console capture.
 - Keep QEMU monitor and guest serial behavior clear; do not hide which console carries Linux logs.
 - Use `timeout` for smoke tests unless an interactive shell is the requested deliverable.
-- Preserve exact output in a log file and summarize only decisive lines in `evidence.md`.
+- Preserve exact output in a log file and summarize only decisive lines in
+  `audit.md`.
 - If a run hangs, capture the last meaningful marker before adding debug flags.
 
 ## Failure Handoff

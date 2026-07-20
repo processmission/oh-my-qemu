@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU TCG Frontend"
+  short_description: "Implement and verify guest TCG translation."
+  default_prompt: "Use $qemu-tcg-frontend to analyze or implement this guest instruction decode and TCG translation with focused tests."

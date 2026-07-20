@@ -1,20 +1,52 @@
 ---
 name: qemu-model-verification
-description: Use as a QEMU flow primitive to prove QEMU device, board, TCG, or runtime behavior with qtest, traces, logs, replay, and boot/workload evidence.
+description: Use when existing qtest, trace, log, replay, boot, or workload evidence must be evaluated against one falsifiable QEMU device, board, TCG, or runtime claim as PASS, FAIL, or INCONCLUSIVE.
 ---
 
 # QEMU Model Verification
 
 Use this skill when a QEMU model, board, TCG change, or debug hypothesis must be proven rather than merely built.
 
-As a flow primitive, use this skill to turn the result of a build, image package, boot run, trace, or debugger session into a clear PASS, FAIL, or INCONCLUSIVE claim.
+Turn the result of a build, image package, boot run, trace, or debugger session
+into a clear PASS, FAIL, or INCONCLUSIVE claim.
 
-## Primitive Boundary
+## Audit workflow
 
-This primitive owns only evidence interpretation and reporting. It consumes a
-behavior claim, evidence paths, commands, hashes, traces, and logs supplied by
-the caller, then reports `PASS`, `FAIL`, or `INCONCLUSIVE`. It does not choose
-build, qtest, debug, boot, or iterative-fix workflow steps.
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
+
+```text
+.oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
+```
+
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
+
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
+
+## Scope
+
+This skill owns evidence interpretation and reporting. Given a falsifiable
+behavior claim plus paths to existing commands, hashes, traces, or logs, report
+`PASS`, `FAIL`, or `INCONCLUSIVE` without inventing missing evidence.
 
 ## Hard policy boundary
 
@@ -36,7 +68,7 @@ Do not claim device correctness from a boot banner alone.
 
 ## Required artifact discipline
 
-Record in `.oh-my-qemu/<task-slug>/evidence.md`:
+Record in `.oh-my-qemu/<task-slug>/audit.md`:
 
 - exact command line;
 - QEMU binary and build directory;

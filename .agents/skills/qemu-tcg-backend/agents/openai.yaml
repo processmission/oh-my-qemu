@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU TCG Backend"
+  short_description: "Adapt and verify QEMU TCG host backends."
+  default_prompt: "Use $qemu-tcg-backend to analyze or adapt this QEMU TCG host backend behavior with focused verification."

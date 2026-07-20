@@ -3,6 +3,7 @@ import {
   commandPolicyViolation,
   defaultTaskName,
   initQemuTask,
+  qemuSourceRootViolation,
   resultText,
 } from "./lib.mjs";
 
@@ -18,7 +19,7 @@ export default function ohMyQemu(pi) {
   pi.registerTool({
     name: "qemu_init_task",
     label: "QEMU Init Task",
-    description: "Create .oh-my-qemu/<task-slug>/ plan, evidence, command, provenance, image layout, boot run, methodology feedback, register extraction, log, review, scratch, and RLCR files for a QEMU task.",
+    description: "Create a minimal .oh-my-qemu/<task-slug>/ audit workspace, create source-root builds/, and add .agents/, .oh-my-qemu/, and builds/ to the repository-local Git exclude file.",
     parameters: z.object({
       name: z.string().describe("Task name or slug. It will be normalized for .oh-my-qemu/<task-slug>/.").optional(),
     }),
@@ -32,7 +33,7 @@ export default function ohMyQemu(pi) {
   });
 
   pi.registerCommand("qemu-init-task", {
-    description: "Create .oh-my-qemu/<task-slug>/ QEMU task artifacts",
+    description: "Initialize auditable QEMU task and build directories",
     handler: async (args, ctx) => {
       const result = initQemuTask(ctx.cwd, args.trim() || defaultTaskName(ctx.cwd));
       ctx.ui.notify(resultText(result), "info");
@@ -40,6 +41,16 @@ export default function ohMyQemu(pi) {
   });
 
   pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName !== "write" && event.toolName !== "bash") {
+      return;
+    }
+
+    // This extension may be installed globally. Never apply QEMU source-tree
+    // policy to an unrelated project.
+    if (qemuSourceRootViolation(ctx.cwd)) {
+      return;
+    }
+
     const input = event.input;
 
     if (event.toolName === "write") {

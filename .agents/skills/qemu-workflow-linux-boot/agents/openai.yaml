@@ -1,4 +1,0 @@
-interface:
-  display_name: "QEMU Linux Boot"
-  short_description: "Boot Linux directly or through firmware in QEMU."
-  default_prompt: "Use $qemu-workflow-linux-boot to select direct or firmware Linux boot, run QEMU, and preserve boot evidence."

@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "QEMU skills and Oh My Pi / Claude Code runtime helpers for modeling, build, packaging, boot, qtest, and debug workflows.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "oh-my-qemu",
       "description": "QEMU skills plus OMP and Claude Code helpers for modeling, source builds, image packaging, boot testing, qtest, register extraction, debugging, and TCG workflows.",
       "source": "./",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "homepage": "https://github.com/processmission/oh-my-qemu",
       "repository": "https://github.com/processmission/oh-my-qemu",
       "license": "MIT",

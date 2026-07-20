@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Debug"
+  short_description: "Debug QEMU hosts, guests, traces, and replay."
+  default_prompt: "Use $qemu-debug to reproduce and diagnose this QEMU host or guest failure with preserved evidence."

@@ -1,18 +1,22 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, relative, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 
-// Shared, runtime-agnostic logic for the Oh My QEMU plugin.
-//
-// Both the Oh My Pi extension (src/extension.js) and the Claude Code
-// scripts (scripts/init-task.mjs, scripts/artifact-policy.mjs) import from
-// here so the task workspace layout and artifact policy stay identical
-// across runtimes.
+// Shared, runtime-agnostic workspace and artifact-policy logic for the Oh My
+// Pi extension and Claude Code plugin scripts.
 
 export const ROOT_FILES = {
+  "audit.md": true,
+  "commands.md": true,
   "plan.md": true,
   "evidence.md": true,
-  "commands.md": true,
   "register-extraction.md": true,
   "source-provenance.md": true,
   "image-layout.md": true,
@@ -24,10 +28,15 @@ export const ROOT_FILES = {
   "final-summary.md": true,
 };
 
+// Values are the canonical task-directory destination. Legacy names remain
+// blocked at the source root and point to the simplified layout.
 export const ROOT_DIRS = {
-  logs: true,
-  reviews: true,
-  scratch: true,
+  logs: "logs",
+  scripts: "scripts",
+  output: "output",
+  scratch: "scripts",
+  reviews: "logs",
+  rlcr: "logs",
 };
 
 export const QEMU_SOURCE_ROOT_FILES = [
@@ -38,6 +47,8 @@ export const QEMU_SOURCE_ROOT_FILES = [
 ];
 
 export const TASK_ROOT_DIR = ".oh-my-qemu";
+export const QEMU_BUILD_ROOT_DIR = "builds";
+export const LOCAL_GIT_EXCLUDES = [".agents/", ".oh-my-qemu/", "builds/"];
 
 export function slugify(input) {
   const slug = input
@@ -78,234 +89,46 @@ export function initQemuTask(cwd, rawName) {
 
   const slug = slugify(rawName);
   const root = taskRoot(cwd, slug);
-  const result = { slug, root, created: [], kept: [] };
+  const buildRoot = join(cwd, QEMU_BUILD_ROOT_DIR);
+  const result = { slug, root, buildRoot, created: [], kept: [] };
 
   ensureDir(root, result);
   ensureDir(join(root, "logs"), result);
-  ensureDir(join(root, "reviews"), result);
-  ensureDir(join(root, "scratch"), result);
-  ensureDir(join(root, "rlcr"), result);
+  ensureDir(join(root, "scripts"), result);
+  ensureDir(join(root, "output"), result);
+  ensureDir(buildRoot, result);
 
-  writeIfMissing(join(root, "plan.md"), `# ${slug} Plan
+  writeIfMissing(join(root, "audit.md"), `# ${slug} Audit
 
-## Goal
+## Baseline
 
-## Policy
+- Workspace root:
+- Branch/revision:
+- Initial \`git status --short\`:
+- User-owned dirty paths:
+- QEMU build directory: \`builds/build-<target>/\`
 
-- QEMU upstream provenance policy applies.
-- Agent-created artifacts stay under .oh-my-qemu/${slug}/.
-- Round checkpoint commits carry no DCO/review trailers added by the agent.
-- Final-series drafts, if requested, are human-owned and not upstream-ready until a human rewrites and certifies them.
-- \`AI-used-for:\` is a proposed qemu-devel scope-disclosure trailer, not DCO; draft it only when a human-recorded policy or maintainer exception applies.
+## Goal, scope, and non-goals
 
-## Scope
+## Acceptance checks
 
-### In scope
+## Sources and provenance
 
-### Out of scope
+## Decisions and assumptions
 
-### Allowed source changes
+## Work and review record
 
-### Artifact root
+## Evidence and verification
 
-\`.oh-my-qemu/${slug}/\`
+## Unresolved gaps
 
-## Acceptance Criteria
-
-- AC-1:
-  - Evidence:
-
-## Verification Gates
-
-## Evidence Ledger
-
-## Open Questions
-
-## Decision Log
-`, result);
-
-  writeIfMissing(join(root, "evidence.md"), `# ${slug} Evidence
-
-## Sources Read
-
-## Commands Run
-
-## Logs and Artifacts
-
-## Assumptions
+## Handoff
 `, result);
 
   writeIfMissing(join(root, "commands.md"), `# ${slug} Commands
 
-Record exact commands, working directories, environment overrides, and output artifact paths here.
-`, result);
-
-  writeIfMissing(join(root, "source-provenance.md"), `# ${slug} Source Provenance
-
-## Source Roots
-
-| Component | Path/URL | Revision | Dirty state | Purpose |
-| --- | --- | --- | --- | --- |
-
-## Task Source Baseline
-
-| Tree | Branch | Baseline revision | Initial dirty paths | Commit pathspecs |
-| --- | --- | --- | --- | --- |
-
-## RLCR Round Checkpoints
-
-| Round | Parent | Commit | Tree | Subject | Staged paths | Verification/review | Residual dirty state |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Final Series Preparation
-
-| Patch | Source round commits | Subject | Message draft | Required evidence | Sign-offs | AI-used-for |
-| --- | --- | --- | --- | --- | --- | --- |
-
-## Configurations
-
-| Component | Config path/name | Key options | Notes |
-| --- | --- | --- | --- |
-
-## Toolchains and Runtime
-
-| Tool | Version | Path | Notes |
-| --- | --- | --- | --- |
-
-## Build Commands
-
-## Output Artifacts
-
-| Artifact | Producer | Path | Size | SHA256 | Verified by |
-| --- | --- | --- | --- | --- | --- |
-
-## Assumptions and Gaps
-`, result);
-
-  writeIfMissing(join(root, "image-layout.md"), `# ${slug} Image Layout
-
-## Image Summary
-
-| Image | Format | Virtual size | Actual size | SHA256 | Mutable? |
-| --- | --- | --- | --- | --- | --- |
-
-## Partition or Region Map
-
-| Region | Start | Size | Type | Filesystem | Purpose | Source |
-| --- | --- | --- | --- | --- | --- | --- |
-
-## Write Operations
-
-| Order | Input | Output image | Offset/seek | Block size | Size | Command | Verified by |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Boot-Relevant Files
-
-## Mutation Policy
-
-## Verification Notes
-`, result);
-
-  writeIfMissing(join(root, "boot-run.md"), `# ${slug} Boot Run
-
-## Command
-
-## Inputs
-
-| Input | Path | SHA256 | Provenance |
-| --- | --- | --- | --- |
-
-## Console and Logs
-
-## Timeout and Markers
-
-## Result
-
-## Debug Handoff
-`, result);
-
-  writeIfMissing(join(root, "methodology-feedback.md"), `# ${slug} Methodology Feedback
-
-## Status
-
-- State: not-analyzed
-- Exit reason:
-- Follow-up issue: outside this primitive
-
-## Sanitized Workflow Context
-
-- Workflow type:
-- Exit condition:
-- Phases involved:
-
-## Observed Patterns
-
-## Improvement Suggestions
-
-## Privacy Check
-
-- [ ] No private paths, repository paths, or local usernames.
-- [ ] No branch names, commit hashes, or git identifiers.
-- [ ] No proprietary logs, raw error messages, or stack traces.
-- [ ] No code snippets or code fragments.
-- [ ] No project-specific URLs, image paths, or endpoints.
-- [ ] No customer, product, board, or SoC identifiers unless explicitly approved.
-`, result);
-
-  writeIfMissing(join(root, "register-extraction.md"), `# ${slug} Register Extraction
-
-## Target
-
-## Source Inventory Summary
-
-## Variants and Compatibility
-
-## Memory Map
-
-## Interrupts, Clocks, Resets, and DMA
-
-## Register Summary Table
-
-| Name | Offset | Width | Reset | Access | Side Effects | Confidence | Sources |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Field Tables
-
-## Driver Sequences
-
-## IRQ and Status Flow
-
-## DMA, FIFO, Timer, or Command Behavior
-
-## Cross-Register Dependencies
-
-| Feature/Flow | Registers and Fields | Required Sequence | Coupling Semantics | Failure/Partial State | Confidence | Sources | qtest Candidate |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## Feature Flow Details
-
-## QEMU RegisterInfo Mapping Notes
-
-| Register | RegisterAccessInfo facts | Hook needed | Dependent registers/fields | qtest coverage |
-| --- | --- | --- | --- | --- |
-
-## qtest Candidates
-
-## Unknowns and Conflicts
-
-## Handoff Checklist for qemu-workflow-peripheral-modeling
-`, result);
-
-  writeIfMissing(join(root, "source-inventory.md"), `# ${slug} Source Inventory
-
-| Source | Version/Revision | Path/URL | Relevant Sections | Notes |
-| --- | --- | --- | --- | --- |
-`, result);
-
-  writeIfMissing(join(root, "conflicts.md"), `# ${slug} Conflicts
-
-| Fact | Source A | Source B | Difference | Resolution/Test |
-| --- | --- | --- | --- | --- |
+Record safely redacted commands, working directories, relevant environment,
+exit status, concise results, and decisive log paths here.
 `, result);
 
   return result;
@@ -351,12 +174,22 @@ export function ensureLocalGitExclude(cwd) {
     existing = "";
   }
 
-  if (/^\.oh-my-qemu\/$/m.test(existing)) {
+  const normalized = new Set(
+    existing
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^\/+|\/+$/g, ""))
+      .filter(Boolean),
+  );
+  const missing = LOCAL_GIT_EXCLUDES.filter(
+    (entry) => !normalized.has(entry.replace(/\/+$/, "")),
+  );
+  if (missing.length === 0) {
     return false;
   }
 
+  mkdirSync(dirname(excludePath), { recursive: true });
   const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
-  appendFileSync(excludePath, `${prefix}.oh-my-qemu/\n`, "utf8");
+  writeFileSync(excludePath, `${existing}${prefix}${missing.join("\n")}\n`, "utf8");
   return true;
 }
 
@@ -373,8 +206,8 @@ export function qemuSourceRootViolation(cwd) {
       return `Oh My QEMU could not determine the Git worktree root for ${cwd}: ${gitRoot.error}.`;
     }
 
-    const expected = resolve(cwd);
-    const actual = resolve(gitRoot.stdout);
+    const expected = realpathSync(cwd);
+    const actual = realpathSync(gitRoot.stdout);
     if (actual !== expected) {
       return `Oh My QEMU must be started from the QEMU Git worktree root. CWD is ${expected}, but Git root is ${actual}.`;
     }
@@ -392,10 +225,6 @@ export function assertQemuSourceRoot(cwd) {
 
 export function isInsideTaskArtifacts(cwd, rawPath) {
   const absolute = resolve(cwd, rawPath);
-  // cwd-independent: an artifact is inside the task root when its absolute
-  // path sits under a .../.oh-my-qemu/<slug>/... tree. Matching the path
-  // segment anywhere is robust when a hook runs from a task subdirectory or
-  // a pinned agent cwd.
   return /[\\/]\.oh-my-qemu[\\/][^\\/]+[\\/]/.test(absolute);
 }
 
@@ -423,20 +252,226 @@ export function artifactPolicyViolation(cwd, rawPath) {
     return `QEMU agent artifacts must be written under .oh-my-qemu/<task-slug>/, not ${rel}.`;
   }
 
-  if (parts.length === 1 && ROOT_FILES[parts[0]]) {
-    return `Root-level ${parts[0]} would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/${parts[0]}.`;
+  if (parts[0] === "build") {
+    return `QEMU build output must use builds/build-<target>/, not ${rel}.`;
   }
 
-  if (parts.length === 1 && ROOT_DIRS[parts[0]]) {
-    return `Root-level ${parts[0]}/ would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/${parts[0]}/.`;
+  if (parts.length === 1 && ROOT_FILES[parts[0]]) {
+    return `Root-level ${parts[0]} would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/audit.md or another task-local record.`;
+  }
+
+  const legacyRootDirs = new Set(["scratch", "reviews", "rlcr"]);
+  if (
+    ROOT_DIRS[parts[0]] &&
+    (parts.length === 1 || legacyRootDirs.has(parts[0]))
+  ) {
+    return `Root-level ${parts[0]}/ would pollute the QEMU source tree. Use .oh-my-qemu/<task-slug>/${ROOT_DIRS[parts[0]]}/.`;
   }
 
   return null;
 }
 
+function shellClauses(command) {
+  const clauses = [];
+  let current = "";
+  let quote = null;
+
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index];
+    const next = command[index + 1];
+
+    if (quote) {
+      current += char;
+      if (quote === '"' && char === "\\" && next) {
+        current += next;
+        index += 1;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === "\\" && next) {
+      current += char + next;
+      index += 1;
+      continue;
+    }
+
+    const separator =
+      char === ";" || char === "\n" || char === "|" ||
+      (char === "&" && next === "&");
+    if (separator) {
+      if (current.trim()) {
+        clauses.push(current);
+      }
+      current = "";
+      if ((char === "|" && next === "|") || (char === "&" && next === "&")) {
+        index += 1;
+      }
+      continue;
+    }
+    current += char;
+  }
+
+  if (current.trim()) {
+    clauses.push(current);
+  }
+  return clauses;
+}
+
+function shellWords(clause) {
+  const words = [];
+  let current = "";
+  let quote = null;
+  const push = () => {
+    if (current) {
+      words.push(current);
+      current = "";
+    }
+  };
+
+  for (let index = 0; index < clause.length; index += 1) {
+    const char = clause[index];
+    const next = clause[index + 1];
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else if (quote === '"' && char === "\\" && next) {
+        current += next;
+        index += 1;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+    } else if (char === "\\" && next) {
+      current += next;
+      index += 1;
+    } else if (/\s/.test(char)) {
+      push();
+    } else if (char === "#" && current === "") {
+      break;
+    } else if (char === ">") {
+      push();
+      const operator = next === ">" ? ">>" : ">";
+      words.push(operator);
+      if (next === ">") {
+        index += 1;
+      }
+    } else {
+      current += char;
+    }
+  }
+  push();
+  return words;
+}
+
+function shellExecutable(words) {
+  let index = 0;
+  while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[index] ?? "")) {
+    index += 1;
+  }
+
+  if (words[index] === "env") {
+    index += 1;
+    while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[index] ?? "")) {
+      index += 1;
+    }
+  } else if (words[index] === "command") {
+    index += 1;
+    if (words[index] === "--") {
+      index += 1;
+    } else if ((words[index] ?? "").startsWith("-")) {
+      return "";
+    }
+  } else if (words[index] === "sudo") {
+    return "";
+  }
+
+  return words[index] ? basename(words[index]) : "";
+}
+
+function rootRelativePath(word, name) {
+  const path = word.startsWith("./") ? word.slice(2) : word;
+  return path === name || path.startsWith(`${name}/`);
+}
+
+function relativePathSegment(word, name) {
+  if (word.startsWith("/") || word.startsWith("../")) {
+    return false;
+  }
+  const path = word.startsWith("./") ? word.slice(2) : word;
+  return path.split("/").includes(name);
+}
+
+function optionTargetsPath(words, matchesPath) {
+  const separateOptions = new Set([
+    "-B", "-C", "-o", "--build", "--build-dir", "--builddir",
+    "--directory", "--out-dir", "--output",
+  ]);
+  for (let index = 1; index < words.length; index += 1) {
+    const word = words[index];
+    if (separateOptions.has(word) && matchesPath(words[index + 1] ?? "")) {
+      return true;
+    }
+    const assignment = word.match(/^(?:O|of|--build|--build-dir|--builddir|--directory|--out-dir|--output)=(.+)$/);
+    if (assignment && matchesPath(assignment[1])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function commandPolicyViolation(command) {
-  if (/(^|[\s'"`])(\.plan|\.humanize)(\/|\s|$)/.test(command)) {
-    return "QEMU agent artifacts must stay under .oh-my-qemu/<task-slug>/, not .plan/ or .humanize/.";
+  const directWriters = new Set(["mkdir", "rm", "rmdir", "tee", "touch", "truncate"]);
+  const copyLikeWriters = new Set(["cp", "install", "mv", "rsync"]);
+  const buildTools = new Set(["cmake", "make", "meson", "ninja"]);
+  const policies = [
+    {
+      matches: (word) => rootRelativePath(word, "build"),
+      reason: "QEMU build output must use builds/build-<target>/, not an unqualified build/ path.",
+    },
+    {
+      matches: (word) => rootRelativePath(word, "scratch"),
+      reason: "QEMU task helpers must use .oh-my-qemu/<task-slug>/scripts/, not a root-level scratch/ path.",
+    },
+    {
+      matches: (word) => relativePathSegment(word, ".plan") || relativePathSegment(word, ".humanize"),
+      reason: "QEMU agent artifacts must stay under .oh-my-qemu/<task-slug>/, not .plan/ or .humanize/.",
+    },
+  ];
+
+  for (const clause of shellClauses(command)) {
+    const words = shellWords(clause);
+    const executable = shellExecutable(words);
+    if (!executable) {
+      continue;
+    }
+
+    for (const policy of policies) {
+      const redirect = words.some(
+        (word, index) => (word === ">" || word === ">>") && policy.matches(words[index + 1] ?? ""),
+      );
+      const direct = directWriters.has(executable) && words.slice(1).some(policy.matches);
+      const copied = copyLikeWriters.has(executable) && policy.matches(words.at(-1) ?? "");
+      const buildOutput = buildTools.has(executable) &&
+        (optionTargetsPath(words, policy.matches) ||
+          (executable === "meson" && words.includes("setup") && words.some(policy.matches)));
+      const ddOutput = executable === "dd" && optionTargetsPath(words, policy.matches);
+
+      if (redirect || direct || copied || buildOutput || ddOutput) {
+        return policy.reason;
+      }
+    }
   }
   return null;
 }
@@ -444,6 +479,8 @@ export function commandPolicyViolation(command) {
 export function resultText(result) {
   return [
     `QEMU task workspace: ${result.root}`,
+    `QEMU build root: ${result.buildRoot}`,
+    `Local Git excludes: ${LOCAL_GIT_EXCLUDES.join(", ")}`,
     `Slug: ${result.slug}`,
     `Created: ${result.created.length}`,
     `Kept: ${result.kept.length}`,

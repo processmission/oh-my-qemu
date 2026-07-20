@@ -1,154 +1,112 @@
 ---
 name: qemu-agent-feedback
-description: Use as a QEMU flow primitive to summarize sanitized oh-my-qemu agent workflow feedback, draft improvement proposals, and file them with gh when approved.
+description: Use when a completed QEMU skill session exposed a reusable oh-my-qemu workflow problem and the user wants a sanitized improvement proposal drafted or filed as a GitHub issue.
 ---
 
 # QEMU Agent Feedback
 
-Use this primitive when an oh-my-qemu skill or workflow session found a
-reusable agent workflow problem and the user wants it turned into a sanitized
-improvement proposal.
+Turn reusable lessons from a QEMU task into one privacy-reviewed improvement
+proposal. This skill is self-contained and does not require repository helper
+scripts.
 
-## Primitive Boundary
+## Audit workflow
 
-This primitive owns only agent-workflow feedback reporting: collecting
-session-level lessons, removing sensitive details, drafting one improvement
-proposal, checking local `gh` availability, and filing the proposal as an issue
-when approved. It consumes existing task artifacts and conversation context. It
-does not choose modeling, build, boot, debug, verification, or iteration steps.
-
-## Target Repository
-
-Default target:
+For every non-trivial task that writes to the workspace, choose a stable task
+slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
+only the entries the task needs:
 
 ```text
-processmission/oh-my-qemu
+.oh-my-qemu/<task-slug>/
+├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
+├── commands.md   # Redacted commands, working directories, and results
+├── logs/         # Decisive build, test, runtime, or diagnostic logs
+├── scripts/      # Temporary scripts, probes, parsers, and harnesses
+└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
 ```
 
-Allow override:
+Before changing source or mutable artifacts, record the workspace root,
+branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
+acceptance checks in `audit.md`. Record exact redacted commands and results in
+`commands.md`; record source revisions, configurations, tool versions, and
+input/output hashes when they affect reproducibility. Separate observations
+from inferences and create or change source files only when requested.
 
-```bash
-QEMU_METHODOLOGY_ISSUE_REPO=owner/repo
-```
+Put every QEMU build in a named directory under the QEMU source root, such as
+`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
+binaries under the task's `output/` directory. In a Git worktree, before
+writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
+`builds/` to the repository-local exclude file returned by
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those directories. Before handoff, verify
+that `git status --short` contains none of them, then report the task directory
+and unresolved gaps.
 
-## Inputs
+## Boundary
 
-Use only summary-level sources:
+Use only summary-level task evidence and conversation context. Do not quote raw
+logs, source snippets, stack traces, private commands, or unreviewed artifacts
+into a public proposal. Do not file anything unless the user explicitly asks
+for it or approves the final title and body.
 
-- the current conversation's QEMU skill or workflow problems;
-- `.oh-my-qemu/<task-slug>/methodology-feedback.md`, if present;
-- `plan.md`, `evidence.md`, `commands.md`, `source-provenance.md`,
-  `image-layout.md`, `boot-run.md`, and `rlcr/final-summary.md` summaries;
-- reviewer feedback about skill behavior or workflow composition.
+The default issue repository is `processmission/oh-my-qemu`. Honor an explicit
+user-selected repository instead.
 
-Do not quote raw logs, source snippets, stack traces, private command lines, or
-unreviewed artifacts into the proposal.
+## Sanitize
 
-## Sanitization Rules
+Replace or remove:
 
-Replace sensitive values before drafting:
-
-| Sensitive value | Replacement |
+| Sensitive value | Public replacement |
 | --- | --- |
 | local paths, user names, home directories | `<local-path>` |
-| private repository names or remotes | `<repo>` |
-| branch names, commit hashes, tree IDs | `<git-ref>` |
-| private URLs, endpoints, downloads | `<url>` |
-| tokens, keys, cookies, credentials | `<secret>` |
-| proprietary image, kernel, rootfs, or SDK names | `<artifact>` |
-| customer, product, board, or SoC identifiers not approved for disclosure | `<target>` |
-| raw logs, stack traces, code snippets | summarize behavior instead |
+| private repositories, branches, commits, or tree IDs | `<repo>` / `<git-ref>` |
+| private URLs, endpoints, credentials, or tokens | `<url>` / `<secret>` |
+| proprietary artifacts, SDKs, images, kernels, or root filesystems | `<artifact>` |
+| unapproved customer, product, board, or SoC names | `<target>` |
+| raw logs, stack traces, commands, or code | a behavior-level summary |
 
-Before filing, explicitly verify:
+Before presenting the draft, verify that the proposed title and body disclose
+none of these values. Treat uncertainty as a privacy gap and ask the user before
+including it.
 
-- no private paths or local usernames;
-- no branch names, commit hashes, or tree IDs;
-- no tokens, credentials, endpoints, or private URLs;
-- no proprietary logs, raw stack traces, code snippets, or command output;
-- no customer, product, board, SoC, SDK, image, kernel, or rootfs identifiers
-  unless the user approved that exact text for a public issue.
+## Draft
 
-## Improvement Issue Template
-
-Draft the GitHub issue in this structure:
+Write the proposed title to
+`.oh-my-qemu/<task-slug>/output/methodology-issue-title.txt` and the body to
+`.oh-my-qemu/<task-slug>/output/methodology-issue.md` with this shape:
 
 ```markdown
 ## Summary
 
-<one short paragraph describing the reusable agent-workflow improvement opportunity>
+## Sanitized context
 
-## Sanitized Context
+## Problem observed
 
-- Workflow area: <modeling | boot | debug | build | qtest | documentation | mixed>
-- Trigger: <what kind of task exposed the problem>
-- Affected skill or workflow: <sanitized name if public>
-
-## Problem Observed
-
-<what failed, confused the agent, duplicated responsibility, or caused ambiguity>
-
-## Expected Behavior
-
-<how the skill or workflow should guide the agent>
+## Expected behavior
 
 ## Impact
 
-<why this matters for future QEMU work>
+## Suggested improvement
 
-## Suggested Improvement
+## Reproduction shape
 
-<specific change to skill text, workflow composition, helper scripts, docs, or tests>
-
-## Reproduction Shape
-
-<sanitized steps or task shape, not private commands or logs>
-
-## Privacy Check
-
-- [x] No private paths, repository paths, or local usernames.
-- [x] No branch names, commit hashes, or git identifiers.
-- [x] No proprietary logs, raw errors, or stack traces.
-- [x] No code snippets or code fragments.
-- [x] No project-specific URLs, endpoints, image paths, or credentials.
-- [x] No customer, product, board, or SoC identifiers unless explicitly approved.
+## Privacy check
 ```
 
-## Draft and File
+Keep the proposal to one reusable workflow problem. State evidence and gaps;
+do not present a project-specific failure as a general conclusion.
 
-Prefer the repository helper when a task root exists:
+## File only with approval
 
-```bash
-node /path/to/oh-my-qemu/scripts/draft-methodology-issue.mjs .oh-my-qemu/<task-slug>
-```
-
-It writes:
-
-```text
-.oh-my-qemu/<task-slug>/scratch/methodology-issue-title.txt
-.oh-my-qemu/<task-slug>/scratch/methodology-issue.md
-```
-
-If there is no task root, create equivalent title and body files under a
-temporary or task-local scratch directory.
-
-Check the GitHub CLI:
-
-```bash
-command -v gh
-gh auth status
-```
-
-File only after the title and body have passed the privacy check and the user
-has approved filing, or when the user's current instruction explicitly asks to
-file the issue:
+After the user approves the exact title, body, and target repository, check
+`gh auth status`, then run:
 
 ```bash
 gh issue create \
-  --repo "${QEMU_METHODOLOGY_ISSUE_REPO:-processmission/oh-my-qemu}" \
-  --title "$(cat .oh-my-qemu/<task-slug>/scratch/methodology-issue-title.txt)" \
-  --body-file .oh-my-qemu/<task-slug>/scratch/methodology-issue.md
+  --repo processmission/oh-my-qemu \
+  --title "<approved title>" \
+  --body-file .oh-my-qemu/<task-slug>/output/methodology-issue.md
 ```
 
-If `gh` is unavailable, unauthenticated, or network access fails, leave the
-sanitized title/body paths and the exact `gh issue create` command for manual
-filing.
+Record the approved command and resulting issue URL in `commands.md` and
+`audit.md`. If `gh` is unavailable, unauthenticated, or fails, leave the two
+sanitized draft files for manual filing and report the gap.

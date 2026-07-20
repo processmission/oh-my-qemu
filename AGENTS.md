@@ -1,96 +1,134 @@
 # QEMU Skill Repository Agent Guide
 
-This repository stores agent skills for working on QEMU. It is not a QEMU upstream contribution branch.
+This repository stores portable agent skills plus optional Oh My Pi and Claude
+Code helpers for local QEMU work. It is not a QEMU upstream source branch.
 
 ## QEMU upstream provenance boundary
 
-This repository is an Oh My Pi/Claude Code plugin and skill collection, not a
-QEMU source tree. Repository maintenance commits follow the local commit policy.
-QEMU's `docs/devel/code-provenance.rst` still applies when agents work inside a
-QEMU source checkout or discuss output intended for QEMU upstream submission:
+QEMU's `docs/devel/code-provenance.rst` applies inside a QEMU source checkout
+and to anything proposed for upstream submission:
 
-- Do not generate code intended for QEMU upstream submission.
-- If a user asks for agent-written QEMU code intended for upstream merge, decline that part and refer them to QEMU's AI-generated content policy.
-- AI may be used for research, debugging, static analysis, local-only experiments, and workflow guidance only when generated output is not included in QEMU upstream contributions.
+- Do not generate code or documentation intended for QEMU upstream submission.
+- Decline requests for agent-written upstream patches and point to QEMU's
+  current AI-generated-content policy.
+- Research, debugging, static analysis, local-only experiments, verification,
+  and workflow guidance are allowed when generated output is not contributed.
 
-## Artifact policy for QEMU source trees
+Repository-maintenance changes in this skill repository follow its normal local
+Git policy.
 
-All agent-created artifacts MUST live under the local Oh My QEMU artifact directory:
+## Auditable workspace contract
+
+Every skill is independently installable and contains the same compact audit
+workflow. For non-trivial tasks that write to a QEMU workspace, use only the
+entries the task needs under:
 
 ```text
 .oh-my-qemu/<task-slug>/
+├── audit.md
+├── commands.md
+├── logs/
+├── scripts/
+└── output/
 ```
 
-This includes plans, goal trackers, reviews, logs, traces, replay files, scratch scripts, decoder dumps, copied command lines, and reports.
-The runtime adds `.oh-my-qemu/` to the QEMU checkout's local `.git/info/exclude`
-when the checkout is a Git worktree.
+- `scripts/` holds temporary scripts, probes, parsers, and harnesses.
+- `output/` holds generated deliverables, third-party dependency artifacts,
+  and non-QEMU build binaries.
+- QEMU's own build output belongs only in a named source-root directory such as
+  `builds/build-aarch64/`, never `build/` or task `output/`.
+- Source files change only when they are the requested deliverable.
 
-Never create `.plan/`, `.humanize/`, root-level notes, temporary helper files, or scratch directories in QEMU source paths. Source files should change only when they are the requested deliverable.
+Before writing audit artifacts or configuring QEMU in a Git worktree, add these
+entries to the repository-local file returned by
+`git rev-parse --git-path info/exclude`:
+
+```text
+.agents/
+.oh-my-qemu/
+builds/
+```
+
+Preserve existing entries, avoid duplicates, never stage or commit these
+directories, and verify them absent from `git status --short` at handoff.
+
+## Portable installation boundary
+
+The root `install.sh` is the recommended project-local entry point. It runs
+`npx skills add`, defaults to all skills in project-local Codex and Claude Code
+without prompts, rejects global installation, and updates the required
+repository-local Git excludes only after installation succeeds. The installer
+also excludes `.claude/skills/` and `skills-lock.json`; the shared audit
+workspace contract above remains the three tool-independent directories. An
+explicit `--skill` selects a subset. When invoked from a repository checkout,
+it installs that local skill tree into the target, which supports contributor
+testing. Direct
+`npx skills add` installs skill directories only; it does not execute source
+repository hooks, update Git excludes, or install plugin command/runtime
+scripts. Each skill still enforces the audit contract when it runs alone.
 
 ## Repository layout
 
-Skills live under `.agents/skills/<skill-name>/SKILL.md`, matching the upstream RFC layout used for QEMU agent skills.
+- `.agents/skills/<skill-name>/SKILL.md`: portable skill catalog.
+- `install.sh`: self-contained curl installer for a selected Git project root.
+- `skills`: symlink to `.agents/skills` for plugin discovery.
+- `src/extension.js`: Oh My Pi tools, command, and artifact-policy hook.
+- `src/lib.mjs`: shared minimal workspace initialization and policy logic.
+- `commands/qemu-init-task.md`: optional `/qemu-init-task` command.
+- `hooks/hooks.json`: Claude Code pre-tool policy hook.
+- `.claude-plugin/`: Claude Code and marketplace metadata.
+- `scripts/`: repository validation and optional plugin entry points.
 
-## Oh My Pi plugin layout
+The optional initializer creates only `audit.md`, `commands.md`, `logs/`,
+`scripts/`, `output/`, and source-root `builds/`, then updates the three local
+Git exclude entries.
 
-This repository is also an Oh My Pi plugin:
+## Skill catalog
 
-- `package.json` declares the OMP extension entry point.
-- `src/extension.js` registers `qemu_init_task`, `/qemu-init-task`, and the artifact-policy hook.
-- `skills` points to `.agents/skills` so OMP plugin discovery exposes the same skill content.
-- `.claude-plugin/marketplace.json` lets OMP install the repository through the marketplace flow.
+### Coordination and feedback
 
-## Claude Code plugin layout
+- `qemu-workflow`: optional planning, provenance, small-round review, evidence,
+  and handoff for multi-step tasks.
+- `qemu-agent-feedback`: self-contained sanitization and approved filing of one
+  reusable oh-my-qemu workflow improvement.
 
-This repository is also a Claude Code plugin:
+### Modeling and TCG
 
-- `.claude-plugin/plugin.json` is the plugin manifest (name, version, hooks reference).
-- `.claude-plugin/marketplace.json` lists the plugin with `source: "./"`, so the marketplace and the plugin live in one repo.
-- `commands/qemu-init-task.md` provides the `/qemu-init-task` slash command.
-- `hooks/hooks.json` wires a `PreToolUse` hook to `scripts/artifact-policy.mjs`, mirroring the OMP artifact policy.
-- `scripts/init-task.mjs` backs `/qemu-init-task`; `scripts/artifact-policy.mjs` backs the hook.
-- `src/lib.mjs` holds the shared workspace-init and artifact-policy logic used by both `src/extension.js` (OMP) and the Claude Code scripts, so behavior is identical across runtimes.
-- `skills` points to `.agents/skills`, so the same SKILL.md content is exposed to Claude Code, OMP, and the portable `npx skills` install.
+- `qemu-register-extraction`
+- `qemu-peripheral-modeling`
+- `qemu-board-modeling`
+- `qemu-tcg-frontend`
+- `qemu-tcg-backend`
 
-## Flow skills
+### Build, image, and boot
 
-- `qemu-plan`: first step for non-trivial tasks; creates the .oh-my-qemu artifact root, acceptance criteria, scope, evidence ledger, and verification gates.
-- `qemu-source-provenance`: flow primitive for source roots, revisions, configs, toolchains, produced artifacts, and hashes.
-- `qemu-image-layout`: flow primitive for boot media formats, partitions, offsets, write operations, mutation policy, and hashes.
-- `qemu-boot-run`: flow primitive for reproducible QEMU boot commands, logs, timeout markers, and result classification.
-- `qemu-register-extraction`: research flow that extracts register maps, bitfields, cross-register dependencies, side effects, IRQ/DMA behavior, and driver sequences from drivers, datasheets, firmware filesystems, and regfiles into markdown for peripheral modeling.
-- `qemu-rlcr-loop`: simplified Humanize-style implementation/review loop using the plan, round summaries, independent review, scoped local Git checkpoint commits, final evidence, and optional terminal feedback records.
-- `qemu-agent-feedback`: flow primitive for sanitizing reusable oh-my-qemu agent workflow problems, drafting a public improvement issue, and filing it with `gh` when approved.
+- `qemu-build`
+- `qemu-kernel-build`
+- `qemu-uboot-build`
+- `qemu-image`
+- `qemu-boot-run`
+- `qemu-linux-boot`
 
-## Operational skills
+### Verification and support
 
-- `qemu-build`: configuring, reusing `build/`, building, and diagnosing QEMU build failures.
-- `qemu-qtest`: writing, listing, running, and debugging QEMU qtests from a build directory.
-- `qemu-debug`: host-side QEMU process gdb/lldb, guest gdbstub, logs, traces, replay, and TCG/device debugging.
-- `qemu-model-verification`: evidence ladder and reporting for model/runtime behavior.
+- `qemu-qtest`
+- `qemu-debug`
+- `qemu-model-verification`
+- `qemu-rst-documentation`
 
-## Domain skills
+## Skill design rules
 
-- `qemu-workflow-peripheral-modeling`: QEMU MMIO/SysBus/qdev peripheral modeling, using the checked-out QEMU registerinfo framework for guest-visible register banks.
-- `qemu-workflow-board-modeling`: QEMU board, SoC, memory map, boot, and IRQ topology modeling, verified through added or extended qemu-qtest cases.
-- `qemu-rst-documentation`: flow primitive for QEMU reStructuredText docs, including toctree/index updates and docs build validation.
-- `qemu-workflow-tcg-frontend-instruction`: guest instruction decode/translation in a QEMU TCG frontend.
-- `qemu-workflow-tcg-backend-adaptation`: TCG host backend adaptation for IR ops, constraints, emission, and feature flags.
+- Keep frontmatter to `name` and `description`.
+- Make each skill usable when installed alone; do not require repository-level
+  scripts, plugin hooks, or another skill.
+- Repeat the compact audit workflow in every `SKILL.md` intentionally.
+- Keep the main skill concise; move long templates and variants to one-level
+  `references/`, `scripts/`, or `assets/` resources inside that skill.
+- Do not reintroduce mandatory checkpoint commits. Stage or commit only when
+  the user explicitly requests that separate Git action.
+- Keep external writes, including `gh issue create`, behind explicit approval.
 
-## Boot and build skills
-
-- `qemu-kernel-build`: flow primitive for building Linux kernel artifacts for QEMU boot testing.
-- `qemu-uboot-build`: flow primitive for building U-Boot, SPL/TPL, FIT/ITB, and firmware-chain artifacts.
-- `qemu-image-packaging`: flow primitive for packaging boot media.
-- `qemu-workflow-linux-boot`: workflow for direct or firmware-to-Linux boot paths, selected from task inputs.
-
-## Methodology feedback
-
-At RLCR completion, pause, blocked state, or max-iteration exit, agents may produce sanitized workflow feedback in `.oh-my-qemu/<task-slug>/methodology-feedback.md`. Do not ask after every primitive or every step in a composed workflow. Use `qemu-agent-feedback` only after the feedback report has been sanitized; it drafts issue title/body files under the task's `scratch/` directory and files with `gh` when approved. Default issue target is `processmission/oh-my-qemu`, overridable with `QEMU_METHODOLOGY_ISSUE_REPO`.
-
-## Codex skill compatibility
-
-Codex skills require `SKILL.md` frontmatter with only `name` and `description`. Keep license, ownership, category, and plugin metadata in repository-level files rather than skill frontmatter. Validate with:
+Validate with:
 
 ```bash
 npm run codex:skills:validate
@@ -98,4 +136,6 @@ npm run codex:skills:validate
 
 ## Upstream references
 
-This repo follows the structure of the QEMU RFC series “AGENTS.md and associated skills” and the current QEMU code provenance policy. The upstream RFC is reference material, not permission for agents to produce upstreamable QEMU patches.
+The structure draws from the QEMU “AGENTS.md and associated skills” RFC and the
+current QEMU code-provenance policy. Those are references, not permission to
+produce upstreamable QEMU patches.

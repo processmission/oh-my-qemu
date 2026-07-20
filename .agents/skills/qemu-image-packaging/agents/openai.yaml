@@ -1,4 +1,0 @@
-interface:
-  display_name: "QEMU Image Packaging"
-  short_description: "Package QEMU boot media with layout evidence."
-  default_prompt: "Use $qemu-image-packaging to package this QEMU boot image and record the layout."

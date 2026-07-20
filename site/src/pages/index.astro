@@ -11,28 +11,28 @@ const posts = (await getCollection("blog"))
 const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order).slice(0, 4);
 const formatDate = (date: Date) => new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
 ---
-<BaseLayout title="Oh My QEMU" description="Evidence-first QEMU agent workflows, blog posts, and documentation." section="home">
+<BaseLayout title="Oh My QEMU" description="Portable, auditable skills for local QEMU work." section="home">
   <section class="hero section" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <p class="eyebrow">Official site · Blog · Documentation</p>
-      <h1 id="hero-title">Evidence-first QEMU modeling for coding agents.</h1>
+      <p class="eyebrow">17 portable skills · Local QEMU work</p>
+      <h1 id="hero-title">Auditable QEMU workflows, installed per project.</h1>
       <p class="hero-lede">
-        Notes and documentation for QEMU agent workflows: provenance, evidence,
-        local checkpoints, and clean final handoffs.
+        Install only the skills you need, keep task evidence in one local
+        workspace, and isolate every QEMU build by target.
       </p>
       <div class="hero-actions">
-        <a class="button primary" href={link("blog/")}>Read the blog</a>
-        <a class="button secondary" href={link("docs/")}>Open docs</a>
+        <a class="button primary" href={link("docs/getting-started/")}>Get started</a>
+        <a class="button secondary" href={link("docs/skills/")}>Browse skills</a>
       </div>
     </div>
     <aside class="hero-panel" aria-label="Workflow snapshot">
       <div class="terminal-card">
         <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span></div>
-        <pre><code>/qemu-init-task k230-uart-model
+        <pre><code># Run from the QEMU source root
+curl -fsSL https://raw.githubusercontent.com/processmission/oh-my-qemu/main/install.sh | bash
 
-plan → provenance → register extraction
-model → qtest → review → local checkpoint
-final-series drafts → evidence summary</code></pre>
+audit → .oh-my-qemu/k230-uart/
+QEMU  → builds/build-aarch64/</code></pre>
       </div>
     </aside>
   </section>
@@ -40,21 +40,21 @@ final-series drafts → evidence summary</code></pre>
   <section class="section intro" aria-labelledby="overview-title">
     <div class="section-heading">
       <p class="eyebrow">Overview</p>
-      <h2 id="overview-title">A small workflow layer for QEMU work.</h2>
-      <p>Use it when you need reproducible research, targeted verification, and a clean handoff.</p>
+      <h2 id="overview-title">A small, portable layer for QEMU work.</h2>
+      <p>Each skill works alone and carries the same audit and workspace rules.</p>
     </div>
     <div class="feature-grid">
       <article class="feature-card">
-        <h3>Model from hardware facts</h3>
-        <p>Extract register maps, side effects, IRQ flows, boot paths, and driver sequences before changing device code.</p>
+        <h3>Install per project</h3>
+        <p>Use one curl command to install all 17 skills into project-local Codex and Claude Code, then set up the repository's local Git excludes.</p>
       </article>
       <article class="feature-card">
-        <h3>Keep source trees clean</h3>
-        <p>Plans, logs, probes, traces, and reviews stay under the task artifact root instead of the QEMU source root.</p>
+        <h3>Keep an audit trail</h3>
+        <p>Decisions, commands, logs, temporary scripts, and generated output stay under <code>.oh-my-qemu/&lt;task-slug&gt;/</code>.</p>
       </article>
       <article class="feature-card">
-        <h3>Verify before moving on</h3>
-        <p>Each slice records targeted build, qtest, boot, debug, or documentation evidence before review.</p>
+        <h3>Separate QEMU builds</h3>
+        <p>Configure QEMU only in named directories such as <code>builds/build-aarch64/</code>, one target or configuration per directory.</p>
       </article>
     </div>
   </section>
