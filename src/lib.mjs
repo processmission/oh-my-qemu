@@ -328,6 +328,13 @@ function shellClauses(command) {
   return clauses;
 }
 
+const shellGroupWord = {
+  "(": "\0subshell-open",
+  ")": "\0subshell-close",
+  "{": "\0brace-open",
+  "}": "\0brace-close",
+};
+
 function shellWords(clause) {
   const words = [];
   let current = "";
@@ -362,6 +369,11 @@ function shellWords(clause) {
       index += 1;
     } else if (/\s/.test(char)) {
       push();
+    } else if ((char === "(" && !current.endsWith("$")) || char === ")" ||
+        ((char === "{" || char === "}") && current === "" &&
+          (!next || /\s/.test(next)))) {
+      push();
+      words.push(shellGroupWord[char]);
     } else if (char === "#" && current === "") {
       break;
     } else if (char === ">") {
@@ -381,6 +393,10 @@ function shellWords(clause) {
 
 function shellExecutable(words) {
   let index = 0;
+  while (words[index] === shellGroupWord["("] ||
+      words[index] === shellGroupWord["{"]) {
+    index += 1;
+  }
   while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[index] ?? "")) {
     index += 1;
   }
@@ -489,12 +505,21 @@ export function commandPolicyViolation(command) {
 
   let effectiveCwd = "";
   let guardedCwd;
+  const subshellCwds = [];
   for (const clause of shellClauses(command)) {
     const words = shellWords(clause.command);
     const executableInfo = shellExecutable(words);
     const executable = executableInfo.name;
     if (!executable) {
       continue;
+    }
+
+    const subshellOpenCount = words
+      .slice(0, executableInfo.index)
+      .filter((word) => word === shellGroupWord["("])
+      .length;
+    for (let index = 0; index < subshellOpenCount; index += 1) {
+      subshellCwds.push(effectiveCwd);
     }
 
     for (const policy of policies) {
@@ -534,6 +559,15 @@ export function commandPolicyViolation(command) {
         effectiveCwd = nextCwd;
       } else if (clause.separator === "||" && nextCwd !== null) {
         guardedCwd = nextCwd;
+      }
+    }
+
+    const subshellCloseCount = words
+      .filter((word) => word === shellGroupWord[")"])
+      .length;
+    for (let index = 0; index < subshellCloseCount; index += 1) {
+      if (subshellCwds.length > 0) {
+        effectiveCwd = subshellCwds.pop();
       }
     }
   }
