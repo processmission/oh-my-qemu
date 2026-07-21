@@ -15,6 +15,26 @@ readonly MANAGED_INSTALL_PATHS=(
     ".claude/skills"
     "skills-lock.json"
 )
+readonly MANAGED_INSTALL_ANCESTORS=(
+    ".agents"
+    ".agents/skills"
+    ".claude"
+    ".claude/skills"
+    "skills-lock.json"
+)
+
+is_oh_my_qemu_checkout() {
+    local candidate="$1"
+    local package_file="$candidate/package.json"
+
+    [[ -f "$package_file" ]] || return 1
+    [[ -d "$candidate/skills" ]] || return 1
+    [[ -f "$candidate/skills/qemu-workflow/SKILL.md" ]] || return 1
+    command -v grep >/dev/null 2>&1 || return 1
+    grep -Eq '"name"[[:space:]]*:[[:space:]]*"oh-my-qemu"' "$package_file" ||
+        return 1
+    grep -Fq 'processmission/oh-my-qemu.git' "$package_file"
+}
 
 resolve_skill_source() {
     if [[ -n "${OH_MY_QEMU_SKILL_SOURCE:-}" ]]; then
@@ -28,8 +48,7 @@ resolve_skill_source() {
         script_dir="$(cd "$(dirname "$script_path")" 2>/dev/null && pwd -P)" ||
             script_dir=""
     fi
-    if [[ -n "$script_dir" ]] && [[ -f "$script_dir/package.json" ]] &&
-            [[ -d "$script_dir/skills" ]]; then
+    if [[ -n "$script_dir" ]] && is_oh_my_qemu_checkout "$script_dir"; then
         printf '%s\n' "$script_dir"
         return
     fi
@@ -165,6 +184,12 @@ fi
 git_root="$(cd "$git_root" && pwd -P)"
 [[ "$target_dir" == "$git_root" ]] ||
     die "target must be the Git project root: $git_root"
+
+for managed_path in "${MANAGED_INSTALL_ANCESTORS[@]}"; do
+    if [[ -L "$target_dir/$managed_path" ]]; then
+        die "installer-managed path is a symbolic link: $managed_path"
+    fi
+done
 
 tracked_install_paths="$(git -C "$target_dir" ls-files -- "${MANAGED_INSTALL_PATHS[@]}")"
 if [[ -n "$tracked_install_paths" ]]; then

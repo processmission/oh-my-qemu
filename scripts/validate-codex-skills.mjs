@@ -275,7 +275,10 @@ function validateRepositoryConsistency() {
     }
     const installerContent = readFileSync(installer, "utf8");
     for (const [label, marker] of [
-      ["top-level local skill source", '[[ -d "$script_dir/skills" ]]'],
+      ["top-level local skill source", '[[ -d "$candidate/skills" ]]'],
+      ["repository-specific package marker", `grep -Eq '"name"[[:space:]]*:[[:space:]]*"oh-my-qemu"'`],
+      ["repository-specific URL marker", "grep -Fq 'processmission/oh-my-qemu.git'"],
+      ["repository-specific catalog marker", "skills/qemu-workflow/SKILL.md"],
       ["all-skills default", "install_command+=(--skill '*')"],
       ["Codex and Claude Code defaults", "install_command+=(--agent codex claude-code)"],
       ["non-interactive default", "install_command+=(-y)"],
@@ -284,6 +287,7 @@ function validateRepositoryConsistency() {
       ["Claude Code local exclude", '".claude/skills/"'],
       ["lockfile local exclude", '"skills-lock.json"'],
       ["tracked destination guard", 'ls-files -- "${MANAGED_INSTALL_PATHS[@]}"'],
+      ["symlinked destination guard", '[[ -L "$target_dir/$managed_path" ]]'],
     ]) {
       if (!installerContent.includes(marker)) {
         errors.push(`install.sh: missing ${label}: ${marker}`);
