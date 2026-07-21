@@ -57,8 +57,7 @@ npx skills add https://github.com/processmission/oh-my-qemu -l
 ```
 
 Direct `npx skills add` remains available as a lower-level path, but it does not
-perform the repository-local Git exclude setup. Portable installation also does
-not install the optional plugin command or runtime hook.
+perform the repository-local Git exclude setup.
 
 ## Start a task
 

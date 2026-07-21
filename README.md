@@ -62,8 +62,6 @@ so local changes can be tested before publication. To install only a subset:
 
 The installer uses `npx skills add` underneath. Calling `npx skills add`
 directly is a lower-level option, but it does not perform the Git exclude setup.
-Portable installation does not install the optional `/qemu-init-task` command
-or artifact-policy hook.
 
 ## Skill catalog
 
@@ -121,25 +119,6 @@ configured into a named source-root directory such as
 > image layout, reproduce the boot, use QEMU tracing and gdbstub as needed, and
 > report the first unsupported behavior with commands and evidence.
 
-## Optional plugin helpers
-
-Use a plugin only if you also need `/qemu-init-task` and the artifact-policy
-hook. The skills themselves are identical to the `npx skills` installation.
-
-Oh My Pi:
-
-```bash
-omp plugin marketplace add processmission/oh-my-qemu
-omp plugin install oh-my-qemu@processmission
-```
-
-Claude Code:
-
-```bash
-claude plugin marketplace add processmission/oh-my-qemu
-claude plugin install oh-my-qemu@processmission
-```
-
 ## QEMU AI provenance boundary
 
 These skills support research, debugging, static analysis, local-only
@@ -152,7 +131,7 @@ contribution. Upstream authors remain responsible for QEMU's current
 
 ## Development
 
-Skills live in `.agents/skills/<skill-name>/SKILL.md`. Keep YAML data fields
+Skills live in `skills/<skill-name>/SKILL.md`. Keep YAML data fields
 limited to `name` and `description`, add the Process Mission MIT SPDX comments,
 and provide matching `agents/openai.yaml` UI metadata. Keep every skill's audit
 contract self-contained.

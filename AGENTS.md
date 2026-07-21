@@ -1,7 +1,7 @@
 # QEMU Skill Repository Agent Guide
 
-This repository stores portable agent skills plus optional Oh My Pi and Claude
-Code helpers for local QEMU work. It is not a QEMU upstream source branch.
+This repository stores portable agent skills for local QEMU work. It is not a
+QEMU upstream source branch and contains no agent plugin runtime.
 
 ## QEMU upstream provenance boundary
 
@@ -64,26 +64,15 @@ explicit `--skill` selects a subset. When invoked from a repository checkout,
 it installs that local skill tree into the target, which supports contributor
 testing. It rejects targets that already track an installer-managed skill path
 or lockfile because repository-local excludes cannot hide tracked changes.
-Direct
-`npx skills add` installs skill directories only; it does not execute source
-repository hooks, update Git excludes, or install plugin command/runtime
-scripts. Each skill still enforces the audit contract when it runs alone.
+Direct `npx skills add` installs skill directories only and does not update Git
+excludes. Each skill still enforces the audit contract when it runs alone.
 
 ## Repository layout
 
-- `.agents/skills/<skill-name>/SKILL.md`: portable skill catalog.
+- `skills/<skill-name>/SKILL.md`: portable skill catalog.
 - `install.sh`: self-contained curl installer for a selected Git project root.
-- `skills`: symlink to `.agents/skills` for plugin discovery.
-- `src/extension.js`: Oh My Pi tools, command, and artifact-policy hook.
-- `src/lib.mjs`: shared minimal workspace initialization and policy logic.
-- `commands/qemu-init-task.md`: optional `/qemu-init-task` command.
-- `hooks/hooks.json`: Claude Code pre-tool policy hook.
-- `.claude-plugin/`: Claude Code and marketplace metadata.
-- `scripts/`: repository validation and optional plugin entry points.
-
-The optional initializer creates only `audit.md`, `commands.md`, `logs/`,
-`scripts/`, `output/`, and source-root `builds/`, then updates the three local
-Git exclude entries.
+- `scripts/validate-codex-skills.mjs`: catalog and repository validation.
+- `site/`: static documentation site.
 
 ## Skill catalog
 

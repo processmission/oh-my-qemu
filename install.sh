@@ -29,7 +29,7 @@ resolve_skill_source() {
             script_dir=""
     fi
     if [[ -n "$script_dir" ]] && [[ -f "$script_dir/package.json" ]] &&
-            [[ -d "$script_dir/.agents/skills" ]]; then
+            [[ -d "$script_dir/skills" ]]; then
         printf '%s\n' "$script_dir"
         return
     fi

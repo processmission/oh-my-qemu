@@ -3,10 +3,9 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { commandPolicyViolation } from "../src/lib.mjs";
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const skillsRoot = join(repoRoot, ".agents", "skills");
+const skillsRoot = join(repoRoot, "skills");
 const allowedFrontmatter = new Set(["name", "description"]);
 const maxSkillLines = 300;
 const skillCopyrightHeader = [
@@ -257,15 +256,9 @@ function textFilesUnder(path) {
 
 function validateRepositoryConsistency() {
   const roots = [
-    join(repoRoot, ".agents", "skills"),
-    join(repoRoot, ".claude-plugin"),
-    join(repoRoot, "commands"),
-    join(repoRoot, "hooks"),
+    join(repoRoot, "skills"),
     join(repoRoot, "site", "src"),
-    join(repoRoot, "src"),
     join(repoRoot, "install.sh"),
-    join(repoRoot, "scripts", "artifact-policy.mjs"),
-    join(repoRoot, "scripts", "init-task.mjs"),
     join(repoRoot, "AGENTS.md"),
     join(repoRoot, "README.md"),
     join(repoRoot, "package.json"),
@@ -282,6 +275,7 @@ function validateRepositoryConsistency() {
     }
     const installerContent = readFileSync(installer, "utf8");
     for (const [label, marker] of [
+      ["top-level local skill source", '[[ -d "$script_dir/skills" ]]'],
       ["all-skills default", "install_command+=(--skill '*')"],
       ["Codex and Claude Code defaults", "install_command+=(--agent codex claude-code)"],
       ["non-interactive default", "install_command+=(-y)"],
@@ -305,17 +299,28 @@ function validateRepositoryConsistency() {
         errors.push(`${label}: references retired skill ${retiredName}`);
       }
     }
-    const allowedScratchMentions = new Set(["src/lib.mjs", "scripts/artifact-policy.mjs"]);
     for (const retiredPath of ["scratch/", "build/agent", "/path/to/oh-my-qemu/scripts/"]) {
-      if (retiredPath === "scratch/" && allowedScratchMentions.has(label)) {
-        continue;
-      }
       if (content.includes(retiredPath)) {
         errors.push(`${label}: references retired path ${retiredPath}`);
       }
     }
     if (/ninja -C build(?:\s|\/|$)/.test(content)) {
       errors.push(`${label}: uses an unqualified QEMU build command`);
+    }
+  }
+
+  for (const runtimePath of [
+    ".agents",
+    ".claude-plugin",
+    ".omp-plugin",
+    "commands",
+    "hooks",
+    "src",
+    join("scripts", "artifact-policy.mjs"),
+    join("scripts", "init-task.mjs"),
+  ]) {
+    for (const file of textFilesUnder(join(repoRoot, runtimePath))) {
+      errors.push(`${file.slice(repoRoot.length + 1)}: plugin/runtime files are not supported`);
     }
   }
 
@@ -353,110 +358,13 @@ function validateCatalog(skills) {
   return errors;
 }
 
-function validateCommandPolicy() {
-  const qemuRoot = "/checkout/qemu";
-  const cases = [
-    ["mkdir -p build", true],
-    ["mkdir -p scratch/probe", true],
-    ["ninja -C build", true],
-    ["ninja -Cbuild", true],
-    ["make -Cbuild", true],
-    ["cmake -Bbuild", true],
-    ["meson setup build", true],
-    ["cp input build/file", true],
-    ["cat input > build/file", true],
-    ["dd if=input of=build/file", true],
-    ["mkdir .plan", true],
-    ["long_running_probe & mkdir build", true],
-    ["cd .oh-my-qemu/task/output & mkdir build", true],
-    ["cd build && ../configure", true],
-    ["cd build && ninja", true],
-    ["cd build && touch log", true],
-    ["cd build || exit 1; ../configure", true],
-    ["cd build || exit 1\nninja", true],
-    ["cd missing; mkdir build", true],
-    ["cd missing\nmkdir build", true],
-    ["cd build; ninja", true],
-    ["cd build || echo missing; ninja", true],
-    ["cd .oh-my-qemu/task/output; mkdir build", true],
-    ["cd /tmp; mkdir build", true],
-    ["mkdir /checkout/qemu/build", true],
-    ["ninja -C /checkout/qemu/build", true],
-    ["cd /checkout/qemu/build && ninja", true],
-    ["(mkdir -p build)", true],
-    ["{ mkdir -p build; }", true],
-    ["(cd build && ninja)", true],
-    ["(cd .oh-my-qemu/task/output && mkdir build); mkdir build", true],
-    ["mkdir builds/build-aarch64", false],
-    ["ninja -Cbuilds/build-aarch64", false],
-    ["cmake -Bbuilds/build-aarch64", false],
-    ["cd builds/build-aarch64 && ../../configure", false],
-    ["cd builds/build-aarch64 && ninja", false],
-    ["mkdir .oh-my-qemu/task/output/build", false],
-    ["cd .oh-my-qemu/task/output && mkdir build", false],
-    ["cd .oh-my-qemu/task/output && touch build/log", false],
-    ["cd .oh-my-qemu/task/output || exit 1; mkdir build", false],
-    ["cd .oh-my-qemu/task/output || echo failed; mkdir build", true],
-    ["(cd .oh-my-qemu/task/output && mkdir build)", false],
-    ["{ cd .oh-my-qemu/task/output && mkdir build; }; mkdir build", false],
-    ["(cd builds/build-aarch64 && ninja)", false],
-    ["mkdir /checkout/qemu/builds/build-aarch64", false],
-    ["mkdir /checkout/qemu/.oh-my-qemu/task/output/build", false],
-    ["cd /tmp && mkdir build", false],
-    ["mkdir /tmp/build", false],
-    ["touch .oh-my-qemu/task/scripts/scratch/probe.sh", false],
-    ["cd docs && rg build README.md", false],
-    ["cd foo/build && pwd", false],
-    ["cp build/file /tmp/out", false],
-    ["git grep 'ninja -C build'", false],
-    ["printf '%s\\n' 'ninja -C build'", false],
-    ["echo 'x > build/log'", false],
-    ["echo background-output 2>&1", false],
-    ["python -c \"print('> build/log')\"", false],
-    ["echo --output build", false],
-    ["rg '.plan/' .", false],
-    ["git grep '.humanize/'", false],
-  ];
-
-  return cases.flatMap(([command, shouldBlock]) => {
-    const blocked = Boolean(commandPolicyViolation(qemuRoot, command));
-    return blocked === shouldBlock
-      ? []
-      : [`command policy: ${command} expected blocked=${shouldBlock}, got ${blocked}`];
-  });
-}
-
 function validateManifests() {
-  const files = [
-    join(repoRoot, "package.json"),
-    join(repoRoot, ".claude-plugin", "plugin.json"),
-    join(repoRoot, ".claude-plugin", "marketplace.json"),
-    join(repoRoot, "hooks", "hooks.json"),
-  ];
-  const parsed = new Map();
-  const errors = [];
-
-  for (const file of files) {
-    try {
-      parsed.set(file, JSON.parse(readFileSync(file, "utf8")));
-    } catch (error) {
-      errors.push(`${file.slice(repoRoot.length + 1)}: invalid JSON: ${error.message}`);
-    }
+  try {
+    JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
+    return [];
+  } catch (error) {
+    return [`package.json: invalid JSON: ${error.message}`];
   }
-
-  const packageVersion = parsed.get(files[0])?.version;
-  const pluginVersion = parsed.get(files[1])?.version;
-  const marketplace = parsed.get(files[2]);
-  for (const [label, version] of [
-    [".claude-plugin/plugin.json", pluginVersion],
-    [".claude-plugin/marketplace.json metadata", marketplace?.metadata?.version],
-    [".claude-plugin/marketplace.json plugin", marketplace?.plugins?.[0]?.version],
-  ]) {
-    if (packageVersion && version !== packageVersion) {
-      errors.push(`${label}: version ${version ?? "missing"} must match package.json ${packageVersion}`);
-    }
-  }
-  return errors;
 }
 
 export function validateAll(root = skillsRoot) {
@@ -465,7 +373,6 @@ export function validateAll(root = skillsRoot) {
     ...skills.flatMap(validateSkill),
     ...validateCatalog(skills),
     ...validateRepositoryConsistency(),
-    ...validateCommandPolicy(),
     ...validateManifests(),
   ];
   return { skills, errors };

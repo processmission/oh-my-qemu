@@ -9,7 +9,7 @@ draft: false
 
 Oh My QEMU is a set of 17 portable skills for local QEMU work. Each skill can
 be installed on its own and carries the same small workspace contract, so a
-project does not need the source repository's scripts or plugin runtime.
+project does not need any source-repository runtime.
 
 ## Project-local installation
 
