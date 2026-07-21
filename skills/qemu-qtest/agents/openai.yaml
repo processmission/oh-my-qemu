@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU qtest"
+  short_description: "Design and debug focused QEMU qtests."
+  default_prompt: "Use $qemu-qtest to design, run, and debug focused qtest coverage for this QEMU behavior."

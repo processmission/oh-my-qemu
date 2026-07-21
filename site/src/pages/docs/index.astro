@@ -7,11 +7,11 @@ const link = (path: string) => `${base}${path.replace(/^\//, "")}`;
 const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order);
 ---
 
-<BaseLayout title="Documentation" description="Oh My QEMU documentation for installation, workflow usage, provenance, and publishing policy." section="docs">
+<BaseLayout title="Documentation" description="Install Oh My QEMU skills, browse the catalog, and apply the audit and build policy." section="docs">
   <section class="section page-hero">
     <p class="eyebrow">Documentation</p>
-    <h1>Use the workflow without losing evidence.</h1>
-    <p>Install paths, task workspace layout, provenance policy, and final-series boundaries for local QEMU work.</p>
+    <h1>Portable skills with one audit contract.</h1>
+    <p>Project-local installation, the 17-skill catalog, and workspace rules for local QEMU work.</p>
   </section>
 
   <section class="section listing" aria-label="Documentation pages">

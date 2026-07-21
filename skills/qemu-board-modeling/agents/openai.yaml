@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Board Modeling"
+  short_description: "Model and verify QEMU boards and SoCs."
+  default_prompt: "Use $qemu-board-modeling to model this QEMU board or SoC and define focused verification."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Agent Feedback"
+  short_description: "Draft sanitized oh-my-qemu workflow feedback."
+  default_prompt: "Use $qemu-agent-feedback to draft one sanitized oh-my-qemu improvement issue and file it only after I approve the exact title and body."

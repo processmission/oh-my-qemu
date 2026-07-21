@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Register Extraction"
+  short_description: "Extract source-cited hardware register contracts."
+  default_prompt: "Use $qemu-register-extraction to extract a source-cited register and behavior contract for this hardware block."

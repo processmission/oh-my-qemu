@@ -1,4 +1,0 @@
-interface:
-  display_name: "QEMU Source Provenance"
-  short_description: "Record source provenance and round checkpoints."
-  default_prompt: "Use $qemu-source-provenance to record sources, toolchains, outputs, hashes, and RLCR round Git checkpoints for this local QEMU task."

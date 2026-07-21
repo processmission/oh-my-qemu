@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Build"
+  short_description: "Configure and diagnose named QEMU build trees."
+  default_prompt: "Use $qemu-build to configure or diagnose a named QEMU build under builds/."

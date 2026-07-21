@@ -1,22 +1,15 @@
 {
   "name": "oh-my-qemu",
-  "version": "0.2.0",
-  "description": "QEMU skills and Oh My Pi / Claude Code runtime helpers for modeling, source builds, image packaging, boot testing, debugging, qtest, and TCG workflows.",
+  "version": "0.3.0",
+  "description": "Portable QEMU skills for modeling, source builds, image packaging, boot testing, debugging, qtest, and TCG workflows.",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "codex:skills:validate": "node scripts/validate-codex-skills.mjs",
-    "codex:skills:register": "node scripts/register-codex-skills.mjs",
-    "codex:skills:register:dry-run": "node scripts/register-codex-skills.mjs --dry-run",
-    "methodology:issue": "node scripts/draft-methodology-issue.mjs",
-    "portable:skills:install-global": "node scripts/install-portable-skills-global.mjs",
     "site:build": "npm --prefix site run build",
     "site:check": "npm --prefix site run check"
   },
   "keywords": [
-    "oh-my-pi",
-    "omp-plugin",
-    "claude-code-plugin",
     "qemu",
     "skills",
     "boot",
@@ -27,15 +20,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/processmission/oh-my-qemu.git"
-  },
-  "omp": {
-    "extensions": [
-      "./src/extension.js"
-    ]
-  },
-  "pi": {
-    "extensions": [
-      "./src/extension.js"
-    ]
   }
 }

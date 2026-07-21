@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Image"
+  short_description: "Inspect or safely package QEMU boot media."
+  default_prompt: "Use $qemu-image to inspect this QEMU image read-only or package an explicitly authorized target with readback evidence."

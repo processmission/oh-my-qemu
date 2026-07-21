@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Workflow"
+  short_description: "Run auditable multi-step QEMU work."
+  default_prompt: "Use $qemu-workflow to plan, audit, verify, review, and hand off this multi-step QEMU task."
