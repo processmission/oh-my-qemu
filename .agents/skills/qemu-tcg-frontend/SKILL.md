@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-tcg-frontend
 description: Use for adding, reviewing, or debugging guest ISA decode and translation in a QEMU TCG frontend, including feature gates, exceptions, PC/TB behavior, and focused instruction tests.
 ---

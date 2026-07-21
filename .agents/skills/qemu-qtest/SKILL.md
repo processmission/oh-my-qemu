@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-qtest
 description: Use for QEMU qtest design, registration, execution, debugging, and immediate evidence capture for device, board, QMP, timer, IRQ, DMA, and memory behavior.
 ---

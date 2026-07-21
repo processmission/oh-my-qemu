@@ -152,8 +152,10 @@ contribution. Upstream authors remain responsible for QEMU's current
 
 ## Development
 
-Skills live in `.agents/skills/<skill-name>/SKILL.md`. Keep frontmatter limited
-to `name` and `description`, and keep every skill's audit contract self-contained.
+Skills live in `.agents/skills/<skill-name>/SKILL.md`. Keep YAML data fields
+limited to `name` and `description`, add the Process Mission MIT SPDX comments,
+and provide matching `agents/openai.yaml` UI metadata. Keep every skill's audit
+contract self-contained.
 
 Validate the catalog before committing:
 

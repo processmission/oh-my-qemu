@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-build
 description: Use for configuring, reusing, building, or diagnosing named QEMU build directories under source-root builds/, including target-specific, debug, sanitizer, and trace configurations.
 ---

@@ -9,6 +9,10 @@ const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const skillsRoot = join(repoRoot, ".agents", "skills");
 const allowedFrontmatter = new Set(["name", "description"]);
 const maxSkillLines = 300;
+const skillCopyrightHeader = [
+  "# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission",
+  "# SPDX-License-Identifier: MIT",
+];
 const expectedSkillNames = [
   "qemu-agent-feedback",
   "qemu-board-modeling",
@@ -99,6 +103,9 @@ function parseFrontmatter(content) {
   const fields = new Map();
   const lines = content.slice(4, end).split("\n").filter((line) => line.trim());
   for (const line of lines) {
+    if (line.startsWith("#")) {
+      continue;
+    }
     const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
     if (!match) {
       throw new Error(`unsupported frontmatter line: ${line}`);
@@ -151,9 +158,13 @@ export function validateSkill(skill) {
   if ((frontmatter.description ?? "").length > 1024) {
     errors.push(`${skill.name}: description exceeds 1024 characters`);
   }
+  const expectedHeader = `---\n${skillCopyrightHeader.join("\n")}\n`;
+  if (!content.startsWith(expectedHeader)) {
+    errors.push(`${skill.name}: SKILL.md must start with the Process Mission MIT SPDX header`);
+  }
 
   if (!existsSync(skill.agentFile)) {
-    errors.push(`${skill.name}: missing recommended agents/openai.yaml metadata`);
+    errors.push(`${skill.name}: missing required agents/openai.yaml metadata`);
   } else {
     const agentMetadata = readFileSync(skill.agentFile, "utf8");
     const displayName = agentMetadata.match(/^  display_name: "([^"]+)"$/m);

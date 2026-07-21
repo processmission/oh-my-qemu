@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-model-verification
 description: Use when existing qtest, trace, log, replay, boot, or workload evidence must be evaluated against one falsifiable QEMU device, board, TCG, or runtime claim as PASS, FAIL, or INCONCLUSIVE.
 ---

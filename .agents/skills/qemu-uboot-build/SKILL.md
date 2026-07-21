@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-uboot-build
 description: Use for building U-Boot artifacts for QEMU firmware boot testing, including defconfig selection, cross compile variables, SPL/TPL, U-Boot proper, FIT or ITB files, BL31 or TF-A dependencies, logs, hashes, and provenance.
 ---

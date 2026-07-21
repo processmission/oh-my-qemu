@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-workflow
 description: Optional, self-contained workflow for non-trivial multi-step QEMU research, debugging, local-only implementation, modeling, boot, build, and verification tasks. Use when the task benefits from auditable planning, source and artifact provenance, small reviewed rounds, evidence-backed verification, and a clear handoff; skip it for trivial read-only questions or a single targeted command.
 ---

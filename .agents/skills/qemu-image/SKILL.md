@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-image
 description: Inspect or package QEMU disk, SD, eMMC, flash, pflash, firmware, raw, and qcow2 images. Use for read-only image format, partition, region, offset, sector-size, and hash analysis, or for explicitly authorized image creation, conversion, partitioning, filesystem population, and fixed-offset writes with readback and rollback evidence.
 ---

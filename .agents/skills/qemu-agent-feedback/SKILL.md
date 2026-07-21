@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-agent-feedback
 description: Use when a completed QEMU skill session exposed a reusable oh-my-qemu workflow problem and the user wants a sanitized improvement proposal drafted or filed as a GitHub issue.
 ---

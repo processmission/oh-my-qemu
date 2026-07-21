@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-linux-boot
 description: Use for booting Linux in QEMU through either direct kernel loading or firmware and bootloader stages, selecting the path from task inputs while preserving provenance, boot logs, debug handoff, and verification evidence.
 ---

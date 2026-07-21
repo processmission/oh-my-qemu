@@ -120,7 +120,10 @@ Git exclude entries.
 
 ## Skill design rules
 
-- Keep frontmatter to `name` and `description`.
+- Keep YAML data fields to `name` and `description`, preceded by the Process
+  Mission copyright and MIT license SPDX comments used by the Zephyr skills.
+- Keep a matching `agents/openai.yaml` in every skill with quoted
+  `display_name`, `short_description`, and `$skill-name` `default_prompt`.
 - Make each skill usable when installed alone; do not require repository-level
   scripts, plugin hooks, or another skill.
 - Repeat the compact audit workflow in every `SKILL.md` intentionally.

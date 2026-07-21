@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-boot-run
 description: Use when the QEMU binary and boot inputs are selected and one reproducible QEMU run must be constructed, logged, timed out, and classified by explicit success or failure markers.
 ---

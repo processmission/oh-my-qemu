@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-peripheral-modeling
 description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling with register contracts, QEMU's registerinfo framework, and qtest-backed verification.
 ---

@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-register-extraction
 description: Use to extract a source-cited QEMU register and behavior contract from drivers, datasheets, firmware, device trees, runtime traces, and SVD, IP-XACT, SystemRDL, or vendor regfiles before modeling a hardware block.
 ---

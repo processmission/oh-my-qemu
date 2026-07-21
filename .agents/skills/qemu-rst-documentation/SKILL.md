@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
+# SPDX-License-Identifier: MIT
 name: qemu-rst-documentation
 description: Use for writing or updating QEMU reStructuredText documentation, including board and machine docs, system docs, device docs, developer docs, boot command examples, feature status tables, Sphinx index/toctree updates, and docs build validation.
 ---
