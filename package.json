@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "codex:skills:validate": "node scripts/validate-codex-skills.mjs",
+    "test:qemu-boot-run": "python3 scripts/test-qemu-boot-run.py",
     "site:build": "npm --prefix site run build",
     "site:check": "npm --prefix site run check"
   },
