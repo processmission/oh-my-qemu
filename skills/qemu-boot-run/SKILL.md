@@ -64,10 +64,54 @@ Record:
 - Prefer a single copy-pasteable command.
 - Use `-nographic` or explicit chardev routing for deterministic console capture.
 - Keep QEMU monitor and guest serial behavior clear; do not hide which console carries Linux logs.
-- Use `timeout` for smoke tests unless an interactive shell is the requested deliverable.
+- Bound smoke tests with the bundled runner's timeout; use the `timeout`
+  utility only when process status alone is sufficient.
 - Preserve exact output in a log file and summarize only decisive lines in
   `audit.md`.
 - If a run hangs, capture the last meaningful marker before adding debug flags.
+
+## Marker-aware runner
+
+For a file-backed serial console, prefer the bundled
+`scripts/run-and-classify.py` over a shell loop that watches the live file.
+Resolve the script relative to this skill's directory so it remains usable
+when the skill is installed alone.
+
+The runner truncates the selected log, launches the command in a new process
+group, watches for markers, terminates the process group after a marker or
+timeout, waits for backend shutdown, and then rescans the finalized log. This
+last scan is mandatory because a file-backed chardev may flush its terminal
+marker only during QEMU shutdown.
+
+```shell
+SKILL_DIR=/path/to/qemu-boot-run
+TASK=.oh-my-qemu/firmware-smoke
+LOG="$TASK/logs/uart1.log"
+
+python3 "$SKILL_DIR/scripts/run-and-classify.py" \
+    --timeout 120 \
+    --log "$LOG" \
+    --report "$TASK/logs/result.json" \
+    --success-marker 'BOOT READY' \
+    --failure-marker 'Kernel panic' \
+    -- \
+    qemu-system-aarch64 ... -serial "file:$LOG"
+```
+
+Repeat `--success-marker` for milestones that must all be present. Repeat
+`--failure-marker` for decisive failures; any failure marker overrides success.
+The JSON report records process status and semantic marker status separately.
+Classify results from the finalized semantic status:
+
+- semantic success returns 0 even when the process reached its timeout before
+  the buffered marker became visible;
+- a failure marker returns 1;
+- a timeout with no terminal marker returns 124; and
+- a clean process exit without the required success markers is inconclusive
+  and returns nonzero.
+
+Do not classify guest failure from the process exit or timeout status alone.
+Record both statuses and cite the finalized log in `audit.md`.
 
 ## Failure Handoff
 
