@@ -5,14 +5,19 @@ QEMU upstream source branch and contains no agent plugin runtime.
 
 ## QEMU upstream provenance boundary
 
-QEMU's `docs/devel/code-provenance.rst` applies inside a QEMU source checkout
-and to anything proposed for upstream submission:
+QEMU's official GitLab and mailing lists are upstream project channels. For
+patches, follow the recipients and lists selected through `MAINTAINERS`:
+sending a patch there is a QEMU upstream contribution.
 
-- Do not generate code or documentation intended for QEMU upstream submission.
-- Decline requests for agent-written upstream patches and point to QEMU's
-  current AI-generated-content policy.
+- Do not prepare or send agent-generated code or documentation for that
+  mailing-list submission. Point such requests to QEMU's current
+  `docs/devel/code-provenance.rst` policy.
+- Creating a local branch, commit, or patch file, pushing a branch, or opening a
+  pull request is not by itself a QEMU upstream contribution. Perform those Git
+  actions only when the user requests them and follow the workspace's Git
+  policy.
 - Research, debugging, static analysis, local-only experiments, verification,
-  and workflow guidance are allowed when generated output is not contributed.
+  and workflow guidance remain allowed.
 
 Repository-maintenance changes in this skill repository follow its normal local
 Git policy.
@@ -132,4 +137,4 @@ npm run codex:skills:validate
 
 The structure draws from the QEMU “AGENTS.md and associated skills” RFC and the
 current QEMU code-provenance policy. Those are references, not permission to
-produce upstreamable QEMU patches.
+prepare or send generated patches to the QEMU mailing lists.

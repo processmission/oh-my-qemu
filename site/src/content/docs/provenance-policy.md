@@ -52,8 +52,13 @@ Git action.
 
 ## QEMU upstream boundary
 
-QEMU's current generated-content policy applies inside a QEMU source checkout
-and to anything proposed for upstream submission. Do not generate code or
-documentation intended for upstream QEMU. Research, debugging, static analysis,
-local-only experiments, and verification remain valid when their generated
-output is not contributed upstream.
+QEMU's official GitLab and mailing lists are upstream project channels. For
+patches, follow the recipients and lists selected through `MAINTAINERS`: sending
+a patch there is a QEMU upstream contribution. Do not prepare or send
+agent-generated code or documentation for that mailing-list submission.
+
+Creating a local branch, commit, or patch file, pushing a branch, or opening a
+pull request is not by itself a QEMU upstream contribution. Perform those Git
+actions only when requested and follow the workspace's Git policy. Research,
+debugging, static analysis, local-only experiments, and verification remain
+valid.
