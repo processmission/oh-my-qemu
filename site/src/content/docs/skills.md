@@ -39,4 +39,7 @@ needs.
 - `qemu-rst-documentation`: work with QEMU reStructuredText and documentation builds.
 
 The modeling, TCG, and documentation skills are for local research and
-verification. They do not authorize generated content for QEMU upstream.
+verification. They do not authorize preparing or sending generated patches to
+the QEMU mailing-list recipients selected through `MAINTAINERS`. Local Git
+operations and pull requests do not by themselves constitute QEMU upstream
+contributions.

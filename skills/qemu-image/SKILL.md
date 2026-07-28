@@ -7,12 +7,10 @@ description: Inspect or package QEMU disk, SD, eMMC, flash, pflash, firmware, ra
 
 # QEMU Image
 
-Inspect boot-media layouts without changing them, or package new media only when the requested writes and exact target are authorized.
-
 ## Audit workflow
 
-For every non-trivial task, choose a stable task slug and keep agent-only
-records under:
+For non-trivial tasks, use a stable `.oh-my-qemu/<task-slug>/` directory and
+create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -23,21 +21,18 @@ records under:
 └── output/         # Working copies, backups, readbacks, and generated images
 ```
 
-In a Git worktree, add `.agents/`, `.oh-my-qemu/`, and `builds/` to the
-repository-local exclude file returned by
-`git rev-parse --git-path info/exclude` before writing task artifacts or build
-outputs. Preserve existing entries and avoid
-duplicates. If QEMU itself must be built, use only a source-root
-`builds/build-<target>/` build tree; never use an unqualified `build/`
-directory. Record a baseline and handoff
-`git status --short --untracked-files=all`; distinguish pre-existing changes
-from task changes and verify that no `.agents/`, `.oh-my-qemu/`, or `builds/`
-path is staged or tracked. Never stage or commit files while using this skill.
-Record redacted commands, their working directories and outcomes in
-`commands.md`, put helper scripts in `scripts/`, and put raw decisive output in
-`logs/`. Store generated images, third-party dependency outputs, and other
-non-QEMU build binaries in `output/`. Report the audit directory and all
-unresolved gaps at handoff.
+Before writing task artifacts or configuring QEMU in a Git worktree, add
+`.agents/`, `.oh-my-qemu/`, and `builds/` to the repository-local file from
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Keep QEMU builds under source-root `builds/build-<target>/`; never
+use `build/`. Never stage or commit while using this skill.
+
+Record baseline and handoff `git status --short --untracked-files=all`,
+distinguish pre-existing changes, and verify no excluded path is tracked or
+staged. Log redacted commands, working directories, and results in
+`commands.md`; keep helpers in `scripts/`, decisive output in `logs/`, and
+generated images, third-party dependencies, and non-QEMU binaries in
+`output/`. Report the audit directory and unresolved gaps at handoff.
 
 ## Select the mode
 

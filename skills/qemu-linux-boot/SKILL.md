@@ -7,14 +7,10 @@ description: Use for booting Linux in QEMU through either direct kernel loading 
 
 # QEMU Linux Boot
 
-Use this workflow when the task is to boot Linux under QEMU and the request may
-need either direct kernel loading or a firmware/bootloader chain.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
-only the entries the task needs:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -26,21 +22,19 @@ only the entries the task needs:
 ```
 
 Before changing source or mutable artifacts, record the workspace root,
-branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
-acceptance checks in `audit.md`. Record exact redacted commands and results in
-`commands.md`; record source revisions, configurations, tool versions, and
-input/output hashes when they affect reproducibility. Separate observations
-from inferences and create or change source files only when requested.
+revision, `git status --short`, pre-existing changes, goal, scope, and
+acceptance checks in `audit.md`. Log exact redacted commands and results in
+`commands.md`; record revisions, configurations, tool versions, and hashes when
+they affect reproducibility. Separate observations from inferences and edit
+source only when requested.
 
-Put every QEMU build in a named directory under the QEMU source root, such as
-`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
-binaries under the task's `output/` directory. In a Git worktree, before
-writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
-`builds/` to the repository-local exclude file returned by
+Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
+dependencies and non-QEMU binaries in task `output/`. Before writing audit
+artifacts or configuring QEMU in a Git worktree, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local file from
 `git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. Before handoff, verify
-that `git status --short` contains none of them, then report the task directory
-and unresolved gaps.
+duplicates. Never stage or commit those directories. At handoff, verify them
+absent from `git status --short`. Report the task directory and unresolved gaps.
 
 ## Path Selection
 
@@ -93,10 +87,7 @@ Record these inputs:
 
 Direct boot command rules:
 
-- Keep the command copy-pasteable.
 - Route serial output deterministically, usually with `-nographic`.
-- Include a timeout for non-interactive smoke tests.
-- Store the full console log under `.oh-my-qemu/<task-slug>/logs/`.
 - When the goal is an interactive shell, provide the exact command separately
   from the timed smoke command.
 
@@ -134,24 +125,9 @@ Firmware command rules:
 
 ## Stage Milestones
 
-For firmware implementation or debugging work, expose the stage checklist as
-explicit milestones that an outer workflow can consume. The final Linux shell
-or full boot result is the final acceptance criterion, not the default first
-milestone.
-
-Default firmware round boundaries are:
-
-- reset vector or ROM entry;
-- early firmware services;
-- SPL/TPL or early loader milestone;
-- trusted firmware or monitor handoff if present;
-- bootloader entry or autoboot path;
-- boot media access;
-- kernel entry;
-- Linux console and rootfs or shell marker;
-- documentation or handoff notes.
-
-Each milestone must name:
+For firmware implementation or debugging, use the stages above as round
+boundaries. The final Linux result remains the acceptance criterion. Each
+milestone must name:
 
 - the expected serial, trace, or debugger marker;
 - the current verification gate;

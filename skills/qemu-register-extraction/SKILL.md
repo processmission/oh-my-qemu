@@ -7,14 +7,10 @@ description: Use to extract a source-cited QEMU register and behavior contract f
 
 # QEMU Register Extraction
 
-Turn external hardware evidence into a markdown register/function contract. Do
-not produce QEMU source code or fill undocumented behavior from memory.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
-only the entries the task needs:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -26,28 +22,31 @@ only the entries the task needs:
 ```
 
 Before changing source or mutable artifacts, record the workspace root,
-branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
-acceptance checks in `audit.md`. Record exact redacted commands and results in
-`commands.md`; record source revisions, configurations, tool versions, and
-input/output hashes when they affect reproducibility. Separate observations
-from inferences and create or change source files only when requested.
+revision, `git status --short`, pre-existing changes, goal, scope, and
+acceptance checks in `audit.md`. Log exact redacted commands and results in
+`commands.md`; record revisions, configurations, tool versions, and hashes when
+they affect reproducibility. Separate observations from inferences and edit
+source only when requested.
 
-Put every QEMU build in a named directory under the QEMU source root, such as
-`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
-binaries under the task's `output/` directory. In a Git worktree, before
-writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
-`builds/` to the repository-local exclude file returned by
+Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
+dependencies and non-QEMU binaries in task `output/`. Before writing audit
+artifacts or configuring QEMU in a Git worktree, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local file from
 `git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. Before handoff, verify
-that `git status --short` contains none of them, then report the task directory
-and unresolved gaps.
+duplicates. Never stage or commit those directories. At handoff, verify them
+absent from `git status --short`. Report the task directory and unresolved gaps.
 
-## Research boundary
+## QEMU upstream and research boundary
 
-This skill is research and analysis only. Do not produce source, documentation,
-commit messages, or patches intended for QEMU upstream submission. Summarize
-proprietary or copyrighted sources and cite page, section, revision, or source
-location; do not copy long passages.
+QEMU's official GitLab and mailing lists are upstream project channels. A
+patch becomes an upstream contribution when sent to the mailing-list recipients
+selected through `MAINTAINERS`; do not prepare or send agent-generated patches
+for that submission. Local branches, commits, patch files, pushes, and pull
+requests are not by themselves QEMU upstream contributions. Perform those Git
+actions only when requested and follow the workspace's Git policy.
+
+Summarize proprietary or copyrighted sources and cite page, section, revision,
+or source location; do not copy long passages.
 
 Before extracting, read
 [the register contract reference](references/register-contract.md) in full. It
@@ -73,7 +72,12 @@ output schema, and completion checklist.
 6. **Resolve evidence quality.** Mark each fact `HIGH`, `MEDIUM`, `LOW`, or
    `CONFLICT`. Never choose silently between disagreeing sources or invent a
    default for a gap; name the check that could resolve it.
-7. **Produce the handoff.** Write the contract to
+7. **Map to QEMU.** Map every guest-visible control/status register bank to the
+   checked-out QEMU tree's `RegisterInfo` framework. Record that register
+   offsets, field macros, backing storage, `RegisterAccessInfo` tables,
+   `RegisterInfo` arrays, and register-local hooks belong in the device `.c`
+   file, not a header.
+8. **Produce the handoff.** Write the contract to
    `.oh-my-qemu/<task-slug>/output/register-contract.md`, with source-cited
    qtest candidates and explicit unknowns. Keep extraction/conversion scripts
    in `scripts/` and copied or generated third-party artifacts in `output/`.
@@ -89,7 +93,11 @@ output schema, and completion checklist.
   partial-state behavior, and a verification candidate.
 - Preserve conflicts and unavailable sources as gaps.
 - Do not include C implementation templates. The consumer must inspect the
-  checked-out QEMU registerinfo API before any local-only model experiment.
+  checked-out QEMU `RegisterInfo` API before any local-only model experiment.
+- Do not suggest placing register definitions, backing storage, or semantics in
+  a header. Headers may expose only non-register-layout declarations genuinely
+  required outside the device translation unit, such as a public QOM type or a
+  cross-unit helper prototype.
 
 ## Handoff
 
@@ -101,6 +109,6 @@ semantics, side effects, source citations, or explicit unknowns.
 ## Upstream references
 
 - QEMU code provenance policy: `docs/devel/code-provenance.rst`.
-- Registerinfo API to inspect in the checked-out tree:
+- `RegisterInfo` API to inspect in the checked-out tree:
   `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and
   `hw/core/register.c`.

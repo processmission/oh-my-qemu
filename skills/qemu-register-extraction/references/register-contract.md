@@ -10,6 +10,7 @@ are genuinely inapplicable, not sections whose evidence is missing.
 - [Cross-register feature flows](#cross-register-feature-flows)
 - [Search guidance](#search-guidance)
 - [Confidence and conflicts](#confidence-and-conflicts)
+- [QEMU modeling constraints](#qemu-modeling-constraints)
 - [Output schema](#output-schema)
 - [Completion checklist](#completion-checklist)
 
@@ -97,6 +98,18 @@ For conflicts, record both exact sources, differing values/semantics, target
 relevance, chosen temporary assumption if unavoidable, and the test needed to
 resolve it.
 
+## QEMU modeling constraints
+
+- Map every guest-visible control/status register bank to the checked-out QEMU
+  tree's `RegisterInfo` framework.
+- Keep register offsets, register field macros, backing storage,
+  `RegisterAccessInfo` tables, `RegisterInfo` arrays, and register-local hooks
+  in the device `.c` file.
+- Do not put register layout, backing storage, or semantics in a header. A
+  header may expose only non-register-layout declarations genuinely required
+  outside the translation unit, such as a public QOM type or cross-unit helper
+  prototype.
+
 ## Output schema
 
 ```markdown
@@ -127,10 +140,10 @@ resolve it.
 | Flow | Fields | Required order | Coupling | Partial/failure state | Confidence | Sources | Test |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
-## Registerinfo mapping notes
+## RegisterInfo mapping notes
 
-| Register | RegisterAccessInfo facts | Hook needed | Dependencies | qtest coverage |
-| --- | --- | --- | --- | --- |
+| Register | RegisterAccessInfo facts | Hook needed | `.c` placement | Dependencies | qtest coverage |
+| --- | --- | --- | --- | --- | --- |
 
 ## Unknowns and conflicts
 
@@ -146,5 +159,9 @@ resolve it.
 - Cross-register feature flows cover partial as well as success states.
 - Each decisive fact cites a source revision and location.
 - Conflicts and unknowns remain visible.
+- The current QEMU `RegisterInfo` API was inspected and every guest-visible
+  control/status register bank is mapped to it.
+- The contract records that register definitions, tables, and local hooks stay
+  in the device `.c` file rather than a header.
 - Tests cover reset, masks, W1C, IRQ, timer, DMA, complete feature enablement,
   and unknown/unsupported access behavior as applicable.

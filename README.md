@@ -65,9 +65,14 @@ an unqualified `build/`.
 ## QEMU provenance
 
 These skills support research, debugging, local experiments, workflow guidance,
-and evidence collection. Do not use agent-generated code, documentation, or
-experiment output in QEMU upstream submissions. Follow QEMU's current
-`docs/devel/code-provenance.rst` policy.
+and evidence collection. QEMU's official GitLab and mailing lists are upstream
+channels. A patch becomes an upstream contribution when it is sent to the
+mailing-list recipients selected through `MAINTAINERS`; do not prepare or send
+agent-generated patches for that submission.
+
+Local branches, commits, patch files, pushes, and pull requests are not by
+themselves QEMU upstream contributions. Perform those Git actions only when
+requested and follow the workspace's Git policy.
 
 ## Development
 
