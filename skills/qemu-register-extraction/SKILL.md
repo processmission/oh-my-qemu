@@ -72,7 +72,12 @@ output schema, and completion checklist.
 6. **Resolve evidence quality.** Mark each fact `HIGH`, `MEDIUM`, `LOW`, or
    `CONFLICT`. Never choose silently between disagreeing sources or invent a
    default for a gap; name the check that could resolve it.
-7. **Produce the handoff.** Write the contract to
+7. **Map to QEMU.** Map every guest-visible control/status register bank to the
+   checked-out QEMU tree's `RegisterInfo` framework. Record that register
+   offsets, field macros, backing storage, `RegisterAccessInfo` tables,
+   `RegisterInfo` arrays, and register-local hooks belong in the device `.c`
+   file, not a header.
+8. **Produce the handoff.** Write the contract to
    `.oh-my-qemu/<task-slug>/output/register-contract.md`, with source-cited
    qtest candidates and explicit unknowns. Keep extraction/conversion scripts
    in `scripts/` and copied or generated third-party artifacts in `output/`.
@@ -88,7 +93,11 @@ output schema, and completion checklist.
   partial-state behavior, and a verification candidate.
 - Preserve conflicts and unavailable sources as gaps.
 - Do not include C implementation templates. The consumer must inspect the
-  checked-out QEMU registerinfo API before any local-only model experiment.
+  checked-out QEMU `RegisterInfo` API before any local-only model experiment.
+- Do not suggest placing register definitions, backing storage, or semantics in
+  a header. Headers may expose only non-register-layout declarations genuinely
+  required outside the device translation unit, such as a public QOM type or a
+  cross-unit helper prototype.
 
 ## Handoff
 
@@ -100,6 +109,6 @@ semantics, side effects, source citations, or explicit unknowns.
 ## Upstream references
 
 - QEMU code provenance policy: `docs/devel/code-provenance.rst`.
-- Registerinfo API to inspect in the checked-out tree:
+- `RegisterInfo` API to inspect in the checked-out tree:
   `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and
   `hw/core/register.c`.
