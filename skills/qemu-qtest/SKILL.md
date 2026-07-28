@@ -116,10 +116,12 @@ Use libqos/qgraph when nearby subsystem tests already do.
 
 Before writing or running device qtests, or accepting their results, inspect
 the model source and its recorded framework decision. Both `RegisterInfo` and
-manual MMIO callbacks are valid when the choice follows project policy,
-compatible explicit user direction, and nearby subsystem conventions.
-Register offsets, field macros, backing storage, framework tables, and
-register-local callbacks must remain in the device `.c` file, not a header.
+manual MMIO callbacks are valid when chosen by the ordered decision gate:
+policy present in the target QEMU workspace first, compatible explicit user
+direction only when policy does not decide, and a clear nearby subsystem
+convention only when neither higher-priority input decides. Register offsets,
+field macros, backing storage, framework tables, and register-local callbacks
+must remain in the device `.c` file, not a header.
 
 Report a missing or contradicted framework decision, or a source-layout
 violation, as a model-structure failure. Keep qtests behavioral: exercise the
