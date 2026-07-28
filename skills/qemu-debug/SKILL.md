@@ -7,13 +7,10 @@ description: Use for debugging QEMU itself or guests under QEMU with host-side g
 
 # QEMU Debug
 
-Use this skill to reproduce, classify, and narrow QEMU failures: QEMU process crashes/assertions, guest boot hangs, wrong device behavior, TCG bugs, migration/runtime assertions, or intermittent behavior.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
-only the entries the task needs:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -25,30 +22,28 @@ only the entries the task needs:
 ```
 
 Before changing source or mutable artifacts, record the workspace root,
-branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
-acceptance checks in `audit.md`. Record exact redacted commands and results in
-`commands.md`; record source revisions, configurations, tool versions, and
-input/output hashes when they affect reproducibility. Separate observations
-from inferences and create or change source files only when requested.
+revision, `git status --short`, pre-existing changes, goal, scope, and
+acceptance checks in `audit.md`. Log exact redacted commands and results in
+`commands.md`; record revisions, configurations, tool versions, and hashes when
+they affect reproducibility. Separate observations from inferences and edit
+source only when requested.
 
-Put every QEMU build in a named directory under the QEMU source root, such as
-`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
-binaries under the task's `output/` directory. In a Git worktree, before
-writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
-`builds/` to the repository-local exclude file returned by
+Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
+dependencies and non-QEMU binaries in task `output/`. Before writing audit
+artifacts or configuring QEMU in a Git worktree, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local file from
 `git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. Before handoff, verify
-that `git status --short` contains none of them, then report the task directory
-and unresolved gaps.
+duplicates. Never stage or commit those directories. At handoff, verify them
+absent from `git status --short`. Report the task directory and unresolved gaps.
 
-## Scope
+## QEMU upstream boundary
 
-This skill owns failure reproduction and narrowing: host debugger, guest
-gdbstub, QEMU logs, trace events, replay, and instruction-window data.
-
-## Hard policy boundary
-
-Do not produce source code intended for QEMU upstream submission. Do not add DCO or review trailers.
+QEMU's official GitLab and mailing lists are upstream project channels. A
+patch becomes an upstream contribution when sent to the mailing-list recipients
+selected through `MAINTAINERS`; do not prepare or send agent-generated patches
+for that submission. Local branches, commits, patch files, pushes, and pull
+requests are not by themselves QEMU upstream contributions. Perform those Git
+actions only when requested and follow the workspace's Git policy.
 
 ## Classify first
 
@@ -66,7 +61,9 @@ Do not assume a model bug before command line and image provenance are known.
 
 ## Host-side debugging of the QEMU process
 
-Use host-side GDB or LLDB when debugging QEMU itself: crashes, assertions, hangs in device code, main-loop issues, migration bugs, TCG backend emission, or qtest-spawned QEMU failures. This is separate from the guest gdbstub: host GDB controls the emulator process; guest gdbstub controls guest CPU state.
+Host GDB controls the emulator process; the guest gdbstub controls guest CPU
+state. Use host GDB or LLDB for QEMU crashes, assertions, hangs, migration
+bugs, TCG backend emission, or qtest-spawned failures.
 
 Before attaching:
 
