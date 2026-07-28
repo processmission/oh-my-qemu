@@ -93,16 +93,19 @@ Only topology, model-semantics, and TCG categories usually justify source change
 
 For every guest-visible control/status register bank, statically verify:
 
-- the framework decision records project policy, compatible explicit user
-  direction, nearby subsystem conventions, and its rationale;
+- the framework decision records policy present in the target QEMU workspace,
+  explicit user direction, nearby subsystem conventions, and its rationale;
+- the decision applies those inputs in that order and stops at the first
+  decisive one;
 - the selected `RegisterInfo` or manual MMIO implementation matches that
   decision;
 - register offsets, field macros, backing storage, framework tables, and
   register-local callbacks live in the device `.c` file;
 - no header or board file owns register layout or semantics;
 - a `RegisterInfo` implementation uses the checked-out tree's current API;
-- a manual MMIO implementation has explicit project, user, or
-  nearby-subsystem justification.
+- a manual MMIO implementation is selected by target-workspace policy, or,
+  when that policy does not decide, by compatible explicit user direction, or,
+  when neither decides, by a clear nearby subsystem convention.
 
 Report `FAIL` for a missing, contradicted, or unjustified decision and for a
 source-layout violation. Do not fail merely because the justified choice is
