@@ -115,14 +115,15 @@ Use libqos/qgraph when nearby subsystem tests already do.
 ## Register model preflight
 
 Before writing or running device qtests, or accepting their results, inspect
-the model source. Every guest-visible control/status register bank must use the
-checked-out QEMU tree's `RegisterInfo` framework. Register offsets, field
-macros, backing storage, `RegisterAccessInfo` tables, `RegisterInfo` arrays,
-and register-local hooks must remain in the device `.c` file, not a header.
+the model source and its recorded framework decision. Both `RegisterInfo` and
+manual MMIO callbacks are valid when the choice follows project policy,
+compatible explicit user direction, and nearby subsystem conventions.
+Register offsets, field macros, backing storage, framework tables, and
+register-local callbacks must remain in the device `.c` file, not a header.
 
-Report either violation as a model-structure failure. Keep qtests behavioral:
-exercise the guest-visible interface rather than coupling tests to the internal
-table representation.
+Report a missing or contradicted framework decision, or a source-layout
+violation, as a model-structure failure. Keep qtests behavioral: exercise the
+guest-visible interface rather than coupling tests to the selected framework.
 
 ## Device qtest checklist
 
