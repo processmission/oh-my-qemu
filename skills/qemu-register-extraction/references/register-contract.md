@@ -100,10 +100,11 @@ resolve it.
 
 ## QEMU framework decision
 
-- Record the applicable project policy, explicit user direction, and nearby
-  subsystem convention for every guest-visible control/status register bank.
-- Follow project policy first, then compatible explicit user direction, then a
-  clear nearby convention. Use `RegisterInfo` as the default when none decides.
+- Record policy present in the target QEMU workspace, explicit user direction,
+  and the nearby subsystem convention for every guest-visible control/status
+  register bank.
+- Apply those inputs in order and stop at the first decisive one. Use
+  `RegisterInfo` as the default when none decides.
 - Permit manual MMIO callbacks when this decision justifies them. Record the
   selected framework and rationale instead of treating either framework as a
   hardware fact.
@@ -147,7 +148,7 @@ resolve it.
 
 ## Register bank framework decision
 
-| Bank | Choice | Project policy | User direction | Nearby convention | Rationale |
+| Bank | Choice | Target-workspace policy | User direction | Nearby convention | Rationale |
 | --- | --- | --- | --- | --- | --- |
 
 ## Implementation mapping notes
