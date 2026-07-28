@@ -89,6 +89,21 @@ Classify before changing model code:
 
 Only topology, model-semantics, and TCG categories usually justify source changes.
 
+## Register model structure gate
+
+For every guest-visible control/status register bank, statically verify:
+
+- it uses the checked-out QEMU tree's `RegisterInfo` framework;
+- register offsets, field macros, backing storage, `RegisterAccessInfo` tables,
+  `RegisterInfo` arrays, and register-local hooks live in the device `.c` file;
+- no header or board file owns register layout or semantics;
+- a custom MMIO handler exists only for a non-register FIFO data port,
+  streaming window, or RAM/ROM window, and any control/status registers in or
+  beside it still delegate to `RegisterInfo`.
+
+Report `FAIL` for this gate when any rule is violated. A successful build,
+boot, or qtest run does not override a model-structure failure.
+
 ## Device/board verification checklist
 
 - reset state;
