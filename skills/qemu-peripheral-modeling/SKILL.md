@@ -90,18 +90,18 @@ Do not put register side effects in board files.
 
 Before designing a guest-visible control/status register bank:
 
-1. Read the project's `AGENTS.md` files and other explicit project policy.
-2. Record the user's explicit framework direction when it does not conflict
-   with project policy.
-3. Inspect nearby devices in the same subsystem for the maintained convention.
+1. Read applicable policy files present in the target QEMU workspace.
+2. If they do not decide, use the user's explicit compatible framework
+   direction.
+3. If neither decides, inspect nearby devices in the same subsystem for a clear
+   maintained convention.
 4. Select `RegisterInfo` or manual MMIO callbacks and record the evidence and
    rationale in `.oh-my-qemu/<task-slug>/audit.md`.
 
-Follow project policy first, then compatible explicit user direction, then a
-clear nearby subsystem convention. Use `RegisterInfo` from the checked-out QEMU
-tree as the default when none of those inputs decides. Manual MMIO callbacks
-are permitted when this decision gate justifies them; they are not a failure
-merely because they do not use `RegisterInfo`.
+Stop at the first decisive input. Use `RegisterInfo` from the checked-out QEMU
+tree as the default when none decides. Manual MMIO callbacks are permitted when
+this decision gate justifies them; they are not a failure merely because they
+do not use `RegisterInfo`.
 
 For the `RegisterInfo` path, use the current tree rather than remembered API
 signatures. QEMU versions can differ, so inspect the local implementation:
@@ -192,7 +192,7 @@ For command-stream or accelerator blocks:
 
 - Generic scratch register banks for real devices.
 - Selecting a register framework without recording the decision gate evidence.
-- Manual MMIO callbacks with no project, user, or nearby-subsystem
+- Manual MMIO callbacks with no target-workspace, user, or nearby-subsystem
   justification.
 - Copying stale `RegisterInfo` function signatures from memory when that
   framework is selected.
