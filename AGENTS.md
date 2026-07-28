@@ -1,7 +1,11 @@
 # QEMU Skill Repository Agent Guide
 
-This repository stores portable agent skills for local QEMU work. It is not a
-QEMU upstream source branch and contains no agent plugin runtime.
+This file governs development of the portable skills in this repository. It is
+not installed into target QEMU checkouts. Installed skills must not depend on
+or cite this file; put every runtime rule the skill needs inside that skill.
+
+This repository is not a QEMU upstream source branch and contains no agent
+plugin runtime.
 
 ## QEMU upstream provenance boundary
 
@@ -22,11 +26,11 @@ sending a patch there is a QEMU upstream contribution.
 Repository-maintenance changes in this skill repository follow its normal local
 Git policy.
 
-## Auditable workspace contract
+## Installed skill authoring rules
 
-Every skill is independently installable and contains the same compact audit
-workflow. For non-trivial tasks that write to a QEMU workspace, use only the
-entries the task needs under:
+Keep every skill independently installable and include the same compact audit
+workflow. Require non-trivial tasks that write to a QEMU workspace to use only
+the entries they need under:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -57,60 +61,31 @@ builds/
 Preserve existing entries, avoid duplicates, never stage or commit these
 directories, and verify them absent from `git status --short` at handoff.
 
-## Portable installation boundary
+## Installer development rules
 
-The root `install.sh` is the recommended project-local entry point. It runs
-`npx skills add`, defaults to all skills in project-local Codex and Claude Code
-without prompts, rejects global installation, and updates the required
-repository-local Git excludes only after installation succeeds. The installer
-also excludes `.claude/skills/` and `skills-lock.json`; the shared audit
-workspace contract above remains the three tool-independent directories. An
-explicit `--skill` selects a subset. When invoked from a repository checkout,
-it installs that local skill tree into the target, which supports contributor
-testing. It rejects targets that already track an installer-managed skill path
-or lockfile because repository-local excludes cannot hide tracked changes.
+Keep root `install.sh` as the recommended project-local entry point. Preserve
+these behaviors:
+
+- run `npx skills add`;
+- default to all skills in project-local Codex and Claude Code without prompts;
+- reject global installation;
+- update repository-local Git excludes only after installation succeeds;
+- exclude `.agents/`, `.claude/skills/`, `.oh-my-qemu/`, `builds/`, and
+  `skills-lock.json`;
+- let an explicit `--skill` select a subset;
+- install the local skill tree when invoked from this repository checkout;
+- reject targets that track an installer-managed skill path or lockfile.
+
 Direct `npx skills add` installs skill directories only and does not update Git
-excludes. Each skill still enforces the audit contract when it runs alone.
+excludes. Do not make an installed skill depend on installer behavior beyond
+the files inside its own directory.
 
-## Repository layout
+## Repository layout rules
 
-- `skills/<skill-name>/SKILL.md`: portable skill catalog.
-- `install.sh`: self-contained curl installer for a selected Git project root.
-- `scripts/validate-codex-skills.mjs`: catalog and repository validation.
-- `site/`: static documentation site.
-
-## Skill catalog
-
-### Coordination and feedback
-
-- `qemu-workflow`: optional planning, provenance, small-round review, evidence,
-  and handoff for multi-step tasks.
-- `qemu-agent-feedback`: self-contained sanitization and approved filing of one
-  reusable oh-my-qemu workflow improvement.
-
-### Modeling and TCG
-
-- `qemu-register-extraction`
-- `qemu-peripheral-modeling`
-- `qemu-board-modeling`
-- `qemu-tcg-frontend`
-- `qemu-tcg-backend`
-
-### Build, image, and boot
-
-- `qemu-build`
-- `qemu-kernel-build`
-- `qemu-uboot-build`
-- `qemu-image`
-- `qemu-boot-run`
-- `qemu-linux-boot`
-
-### Verification and support
-
-- `qemu-qtest`
-- `qemu-debug`
-- `qemu-model-verification`
-- `qemu-rst-documentation`
+- Put portable skill instructions in `skills/<skill-name>/SKILL.md`.
+- Keep `install.sh` self-contained for curl-based installation.
+- Keep repository validation in `scripts/validate-codex-skills.mjs`.
+- Keep public documentation in `site/`.
 
 ## Skill design rules
 

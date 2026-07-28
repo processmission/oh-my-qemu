@@ -349,7 +349,6 @@ function validateCatalog(skills) {
 
   for (const file of [
     join(repoRoot, "README.md"),
-    join(repoRoot, "AGENTS.md"),
     join(repoRoot, "site", "src", "content", "docs", "skills.md"),
   ]) {
     const content = readFileSync(file, "utf8");
