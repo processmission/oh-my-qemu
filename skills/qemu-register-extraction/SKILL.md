@@ -74,11 +74,13 @@ output schema, and completion checklist.
    default for a gap; name the check that could resolve it.
 7. **Record the framework decision.** For every guest-visible control/status
    register bank, record policy present in the target QEMU workspace, explicit
-   user direction, and a clear maintained nearby subsystem convention. Apply
-   them in that order, stopping at the first decisive input. Select
+   user direction and whether it is compatible, and a clear maintained nearby
+   subsystem convention. Apply them in that order, treating only compatible
+   user direction as decisive, and stop at the first decisive input. Select
    `RegisterInfo` or justified manual MMIO callbacks; use `RegisterInfo` when
-   none decides. Keep register offsets, field macros, backing storage, framework
-   tables, and register-local hooks in the device `.c` file, not a header.
+   none decides. Keep register offsets, field macros, backing storage,
+   framework tables, and register-local hooks in the device `.c` file, not a
+   header.
 8. **Produce the handoff.** Write the contract to
    `.oh-my-qemu/<task-slug>/output/register-contract.md`, with source-cited
    qtest candidates and explicit unknowns. Keep extraction/conversion scripts
