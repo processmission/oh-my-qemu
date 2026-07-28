@@ -7,15 +7,10 @@ description: Use when a completed QEMU skill session exposed a reusable oh-my-qe
 
 # QEMU Agent Feedback
 
-Turn reusable lessons from a QEMU task into one privacy-reviewed improvement
-proposal. This skill is self-contained and does not require repository helper
-scripts.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
-only the entries the task needs:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -27,21 +22,19 @@ only the entries the task needs:
 ```
 
 Before changing source or mutable artifacts, record the workspace root,
-branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
-acceptance checks in `audit.md`. Record exact redacted commands and results in
-`commands.md`; record source revisions, configurations, tool versions, and
-input/output hashes when they affect reproducibility. Separate observations
-from inferences and create or change source files only when requested.
+revision, `git status --short`, pre-existing changes, goal, scope, and
+acceptance checks in `audit.md`. Log exact redacted commands and results in
+`commands.md`; record revisions, configurations, tool versions, and hashes when
+they affect reproducibility. Separate observations from inferences and edit
+source only when requested.
 
-Put every QEMU build in a named directory under the QEMU source root, such as
-`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
-binaries under the task's `output/` directory. In a Git worktree, before
-writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
-`builds/` to the repository-local exclude file returned by
+Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
+dependencies and non-QEMU binaries in task `output/`. Before writing audit
+artifacts or configuring QEMU in a Git worktree, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local file from
 `git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. Before handoff, verify
-that `git status --short` contains none of them, then report the task directory
-and unresolved gaps.
+duplicates. Never stage or commit those directories. At handoff, verify them
+absent from `git status --short`. Report the task directory and unresolved gaps.
 
 ## Boundary
 
