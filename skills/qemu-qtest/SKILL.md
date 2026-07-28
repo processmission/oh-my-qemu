@@ -115,17 +115,20 @@ Use libqos/qgraph when nearby subsystem tests already do.
 ## Register model preflight
 
 Before writing or running device qtests, or accepting their results, inspect
-the model source and its recorded framework decision. Both `RegisterInfo` and
-manual MMIO callbacks are valid when chosen by the ordered decision gate:
-policy present in the target QEMU workspace first, compatible explicit user
-direction only when policy does not decide, and a clear nearby subsystem
-convention only when neither higher-priority input decides. Register offsets,
-field macros, backing storage, framework tables, and register-local callbacks
-must remain in the device `.c` file, not a header.
+the model source and reconstruct its framework decision from current evidence.
+Apply policy present in the target QEMU workspace first, compatible explicit
+user direction only when policy does not decide, and a clear nearby subsystem
+convention only when neither higher-priority input decides. Compare any
+existing decision record with the result, but do not require a prior artifact.
+For a non-trivial task that writes to the workspace, record the reconstructed
+decision and rationale in `audit.md`.
 
-Report a missing or contradicted framework decision, or a source-layout
-violation, as a model-structure failure. Keep qtests behavioral: exercise the
-guest-visible interface rather than coupling tests to the selected framework.
+Both `RegisterInfo` and manual MMIO callbacks are valid when selected by this
+gate. Report a contradiction between the reconstructed decision and either the
+implementation or an existing record, an unjustified implementation, or a
+source-layout violation as a model-structure failure. Keep qtests behavioral:
+exercise the guest-visible interface rather than coupling tests to the selected
+framework.
 
 ## Device qtest checklist
 
