@@ -91,12 +91,13 @@ Only topology, model-semantics, and TCG categories usually justify source change
 
 ## Register model structure gate
 
-For every guest-visible control/status register bank, statically verify:
+For every guest-visible control/status register bank, reconstruct the framework
+decision from current evidence and statically verify:
 
-- the framework decision records policy present in the target QEMU workspace,
-  explicit user direction, nearby subsystem conventions, and its rationale;
-- the decision applies those inputs in that order and stops at the first
-  decisive one;
+- policy present in the target QEMU workspace is applied first, compatible
+  explicit user direction only when policy does not decide, and a clear nearby
+  subsystem convention only when neither higher-priority input decides;
+- any existing decision record matches the reconstructed decision;
 - the selected `RegisterInfo` or manual MMIO implementation matches that
   decision;
 - register offsets, field macros, backing storage, framework tables, and
@@ -107,10 +108,13 @@ For every guest-visible control/status register bank, statically verify:
   when that policy does not decide, by compatible explicit user direction, or,
   when neither decides, by a clear nearby subsystem convention.
 
-Report `FAIL` for a missing, contradicted, or unjustified decision and for a
-source-layout violation. Do not fail merely because the justified choice is
-manual MMIO. A successful build, boot, or qtest run does not override this
-structure gate.
+Report `FAIL` when current evidence does not justify the implementation, an
+existing record contradicts the reconstructed decision, or the source layout
+violates the gate. Do not fail solely because no historical decision artifact
+exists; for a non-trivial task that writes to the workspace, record the
+reconstructed decision and rationale in `audit.md`. Do not fail merely because
+the justified choice is manual MMIO. A successful build, boot, or qtest run
+does not override this structure gate.
 
 ## Device/board verification checklist
 
