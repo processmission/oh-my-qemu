@@ -7,13 +7,10 @@ description: Use for QEMU board, SoC, machine, memory map, boot path, FDT/ACPI, 
 
 # QEMU Board and Machine Modeling
 
-Use this domain skill when changing a QEMU machine or SoC: CPU clusters, memory maps, reset vectors, firmware/direct-kernel boot, FDT/ACPI, interrupt topology, and board-level device wiring.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep all agent-only records under `.oh-my-qemu/<task-slug>/`. Create
-only the entries the task needs:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -25,21 +22,19 @@ only the entries the task needs:
 ```
 
 Before changing source or mutable artifacts, record the workspace root,
-branch/revision, `git status --short`, user-owned dirty paths, goal, scope, and
-acceptance checks in `audit.md`. Record exact redacted commands and results in
-`commands.md`; record source revisions, configurations, tool versions, and
-input/output hashes when they affect reproducibility. Separate observations
-from inferences and create or change source files only when requested.
+revision, `git status --short`, pre-existing changes, goal, scope, and
+acceptance checks in `audit.md`. Log exact redacted commands and results in
+`commands.md`; record revisions, configurations, tool versions, and hashes when
+they affect reproducibility. Separate observations from inferences and edit
+source only when requested.
 
-Put every QEMU build in a named directory under the QEMU source root, such as
-`builds/build-aarch64/`. Put third-party dependency artifacts and non-QEMU
-binaries under the task's `output/` directory. In a Git worktree, before
-writing audit records or configuring QEMU, add `.agents/`, `.oh-my-qemu/`, and
-`builds/` to the repository-local exclude file returned by
+Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
+dependencies and non-QEMU binaries in task `output/`. Before writing audit
+artifacts or configuring QEMU in a Git worktree, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local file from
 `git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. Before handoff, verify
-that `git status --short` contains none of them, then report the task directory
-and unresolved gaps.
+duplicates. Never stage or commit those directories. At handoff, verify them
+absent from `git status --short`. Report the task directory and unresolved gaps.
 
 ## Workflow
 
@@ -53,9 +48,14 @@ and unresolved gaps.
 5. Use boot or workload evidence only as a supplemental integration gate and
    state exactly what it proves.
 
-## Hard policy boundary
+## QEMU upstream boundary
 
-Do not produce source code intended for QEMU upstream submission. QEMU currently declines contributions believed to include or derive from AI-generated content. Do not add DCO or review trailers.
+QEMU's official GitLab and mailing lists are upstream project channels. A
+patch becomes an upstream contribution when sent to the mailing-list recipients
+selected through `MAINTAINERS`; do not prepare or send agent-generated patches
+for that submission. Local branches, commits, patch files, pushes, and pull
+requests are not by themselves QEMU upstream contributions. Perform those Git
+actions only when requested and follow the workspace's Git policy.
 
 ## Board contract
 
@@ -118,17 +118,9 @@ Board-modeling work must be verified through focused qtests, not only through bo
 
 If a board change cannot be covered by qtest, record the technical reason and replacement evidence in `audit.md`. A firmware boot log is supplemental evidence, not a substitute for qtest coverage.
 
-## Verification expectations
-
-At minimum:
-
-- target binary builds;
-- a focused qtest adds or extends a board case for the changed machine/SoC behavior;
-- the qtest can instantiate the machine with minimal arguments;
-- the qtest probes key MMIO/RAM/ROM/unimplemented bases from the memory-map table;
-- the qtest covers one representative IRQ or device wiring path when practical;
-- boot smoke captures UART/console under `.oh-my-qemu/<task-slug>/logs/` when firmware compatibility is in scope;
-- image hashes and exact command lines are recorded.
+Also build the target binary. When firmware compatibility is in scope, record
+image hashes and capture the boot console under
+`.oh-my-qemu/<task-slug>/logs/`.
 
 ## Anti-patterns
 
