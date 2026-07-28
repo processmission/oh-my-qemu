@@ -96,7 +96,8 @@ decision from current evidence and statically verify:
 
 - policy present in the target QEMU workspace is applied first, compatible
   explicit user direction only when policy does not decide, and a clear nearby
-  subsystem convention only when neither higher-priority input decides;
+  subsystem convention only when neither higher-priority input decides and
+  that convention is maintained;
 - any existing decision record matches the reconstructed decision;
 - the selected `RegisterInfo` or manual MMIO implementation matches that
   decision;
@@ -106,7 +107,7 @@ decision from current evidence and statically verify:
 - a `RegisterInfo` implementation uses the checked-out tree's current API;
 - a manual MMIO implementation is selected by target-workspace policy, or,
   when that policy does not decide, by compatible explicit user direction, or,
-  when neither decides, by a clear nearby subsystem convention.
+  when neither decides, by a clear maintained nearby subsystem convention.
 
 Report `FAIL` when current evidence does not justify the implementation, an
 existing record contradicts the reconstructed decision, or the source layout
