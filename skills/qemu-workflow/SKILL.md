@@ -7,14 +7,10 @@ description: Optional, self-contained workflow for non-trivial multi-step QEMU r
 
 # QEMU Workflow
 
-Use this optional workflow to structure a multi-step QEMU task without depending
-on any other skill. Apply installed domain skills when useful, but treat their
-absence as no blocker.
-
 ## Audit workflow
 
-For every non-trivial task that writes to the workspace, choose a stable task
-slug and keep agent-only records under:
+For non-trivial workspace writes, use a stable
+`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -25,32 +21,29 @@ slug and keep agent-only records under:
 └── output/         # Generated deliverables, dependencies, and non-QEMU binaries
 ```
 
-Put every agent-generated intermediate document, script, and harness under
-`scripts/`; keep decisive logs under `logs/`. Put third-party dependency
-generated deliverables, third-party dependencies, and non-QEMU build binaries
-under `output/`. QEMU's own builds must use
-`builds/build-<target>/` at the QEMU source root. Record every effective path in
-`audit.md`.
+Keep intermediate documents, scripts, and harnesses in `scripts/`; decisive
+logs in `logs/`; and generated deliverables, third-party dependencies, and
+non-QEMU binaries in `output/`. Keep QEMU builds under source-root
+`builds/build-<target>/`. Record effective paths in `audit.md`.
 
-In a Git worktree, add `.agents/`, `.oh-my-qemu/`, and `builds/` to the
-repository-local exclude file returned by
-`git rev-parse --git-path info/exclude` before writing audit artifacts or
-building QEMU. Preserve existing entries and avoid duplicates. Never stage or
-commit `.agents/`, `.oh-my-qemu/`, or `builds/`. Stage or commit task-owned
-source paths only when the user explicitly requests that separate action.
+Before writing audit artifacts or configuring QEMU in a Git worktree, add
+`.agents/`, `.oh-my-qemu/`, and `builds/` to the repository-local file from
+`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
+duplicates. Never stage or commit those paths. Stage or commit source only when
+the user explicitly requests it.
 
-Before handoff, run `git status --short`, verify that it contains no
-`.agents/`, `.oh-my-qemu/`, or `builds/` paths, and reconcile it with the
-recorded baseline. Report the task directory, QEMU build directory, task-owned
-source changes, pre-existing or unrelated changes, and all unresolved gaps.
+At handoff, reconcile `git status --short` with the baseline and verify the
+excluded paths are absent. Report task and build directories, source changes,
+pre-existing changes, and unresolved gaps.
 
-## Policy boundary
+## QEMU upstream boundary
 
-Do not generate source, documentation, commit messages, or patches intended for
-QEMU upstream submission. For upstream-facing work, limit assistance to
-research, debugging, analysis, and verification guidance. Clearly label any
-generated source experiment as local-only and keep it out of upstream-ready
-artifacts.
+QEMU's official GitLab and mailing lists are upstream project channels. A
+patch becomes an upstream contribution when sent to the mailing-list recipients
+selected through `MAINTAINERS`; do not prepare or send agent-generated patches
+for that submission. Local branches, commits, patch files, pushes, and pull
+requests are not by themselves QEMU upstream contributions. Perform those Git
+actions only when requested and follow the workspace's Git policy.
 
 ## Run the workflow
 
