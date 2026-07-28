@@ -24,8 +24,9 @@ Changes to this repository follow its local Git policy.
 - Put skills in `skills/<skill-name>/SKILL.md`.
 - Keep each skill independently installable. Do not depend on another skill,
   repository file, installer behavior, or plugin hook.
-- Precede YAML frontmatter with the Process Mission copyright and MIT SPDX
-  comments; keep YAML data fields to `name` and `description`.
+- Inside YAML frontmatter, put the Process Mission copyright and MIT SPDX
+  comments immediately after the opening `---` and before the data fields.
+  Keep data fields to `name` and `description`.
 - Include matching `agents/openai.yaml` with quoted `display_name`,
   `short_description`, and `$skill-name` `default_prompt`.
 - Keep `SKILL.md` concise. Put long material in one-level `references/`,
