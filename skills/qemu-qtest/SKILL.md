@@ -118,11 +118,11 @@ Before writing or running device qtests, or accepting their results, inspect
 the model source and reconstruct its framework decision from current evidence.
 Apply policy present in the target QEMU workspace first, compatible explicit
 user direction only when policy does not decide, and a clear nearby subsystem
-convention only when neither higher-priority input decides. Use `RegisterInfo`
-when none of those inputs decides. Compare any existing decision record with
-the result, but do not require a prior artifact. For a non-trivial task that
-writes to the workspace, record the reconstructed decision and rationale in
-`audit.md`.
+convention only when neither higher-priority input decides and that convention
+is maintained. Use `RegisterInfo` when none of those inputs decides. Compare
+any existing decision record with the result, but do not require a prior
+artifact. For a non-trivial task that writes to the workspace, record the
+reconstructed decision and rationale in `audit.md`.
 
 Both `RegisterInfo` and manual MMIO callbacks are valid when selected by this
 gate. Register offsets, field macros, backing storage, framework tables, and
