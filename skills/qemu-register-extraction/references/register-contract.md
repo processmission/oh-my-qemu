@@ -101,8 +101,8 @@ resolve it.
 ## QEMU framework decision
 
 - Record policy present in the target QEMU workspace, explicit user direction,
-  and the nearby subsystem convention for every guest-visible control/status
-  register bank.
+  and any clear maintained nearby subsystem convention for every guest-visible
+  control/status register bank.
 - Apply those inputs in order and stop at the first decisive one. Use
   `RegisterInfo` as the default when none decides.
 - Permit manual MMIO callbacks when this decision justifies them. Record the
@@ -148,7 +148,7 @@ resolve it.
 
 ## Register bank framework decision
 
-| Bank | Choice | Target-workspace policy | User direction | Nearby convention | Rationale |
+| Bank | Choice | Target-workspace policy | User direction | Maintained nearby convention | Rationale |
 | --- | --- | --- | --- | --- | --- |
 
 ## Implementation mapping notes
