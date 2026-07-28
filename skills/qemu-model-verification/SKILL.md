@@ -93,16 +93,21 @@ Only topology, model-semantics, and TCG categories usually justify source change
 
 For every guest-visible control/status register bank, statically verify:
 
-- it uses the checked-out QEMU tree's `RegisterInfo` framework;
-- register offsets, field macros, backing storage, `RegisterAccessInfo` tables,
-  `RegisterInfo` arrays, and register-local hooks live in the device `.c` file;
+- the framework decision records project policy, compatible explicit user
+  direction, nearby subsystem conventions, and its rationale;
+- the selected `RegisterInfo` or manual MMIO implementation matches that
+  decision;
+- register offsets, field macros, backing storage, framework tables, and
+  register-local callbacks live in the device `.c` file;
 - no header or board file owns register layout or semantics;
-- a custom MMIO handler exists only for a non-register FIFO data port,
-  streaming window, or RAM/ROM window, and any control/status registers in or
-  beside it still delegate to `RegisterInfo`.
+- a `RegisterInfo` implementation uses the checked-out tree's current API;
+- a manual MMIO implementation has explicit project, user, or
+  nearby-subsystem justification.
 
-Report `FAIL` for this gate when any rule is violated. A successful build,
-boot, or qtest run does not override a model-structure failure.
+Report `FAIL` for a missing, contradicted, or unjustified decision and for a
+source-layout violation. Do not fail merely because the justified choice is
+manual MMIO. A successful build, boot, or qtest run does not override this
+structure gate.
 
 ## Device/board verification checklist
 
