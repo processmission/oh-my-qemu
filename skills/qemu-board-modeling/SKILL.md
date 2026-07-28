@@ -75,11 +75,11 @@ The board should not emulate device register semantics.
 If board work requires a new peripheral register bank, implement it in a
 device `.c` file. Record the framework decision by applying policy present in
 the target QEMU workspace first, compatible explicit user direction second, and
-a clear nearby subsystem convention third, stopping at the first decisive
-input. Select `RegisterInfo` or justified manual MMIO callbacks, and default to
-`RegisterInfo` when none decides. Keep register offsets, field macros, backing
-storage, framework tables, and register-local callbacks out of board files and
-headers.
+a clear maintained nearby subsystem convention third, stopping at the first
+decisive input. Select `RegisterInfo` or justified manual MMIO callbacks, and
+default to `RegisterInfo` when none decides. Keep register offsets, field
+macros, backing storage, framework tables, and register-local callbacks out of
+board files and headers.
 
 ## Required plan facts
 
