@@ -1,32 +1,41 @@
 # QEMU Skill Repository Agent Guide
 
-This repository stores portable agent skills for local QEMU work. It is not a
-QEMU upstream source branch and contains no agent plugin runtime.
+This file governs development of this repository. It is not installed into
+QEMU. Each installed skill must contain its own runtime rules and must not
+depend on or cite this file.
 
-## QEMU upstream provenance boundary
+## QEMU upstream boundary
 
-QEMU's official GitLab and mailing lists are upstream project channels. For
-patches, follow the recipients and lists selected through `MAINTAINERS`:
-sending a patch there is a QEMU upstream contribution.
+QEMU's official GitLab and mailing lists are upstream channels. A patch becomes
+an upstream contribution only when it is sent to the mailing-list recipients
+selected through QEMU's `MAINTAINERS`.
 
-- Do not prepare or send agent-generated code or documentation for that
-  mailing-list submission. Point such requests to QEMU's current
-  `docs/devel/code-provenance.rst` policy.
-- Creating a local branch, commit, or patch file, pushing a branch, or opening a
-  pull request is not by itself a QEMU upstream contribution. Perform those Git
-  actions only when the user requests them and follow the workspace's Git
-  policy.
-- Research, debugging, static analysis, local-only experiments, verification,
-  and workflow guidance remain allowed.
+- Do not prepare or send agent-generated code or documentation for upstream
+  submission. Follow QEMU's current `docs/devel/code-provenance.rst`.
+- Local branches, commits, patch files, pushes, and pull requests are not by
+  themselves upstream contributions. Perform Git actions only when requested.
+- Research, debugging, analysis, local experiments, verification, and workflow
+  guidance are allowed.
 
-Repository-maintenance changes in this skill repository follow its normal local
-Git policy.
+Changes to this repository follow its local Git policy.
 
-## Auditable workspace contract
+## Skill rules
 
-Every skill is independently installable and contains the same compact audit
-workflow. For non-trivial tasks that write to a QEMU workspace, use only the
-entries the task needs under:
+- Put skills in `skills/<skill-name>/SKILL.md`.
+- Keep each skill independently installable. Do not depend on another skill,
+  repository file, installer behavior, or plugin hook.
+- Inside YAML frontmatter, put the Process Mission copyright and MIT SPDX
+  comments immediately after the opening `---` and before the data fields.
+  Keep data fields to `name` and `description`.
+- Include matching `agents/openai.yaml` with quoted `display_name`,
+  `short_description`, and `$skill-name` `default_prompt`.
+- Keep `SKILL.md` concise. Put long material in one-level `references/`,
+  `scripts/`, or `assets/`.
+- Do not require checkpoint commits. Stage or commit only when requested.
+- Require explicit approval for external writes such as `gh issue create`.
+
+Every skill must include the compact audit contract. For a non-trivial task
+that writes to QEMU, use only the needed entries under:
 
 ```text
 .oh-my-qemu/<task-slug>/
@@ -37,104 +46,34 @@ entries the task needs under:
 └── output/
 ```
 
-- `scripts/` holds temporary scripts, probes, parsers, and harnesses.
-- `output/` holds generated deliverables, third-party dependency artifacts,
-  and non-QEMU build binaries.
-- QEMU's own build output belongs only in a named source-root directory such as
-  `builds/build-aarch64/`, never `build/` or task `output/`.
-- Source files change only when they are the requested deliverable.
+Keep temporary tooling in `scripts/`, generated or third-party artifacts in
+`output/`, and QEMU build output in a named source-root directory such as
+`builds/build-aarch64/`—never `build/` or task `output/`. Change source files
+only when they are the requested deliverable.
 
-Before writing audit artifacts or configuring QEMU in a Git worktree, add these
-entries to the repository-local file returned by
-`git rev-parse --git-path info/exclude`:
+Before creating audit artifacts or configuring QEMU, add `.agents/`,
+`.oh-my-qemu/`, and `builds/` to the repository-local
+`git rev-parse --git-path info/exclude`. Preserve existing entries, avoid
+duplicates, never stage these paths, and verify them absent from
+`git status --short` at handoff.
 
-```text
-.agents/
-.oh-my-qemu/
-builds/
-```
+## Installer rules
 
-Preserve existing entries, avoid duplicates, never stage or commit these
-directories, and verify them absent from `git status --short` at handoff.
+Keep `install.sh` self-contained and project-local. It must:
 
-## Portable installation boundary
+- run `npx skills add`, defaulting non-interactively to all skills for Codex and
+  Claude Code;
+- reject global installs and tracked installer-managed paths or lockfiles;
+- support `--skill` and use this checkout's local skill tree;
+- update Git excludes only after a successful install for `.agents/`,
+  `.claude/skills/`, `.oh-my-qemu/`, `builds/`, and `skills-lock.json`.
 
-The root `install.sh` is the recommended project-local entry point. It runs
-`npx skills add`, defaults to all skills in project-local Codex and Claude Code
-without prompts, rejects global installation, and updates the required
-repository-local Git excludes only after installation succeeds. The installer
-also excludes `.claude/skills/` and `skills-lock.json`; the shared audit
-workspace contract above remains the three tool-independent directories. An
-explicit `--skill` selects a subset. When invoked from a repository checkout,
-it installs that local skill tree into the target, which supports contributor
-testing. It rejects targets that already track an installer-managed skill path
-or lockfile because repository-local excludes cannot hide tracked changes.
-Direct `npx skills add` installs skill directories only and does not update Git
-excludes. Each skill still enforces the audit contract when it runs alone.
+Direct `npx skills add` installs skills only and does not update Git excludes.
+Keep validation in `scripts/validate-codex-skills.mjs` and public documentation
+in `site/`.
 
-## Repository layout
-
-- `skills/<skill-name>/SKILL.md`: portable skill catalog.
-- `install.sh`: self-contained curl installer for a selected Git project root.
-- `scripts/validate-codex-skills.mjs`: catalog and repository validation.
-- `site/`: static documentation site.
-
-## Skill catalog
-
-### Coordination and feedback
-
-- `qemu-workflow`: optional planning, provenance, small-round review, evidence,
-  and handoff for multi-step tasks.
-- `qemu-agent-feedback`: self-contained sanitization and approved filing of one
-  reusable oh-my-qemu workflow improvement.
-
-### Modeling and TCG
-
-- `qemu-register-extraction`
-- `qemu-peripheral-modeling`
-- `qemu-board-modeling`
-- `qemu-tcg-frontend`
-- `qemu-tcg-backend`
-
-### Build, image, and boot
-
-- `qemu-build`
-- `qemu-kernel-build`
-- `qemu-uboot-build`
-- `qemu-image`
-- `qemu-boot-run`
-- `qemu-linux-boot`
-
-### Verification and support
-
-- `qemu-qtest`
-- `qemu-debug`
-- `qemu-model-verification`
-- `qemu-rst-documentation`
-
-## Skill design rules
-
-- Keep YAML data fields to `name` and `description`, preceded by the Process
-  Mission copyright and MIT license SPDX comments used by the Zephyr skills.
-- Keep a matching `agents/openai.yaml` in every skill with quoted
-  `display_name`, `short_description`, and `$skill-name` `default_prompt`.
-- Make each skill usable when installed alone; do not require repository-level
-  scripts, plugin hooks, or another skill.
-- Repeat the compact audit workflow in every `SKILL.md` intentionally.
-- Keep the main skill concise; move long templates and variants to one-level
-  `references/`, `scripts/`, or `assets/` resources inside that skill.
-- Do not reintroduce mandatory checkpoint commits. Stage or commit only when
-  the user explicitly requests that separate Git action.
-- Keep external writes, including `gh issue create`, behind explicit approval.
-
-Validate with:
+Run:
 
 ```bash
 npm run codex:skills:validate
 ```
-
-## Upstream references
-
-The structure draws from the QEMU “AGENTS.md and associated skills” RFC and the
-current QEMU code-provenance policy. Those are references, not permission to
-prepare or send generated patches to the QEMU mailing lists.

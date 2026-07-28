@@ -72,11 +72,15 @@ output schema, and completion checklist.
 6. **Resolve evidence quality.** Mark each fact `HIGH`, `MEDIUM`, `LOW`, or
    `CONFLICT`. Never choose silently between disagreeing sources or invent a
    default for a gap; name the check that could resolve it.
-7. **Map to QEMU.** Map every guest-visible control/status register bank to the
-   checked-out QEMU tree's `RegisterInfo` framework. Record that register
-   offsets, field macros, backing storage, `RegisterAccessInfo` tables,
-   `RegisterInfo` arrays, and register-local hooks belong in the device `.c`
-   file, not a header.
+7. **Record the framework decision.** For every guest-visible control/status
+   register bank, record policy present in the target QEMU workspace, explicit
+   user direction and whether it is compatible, and a clear maintained nearby
+   subsystem convention. Apply them in that order, treating only compatible
+   user direction as decisive, and stop at the first decisive input. Select
+   `RegisterInfo` or justified manual MMIO callbacks; use `RegisterInfo` when
+   none decides. Keep register offsets, field macros, backing storage,
+   framework tables, and register-local hooks in the device `.c` file, not a
+   header.
 8. **Produce the handoff.** Write the contract to
    `.oh-my-qemu/<task-slug>/output/register-contract.md`, with source-cited
    qtest candidates and explicit unknowns. Keep extraction/conversion scripts
@@ -93,7 +97,9 @@ output schema, and completion checklist.
   partial-state behavior, and a verification candidate.
 - Preserve conflicts and unavailable sources as gaps.
 - Do not include C implementation templates. The consumer must inspect the
-  checked-out QEMU `RegisterInfo` API before any local-only model experiment.
+  selected framework in the checked-out QEMU tree before any local-only model
+  experiment, including the current `RegisterInfo` API when that framework is
+  selected.
 - Do not suggest placing register definitions, backing storage, or semantics in
   a header. Headers may expose only non-register-layout declarations genuinely
   required outside the device translation unit, such as a public QOM type or a
@@ -109,6 +115,6 @@ semantics, side effects, source citations, or explicit unknowns.
 ## Upstream references
 
 - QEMU code provenance policy: `docs/devel/code-provenance.rst`.
-- `RegisterInfo` API to inspect in the checked-out tree:
+- `RegisterInfo` API to inspect when selected:
   `include/hw/core/register.h`, `include/hw/core/registerfields.h`, and
   `hw/core/register.c`.

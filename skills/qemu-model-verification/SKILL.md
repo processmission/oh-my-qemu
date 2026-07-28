@@ -91,18 +91,32 @@ Only topology, model-semantics, and TCG categories usually justify source change
 
 ## Register model structure gate
 
-For every guest-visible control/status register bank, statically verify:
+For every guest-visible control/status register bank, reconstruct the framework
+decision from current evidence and statically verify:
 
-- it uses the checked-out QEMU tree's `RegisterInfo` framework;
-- register offsets, field macros, backing storage, `RegisterAccessInfo` tables,
-  `RegisterInfo` arrays, and register-local hooks live in the device `.c` file;
+- policy present in the target QEMU workspace is applied first, compatible
+  explicit user direction only when policy does not decide, and a clear nearby
+  subsystem convention only when neither higher-priority input decides and
+  that convention is maintained;
+- `RegisterInfo` is selected when none of those inputs decides;
+- any existing decision record matches the reconstructed decision;
+- the selected `RegisterInfo` or manual MMIO implementation matches that
+  decision;
+- register offsets, field macros, backing storage, framework tables, and
+  register-local callbacks live in the device `.c` file;
 - no header or board file owns register layout or semantics;
-- a custom MMIO handler exists only for a non-register FIFO data port,
-  streaming window, or RAM/ROM window, and any control/status registers in or
-  beside it still delegate to `RegisterInfo`.
+- a `RegisterInfo` implementation uses the checked-out tree's current API;
+- a manual MMIO implementation is selected by target-workspace policy, or,
+  when that policy does not decide, by compatible explicit user direction, or,
+  when neither decides, by a clear maintained nearby subsystem convention.
 
-Report `FAIL` for this gate when any rule is violated. A successful build,
-boot, or qtest run does not override a model-structure failure.
+Report `FAIL` when current evidence does not justify the implementation, an
+existing record contradicts the reconstructed decision, or the source layout
+violates the gate. Do not fail solely because no historical decision artifact
+exists; for a non-trivial task that writes to the workspace, record the
+reconstructed decision and rationale in `audit.md`. Do not fail merely because
+the justified choice is manual MMIO. A successful build, boot, or qtest run
+does not override this structure gate.
 
 ## Device/board verification checklist
 

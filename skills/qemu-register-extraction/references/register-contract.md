@@ -10,7 +10,7 @@ are genuinely inapplicable, not sections whose evidence is missing.
 - [Cross-register feature flows](#cross-register-feature-flows)
 - [Search guidance](#search-guidance)
 - [Confidence and conflicts](#confidence-and-conflicts)
-- [QEMU modeling constraints](#qemu-modeling-constraints)
+- [QEMU framework decision](#qemu-framework-decision)
 - [Output schema](#output-schema)
 - [Completion checklist](#completion-checklist)
 
@@ -98,13 +98,20 @@ For conflicts, record both exact sources, differing values/semantics, target
 relevance, chosen temporary assumption if unavoidable, and the test needed to
 resolve it.
 
-## QEMU modeling constraints
+## QEMU framework decision
 
-- Map every guest-visible control/status register bank to the checked-out QEMU
-  tree's `RegisterInfo` framework.
+- Record policy present in the target QEMU workspace, explicit user direction
+  and whether it is compatible, and any clear maintained nearby subsystem
+  convention for every guest-visible control/status register bank.
+- Apply those inputs in order, treat only compatible user direction as
+  decisive, and stop at the first decisive one. Use `RegisterInfo` as the
+  default when none decides.
+- Permit manual MMIO callbacks when this decision justifies them. Record the
+  selected framework and rationale instead of treating either framework as a
+  hardware fact.
 - Keep register offsets, register field macros, backing storage,
-  `RegisterAccessInfo` tables, `RegisterInfo` arrays, and register-local hooks
-  in the device `.c` file.
+  framework-specific tables, and register-local callbacks in the device `.c`
+  file.
 - Do not put register layout, backing storage, or semantics in a header. A
   header may expose only non-register-layout declarations genuinely required
   outside the translation unit, such as a public QOM type or cross-unit helper
@@ -140,9 +147,14 @@ resolve it.
 | Flow | Fields | Required order | Coupling | Partial/failure state | Confidence | Sources | Test |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
-## RegisterInfo mapping notes
+## Register bank framework decision
 
-| Register | RegisterAccessInfo facts | Hook needed | `.c` placement | Dependencies | qtest coverage |
+| Bank | Choice | Target-workspace policy | User direction and compatibility | Maintained nearby convention | Rationale |
+| --- | --- | --- | --- | --- | --- |
+
+## Implementation mapping notes
+
+| Register | Framework facts | Hook/callback needed | `.c` placement | Dependencies | qtest coverage |
 | --- | --- | --- | --- | --- | --- |
 
 ## Unknowns and conflicts
@@ -159,8 +171,10 @@ resolve it.
 - Cross-register feature flows cover partial as well as success states.
 - Each decisive fact cites a source revision and location.
 - Conflicts and unknowns remain visible.
-- The current QEMU `RegisterInfo` API was inspected and every guest-visible
-  control/status register bank is mapped to it.
+- Every guest-visible control/status register bank records its framework
+  decision, inputs, and rationale.
+- The selected framework was inspected in the current QEMU tree, including the
+  current `RegisterInfo` API when applicable.
 - The contract records that register definitions, tables, and local hooks stay
   in the device `.c` file rather than a header.
 - Tests cover reset, masks, W1C, IRQ, timer, DMA, complete feature enablement,
