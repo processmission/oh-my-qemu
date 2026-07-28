@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
 # SPDX-License-Identifier: MIT
 name: qemu-peripheral-modeling
-description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling with register contracts, QEMU's registerinfo framework, and qtest-backed verification.
+description: Use for QEMU peripheral, accelerator, MMIO, qdev, or SysBusDevice modeling with register contracts, QEMU's RegisterInfo framework, and qtest-backed verification.
 ---
 
 # QEMU Peripheral Modeling
@@ -88,7 +88,9 @@ Do not put register side effects in board files.
 
 ## RegisterInfo framework requirement
 
-For any peripheral with a guest-visible register bank, the model must be built around QEMU's registerinfo framework from the checked-out QEMU tree. Manual offset-switch MMIO callbacks are not acceptable for normal register banks.
+Every peripheral with a guest-visible register bank must use QEMU's
+`RegisterInfo` framework from the checked-out QEMU tree. Manual offset-switch
+MMIO callbacks are not acceptable for guest-visible control/status registers.
 
 Use the current tree, not remembered API signatures. QEMU versions can differ, so before designing code, inspect the local implementation:
 
@@ -100,40 +102,49 @@ Use the current tree, not remembered API signatures. QEMU versions can differ, s
 
 Current-tree reference families to inspect first:
 
-- simple register bank with callbacks and VMState: `hw/dma/xlnx-zynq-devcfg.c` plus `include/hw/dma/xlnx-zynq-devcfg.h`;
+- simple register bank with callbacks and VMState:
+  `hw/dma/xlnx-zynq-devcfg.c`; inspect its header only for public declarations,
+  not as a location for new register definitions;
 - IRQ/status register side effects: `hw/intc/xlnx-zynqmp-ipi.c`;
-- wrapped read/write handlers that still delegate to registerinfo: `hw/misc/xlnx-versal-trng.c`;
+- wrapped read/write handlers that still delegate to `RegisterInfo`: `hw/misc/xlnx-versal-trng.c`;
 - broader Xilinx-style banks: search `hw/misc`, `hw/dma`, `hw/intc`, `hw/nvram`, and `hw/rtc` for `register_init_block32`.
 
-The model should normally have:
+Keep the complete register definition in the device `.c` file:
 
 - register offset and field definitions from the registerfields macros;
 - register storage sized from the register map;
 - a matching `RegisterInfo` array;
 - a `RegisterAccessInfo` table describing name, address, reset value, read-only bits, write-one-clear bits, reserved bits, unimplemented bits, and register hooks;
+- register-local read, write, and reset hooks;
 - `MemoryRegionOps` using `register_read_memory` and `register_write_memory`, or thin wrappers that normalize version/SoC quirks and then delegate to registerinfo;
-- reset logic that resets the registerinfo entries according to the current tree's convention;
+- reset logic that resets the `RegisterInfo` entries according to the current tree's convention;
 - VMState for guest-visible register storage and other migratable state.
 
-Use registerinfo hooks deliberately:
+Do not put register offsets, field macros, `RegisterAccessInfo` tables,
+backing storage, `RegisterInfo` arrays, or register semantics in a header. A
+header may expose only non-register-layout declarations genuinely required
+outside the device translation unit, such as a public QOM type or cross-unit
+helper prototype.
+
+Use `RegisterInfo` hooks deliberately:
 
 - use pre-write hooks to filter or transform a write before storage;
 - use post-write hooks for IRQ/status/timer/DMA side effects after storage;
 - use post-read hooks only for guest-visible read side effects;
 - remember that register reset can call write hooks in this framework, so callbacks must be reset-safe.
 
-If a device cannot use registerinfo for a particular window, record the
-technical reason in `.oh-my-qemu/<task-slug>/audit.md`. The exception must be
-narrow, and any custom handler should still delegate to registerinfo for
-ordinary registers.
+A custom handler is permitted only for a non-register data aperture such as a
+FIFO data port, streaming window, or RAM/ROM window. Record the technical
+reason in `.oh-my-qemu/<task-slug>/audit.md`. Every control/status register in
+or beside that window must still delegate to `RegisterInfo`.
 
 ## MMIO rules
 
-- Use registerinfo for ordinary register-bank reads/writes.
+- Use `RegisterInfo` for every control/status register read and write.
 - Use constants/macros for offsets, masks, shifts, reset values, and IDs.
 - Keep normal read/write callbacks allocation-free.
 - Represent RO, W1C, reserved, clear-on-read, and unimplemented bits in `RegisterAccessInfo` whenever the current API supports them.
-- Mask or transform guest writes through registerinfo hooks, not duplicated ad hoc logic.
+- Mask or transform guest writes through `RegisterInfo` hooks, not duplicated ad hoc logic.
 - Update status before raising/lowering IRQ.
 - Keep long-running work out of MMIO callbacks; use timers, bottom halves, workers, or staged execution.
 - Validate guest DMA addresses with QEMU address-space/DMA helpers.
@@ -151,7 +162,7 @@ Every material peripheral change should have narrow qtest coverage for:
 - IRQ assert/deassert paths;
 - virtual clock behavior for timers;
 - DMA memory effects when applicable.
-- registerinfo reset/hook behavior for registers with side effects;
+- `RegisterInfo` reset/hook behavior for registers with side effects;
 
 ## Accelerator addendum
 
@@ -166,8 +177,10 @@ For command-stream or accelerator blocks:
 ## Anti-patterns
 
 - Generic scratch register banks for real devices.
-- Manual offset-switch MMIO handlers for ordinary register banks instead of registerinfo.
-- Copying stale registerinfo function signatures from memory instead of inspecting the checked-out tree.
+- Manual offset-switch MMIO handlers for control/status registers instead of `RegisterInfo`.
+- Copying stale `RegisterInfo` function signatures from memory instead of inspecting the checked-out tree.
+- Register definitions, field macros, backing storage, access tables, or
+  register hooks in a header instead of the device `.c` file.
 - Fake success paths that only make firmware boot.
 - Board-specific behavior hidden in MMIO callbacks.
 - Trace-count-only success claims.
