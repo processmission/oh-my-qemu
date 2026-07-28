@@ -98,6 +98,7 @@ decision from current evidence and statically verify:
   explicit user direction only when policy does not decide, and a clear nearby
   subsystem convention only when neither higher-priority input decides and
   that convention is maintained;
+- `RegisterInfo` is selected when none of those inputs decides;
 - any existing decision record matches the reconstructed decision;
 - the selected `RegisterInfo` or manual MMIO implementation matches that
   decision;
