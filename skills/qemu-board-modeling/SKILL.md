@@ -72,6 +72,12 @@ The board should define:
 
 The board should not emulate device register semantics.
 
+If board work requires a new peripheral register bank, implement it in a
+device `.c` file with the checked-out QEMU tree's `RegisterInfo` framework.
+Keep register offsets, field macros, `RegisterAccessInfo` tables,
+backing storage, `RegisterInfo` arrays, and register-local hooks out of board
+files and headers.
+
 ## Required plan facts
 
 Record these before implementation:
