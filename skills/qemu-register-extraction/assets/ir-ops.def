@@ -1,0 +1,79 @@
+# Register-semantics RS-IR vocabulary (v1)
+#
+# One DEF line per operation, in the style of QEMU's tcg-opc.h opcode table
+# (DEF(name, oargs, iargs, cargs, flags)); here the table is data for the
+# register-semantics parser, not generated code.
+#
+# DEF(kind, name, arity, flags, signature)
+#   kind:      trigger | condition | operation
+#   arity:     >=0 fixed operand count; -1 variadic (last signature class
+#              ends with '...')
+#   flags:     NONE or a '|'-separated union of SIDE_EFFECTS, PURE,
+#              GUEST_VISIBLE, MIGRATABLE, RESET_AFFECTING, LOGGING_ONLY,
+#              EXPANDS. UNSUPPORTED is a contextual transition flag and is
+#              not listed in DEF lines.
+#   signature: comma-separated operand classes, or '-' for no operands:
+#              B condition expression, R register/field/state symbol,
+#              S any symbol, I irq symbol, T timer symbol, F fifo symbol,
+#              E event symbol, M any symbol or literal,
+#              V constant symbol or literal.
+#
+# Transition lines may declare an explicit flag list before the operation.
+# Explicit flags must be a subset of the operation's DEF flags, except
+# UNSUPPORTED which is always allowed. Effective flags are the explicit
+# list when present, otherwise the DEF flags.
+
+# Triggers: the signature class describes the optional subject operand.
+DEF(trigger, register_read, 1, NONE, R)
+DEF(trigger, register_write, 1, SIDE_EFFECTS, R)
+DEF(trigger, field_write, 1, SIDE_EFFECTS, R)
+DEF(trigger, reset, 0, NONE, -)
+DEF(trigger, timer_expiry, 1, NONE, T)
+DEF(trigger, irq_in, 1, NONE, I)
+DEF(trigger, dma_complete, 1, NONE, S)
+DEF(trigger, command, 1, SIDE_EFFECTS, R)
+DEF(trigger, enable_change, 1, NONE, R)
+DEF(trigger, guest_action, 1, NONE, S)
+
+# Conditions: pure predicates over symbols and literals.
+DEF(condition, all_of, -1, PURE, B...)
+DEF(condition, any_of, -1, PURE, B...)
+DEF(condition, not, 1, PURE, B)
+DEF(condition, eq, 2, PURE, M,M)
+DEF(condition, ne, 2, PURE, M,M)
+DEF(condition, lt, 2, PURE, M,M)
+DEF(condition, le, 2, PURE, M,M)
+DEF(condition, gt, 2, PURE, M,M)
+DEF(condition, ge, 2, PURE, M,M)
+DEF(condition, bit_set, 1, PURE, R)
+DEF(condition, bit_clear, 1, PURE, R)
+DEF(condition, masked_eq, 2, PURE, R,M)
+DEF(condition, in_range, 3, PURE, M,V,V)
+DEF(condition, fifo_empty, 1, PURE, F)
+DEF(condition, fifo_full, 1, PURE, F)
+DEF(condition, fifo_level, 2, PURE, F,V)
+DEF(condition, counter_cmp, 3, PURE, M,M,M)
+
+# Operations: the transition vocabulary. GUEST_VISIBLE means the guest can
+# observe the effect; MIGRATABLE means the touched state belongs in VMState;
+# LOGGING_ONLY marks visibility-only effects; EXPANDS requires the rule to
+# carry an expansion note.
+DEF(operation, assign_field, 2, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R,M)
+DEF(operation, set_bits, 2, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R,V)
+DEF(operation, clear_bits, 2, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R,V)
+DEF(operation, toggle_bits, 2, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R,V)
+DEF(operation, inc_field, 1, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R)
+DEF(operation, dec_field, 1, SIDE_EFFECTS|GUEST_VISIBLE|MIGRATABLE, R)
+DEF(operation, fifo_push, 2, SIDE_EFFECTS|GUEST_VISIBLE, F,M)
+DEF(operation, fifo_pop, 1, SIDE_EFFECTS|GUEST_VISIBLE, F)
+DEF(operation, assert_irq, 1, SIDE_EFFECTS|GUEST_VISIBLE, I)
+DEF(operation, deassert_irq, 1, SIDE_EFFECTS|GUEST_VISIBLE, I)
+DEF(operation, schedule_timer, 2, SIDE_EFFECTS, T,V)
+DEF(operation, cancel_timer, 1, SIDE_EFFECTS, T)
+DEF(operation, dma_read, 3, SIDE_EFFECTS|GUEST_VISIBLE|EXPANDS, M,M,M)
+DEF(operation, dma_write, 3, SIDE_EFFECTS|GUEST_VISIBLE|EXPANDS, M,M,M)
+DEF(operation, raise_exception, 1, SIDE_EFFECTS|GUEST_VISIBLE, V)
+DEF(operation, emit_event, 1, SIDE_EFFECTS, E)
+DEF(operation, set_state, 2, SIDE_EFFECTS|MIGRATABLE, S,M)
+DEF(operation, clear_on_read, 1, SIDE_EFFECTS|GUEST_VISIBLE, R)
+DEF(operation, log_unimp, 1, SIDE_EFFECTS|LOGGING_ONLY, R)

@@ -1,0 +1,36 @@
+digraph modeling_flow {
+  rankdir=TB;
+  graph [fontname="Helvetica", fontsize=11, bgcolor="white", splines=ortho, nodesep=0.45, ranksep=0.35, pad=0.25];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#f4f8fd", color="#4a6785", margin="0.14,0.08"];
+  edge [fontname="Helvetica", fontsize=9, color="#4a6785", arrowsize=0.75];
+
+  request [label="User request / resume\n(model, bring-up, next round)", fillcolor="#e8f0fe"];
+  modeler [label="qemu-modeler\ntop-level entry: route · state · loop", fillcolor="#d9e6ff", penwidth=2.2];
+
+  subgraph cluster_loop {
+    label="Closed modeling loop"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    p0 [label="P0 Intake\nscope · AC · provenance · state"];
+    p1 [label="P1 Evidence & contract\ncontract + RS-IR (validated)"];
+    p2 [label="P2 Translation\nmechanism · hook · observe · placeholder · qtest"];
+    p3 [label="P3 Implementation\none narrow source round"];
+    p4 [label="P4 Build & test\nbuild · qtest · boot marker · workload"];
+    p5 [label="P5 Debug\nclassify first suspect · narrow probe", fillcolor="#fff4e5"];
+    p6 [label="P6 Independent review\nqemu-model-review", fillcolor="#f1e9ff"];
+    p7 [label="P7 Feedback & decision\nPASS / FAIL / INCONCLUSIVE", fillcolor="#eaf7ee"];
+    p8 [label="P8 Handoff\nAC · evidence · translation · review · gaps", fillcolor="#e6f4f1"];
+  }
+
+  request -> modeler -> p0 -> p1 -> p2 -> p3 -> p4;
+  p4 -> p6 [label="pass\nmarker / qtest"];
+  p4 -> p5 [label="fail / timeout", color="#a33"];
+  p5 -> p3 [label="fix or new probe", style=dashed, color="#a33"];
+  p6 -> p7 [label="findings + verdict"];
+  p6 -> p3 [label="BLOCKER\nfix → re-review", style=dashed, color="#a33"];
+  p7 -> p3 [label="next round", style=dashed];
+  p7 -> p8 [label="all AC PASS / stop"];
+  p8 -> done [label="handoff"];
+  done [label="done · blocked · budget reached", shape=ellipse, fillcolor="#f2f2f2"];
+
+  note [shape=note, fillcolor="#fffbe6", label="Hard rules:\n· PASS needs marker or falsifiable qtest\n· timeout / empty serial / no crash = INCONCLUSIVE\n· logging sink / placeholder / banner ≠ modeled behavior\n· review before advancing; one objective per round"];
+  p4 -> note [style=dotted, arrowhead=none];
+}

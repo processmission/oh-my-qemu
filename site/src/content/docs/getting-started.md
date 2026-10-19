@@ -5,13 +5,13 @@ order: 1
 category: "Start"
 ---
 
-Oh My QEMU provides 17 independently installable skills for local QEMU
+Oh My QEMU provides 19 independently installable skills for local QEMU
 research, modeling, build, boot, debug, qtest, and documentation work.
 
 ## Recommended project-local install
 
 Run this command from the QEMU repository root. It downloads the skill source
-through `npx` and installs all 17 skills into project-local Codex and Claude Code
+through `npx` and installs all 19 skills into project-local Codex and Claude Code
 without a selection prompt or a manual Oh My QEMU clone:
 
 ```bash
@@ -43,7 +43,7 @@ cd oh-my-qemu
 ./install.sh --target /path/to/qemu
 ```
 
-This installs all 17 skills from the cloned working tree, including local
+This installs all 19 skills from the cloned working tree, including local
 changes. To install only one skill:
 
 ```bash
@@ -58,6 +58,21 @@ npx skills add https://github.com/processmission/oh-my-qemu -l
 
 Direct `npx skills add` remains available as a lower-level path, but it does not
 perform the repository-local Git exclude setup.
+
+## Verify the installation
+
+From the target repository root:
+
+```bash
+ls .agents/skills | grep '^qemu-'
+ls .claude/skills | grep '^qemu-'
+```
+
+Then confirm the agent lists the `qemu-*` skills in the current session. If a
+skill is missing, record the gap in `audit.md` instead of substituting memory
+for its rules, and reinstall. If an older `oh-my-qemu` plugin or user-level
+symlinks are still present, disable the plugin and remove the dangling links
+before installing project-locally; the installer does not delete them.
 
 ## Start a task
 
@@ -77,6 +92,39 @@ Use `scripts/` for temporary probes, parsers, and harnesses. Use `output/` for
 generated deliverables, downloaded dependency artifacts, and non-QEMU build
 binaries. Record scope, sources, decisions, and verification in `audit.md`, and
 reproducible commands and results in `commands.md`.
+
+## Run workspace gates
+
+When `qemu-workflow` is installed, its gate library checks the hard rules and
+prints PASS/FAIL lines:
+
+```bash
+bash .agents/skills/qemu-workflow/scripts/gates.sh --help
+bash .agents/skills/qemu-workflow/scripts/gates.sh exclude
+bash .agents/skills/qemu-workflow/scripts/gates.sh workspace .oh-my-qemu/<task-slug>
+bash .agents/skills/qemu-workflow/scripts/gates.sh audit .oh-my-qemu/<task-slug>/audit.md
+bash .agents/skills/qemu-workflow/scripts/gates.sh round-result .oh-my-qemu/<task-slug>/output/round-result.md
+bash .agents/skills/qemu-workflow/scripts/gates.sh handoff .oh-my-qemu/<task-slug>/audit.md
+```
+
+Use the gate output as evidence in `audit.md`; a failing gate is a blocker, not
+a warning. The script is self-contained, so it runs even when the other skills
+are unavailable.
+
+Register extraction ships a text semantic IR. Validate it, dump the canonical
+form for the audit record, or list the allowed vocabulary:
+
+```bash
+python3 .agents/skills/qemu-register-extraction/scripts/validate_register_ir.py     .oh-my-qemu/<task-slug>/output/register-semantics.ir
+python3 .../validate_register_ir.py --dump     .oh-my-qemu/<task-slug>/output/register-semantics.ir
+python3 .../validate_register_ir.py --translate .oh-my-qemu/<task-slug>/output/register-semantics.ir
+python3 .../validate_register_ir.py --list-ops
+```
+
+The translation worklist maps each rule to its QEMU mechanism (RegisterInfo,
+manual MMIO, or an unimplemented-device placeholder) plus trace/log/error and
+qtest requirements. The modeling skills expand it into implementation.
+
 
 ## Build QEMU by target
 

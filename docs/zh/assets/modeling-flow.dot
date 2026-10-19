@@ -1,0 +1,36 @@
+digraph modeling_flow_zh {
+  rankdir=TB;
+  graph [fontname="PingFang SC", fontsize=12, bgcolor="white", splines=ortho, nodesep=0.45, ranksep=0.35, pad=0.25];
+  node [shape=box, style="rounded,filled", fontname="PingFang SC", fontsize=12, fillcolor="#f4f8fd", color="#4a6785", margin="0.16,0.09"];
+  edge [fontname="PingFang SC", fontsize=10, color="#4a6785", arrowsize=0.75];
+
+  request [label="用户请求 / 继续任务\n（建模、板卡 bring-up、下一轮）", fillcolor="#e8f0fe"];
+  modeler [label="qemu-modeler\n顶层入口：路由 · 状态 · 循环", fillcolor="#d9e6ff", penwidth=2.2];
+
+  subgraph cluster_loop {
+    label="建模闭环"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    p0 [label="P0 任务受理\n范围 · 验收标准 · 来源意图 · 状态"];
+    p1 [label="P1 证据与契约\n源码/手册/追踪 → 契约 + RS-IR（校验通过）"];
+    p2 [label="P2 翻译\n机制 · hook · 观测 · 占位 · qtest"];
+    p3 [label="P3 实现\n一个窄范围源码轮次"];
+    p4 [label="P4 构建与测试\n命名构建 · qtest · 启动标记 · 工作负载"];
+    p5 [label="P5 调试\n先分类首个疑点 · 窄探针", fillcolor="#fff4e5"];
+    p6 [label="P6 独立评审\nqemu-model-review", fillcolor="#f1e9ff"];
+    p7 [label="P7 反馈与决策\nPASS / FAIL / INCONCLUSIVE", fillcolor="#eaf7ee"];
+    p8 [label="P8 交接\n验收 · 证据 · 翻译 · 评审 · 缺口", fillcolor="#e6f4f1"];
+  }
+
+  request -> modeler -> p0 -> p1 -> p2 -> p3 -> p4;
+  p4 -> p6 [label="通过\nmarker / qtest"];
+  p4 -> p5 [label="失败 / 超时", color="#a33"];
+  p5 -> p3 [label="修复或新探针", style=dashed, color="#a33"];
+  p6 -> p7 [label="发现 + 结论"];
+  p6 -> p3 [label="阻塞项\n修复 → 重审", style=dashed, color="#a33"];
+  p7 -> p3 [label="下一轮", style=dashed];
+  p7 -> p8 [label="全部验收通过 / 停止"];
+  p8 -> done [label="交接"];
+  done [label="完成 · 阻塞 · 轮次预算用尽", shape=ellipse, fillcolor="#f2f2f2"];
+
+  note [shape=note, fillcolor="#fffbe6", label="硬规则：\n· PASS 必须有 marker 或可证伪 qtest\n· 超时 / 空串口 / 未崩溃 = INCONCLUSIVE\n· 日志占位 / 未实现占位 / 启动横幅 ≠ 已建模行为\n· 评审通过前不推进；每轮只有一个目标"];
+  p4 -> note [style=dotted, arrowhead=none];
+}

@@ -43,3 +43,28 @@ jobs:
 
       - name: Run qemu-boot-run tests
         run: python3 scripts/test-qemu-boot-run.py
+
+  skill-scripts:
+    name: Test skill scripts and gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate skills
+        run: npm run codex:skills:validate
+
+      - name: Run skill script tests
+        run: npm run test:skill-scripts

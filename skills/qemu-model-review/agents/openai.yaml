@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Model Review"
+  short_description: "Independently review QEMU modeling evidence."
+  default_prompt: "Use $qemu-model-review to independently review this QEMU modeling round and report blocking findings."

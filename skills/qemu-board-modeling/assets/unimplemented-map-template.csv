@@ -1,0 +1,3 @@
+name,base,size,owner,irq,type,status,source,measured_touched
+<window-name>,<0x00000000>,<0x00001000>,<soc|board>,<irq-or-none>,<mmio|rom|ram|alias>,<unimplemented|stub|implemented>,<manual-section-or-dts-path>,<yes|no|unmeasured>
+<window-name-2>,<0x00001000>,<0x00001000>,<soc|board>,<irq-or-none>,<mmio>,<unimplemented>,<manual-section>,<unmeasured>

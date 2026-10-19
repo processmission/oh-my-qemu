@@ -1,0 +1,4 @@
+interface:
+  display_name: "QEMU Modeler"
+  short_description: "Orchestrate end-to-end QEMU modeling rounds."
+  default_prompt: "Use $qemu-modeler to plan, route, implement, debug, review, and hand off this QEMU modeling task."

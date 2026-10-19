@@ -1,0 +1,48 @@
+# Register-semantics RS-IR template (v1).
+#
+# This is a valid minimal skeleton: copy it to
+#   .oh-my-qemu/<task-slug>/output/register-semantics.ir
+# replace the placeholder tokens, and add symbols/rules/flows from cited
+# evidence. Validate with scripts/validate_register_ir.py <file.ir>.
+#
+# Grammar highlights:
+#   - one directive per line; blank lines are ignored; a line whose first
+#     non-space character is '#' is a comment; inline comments are not used;
+#   - rule bodies are indented and belong to the preceding rule;
+#   - quoted strings use double quotes; bare tokens contain no whitespace
+#     and no '='/'('/')'/',';
+#   - numbers are decimal or 0x-hex; bit ranges are N or N..M;
+#   - attributes are key=value pairs; list values are comma-separated.
+#
+# Top-level directives used here: ir, target, source, unresolved.
+# Add symbol lines for registers/fields/constants/state/events/irqs/timers/
+# fifos/addresses, then rule lines with indented trigger/condition/
+# transition/framework/observe/qtest/gap/expansion bodies, then flow lines.
+# Board-level placeholders use an address symbol with
+#   status=unimplemented placeholder=<board-unimplemented-entry> source=<ID>
+# A guest-visible transition needs an observe line with a trace event or a
+# QEMU log mask; an unimplemented/logging transition needs log=unimp or both.
+
+ir 1.0
+target ip demo.unset-ip
+target variants demo-variant
+target workload "replace with the intended firmware or OS workload"
+source SKELETON "replace with a driver path:line or manual page/section"
+
+# Example symbol lines to adapt:
+#   symbol register CTRL offset=0x00 width=32 access=rw reset=0 source=SKELETON
+#   symbol field CTRL.EN bits=0 access=rw source=SKELETON
+#   symbol state counter type=uint32 source=SKELETON
+#
+# Example rule to adapt (the body lines below belong to the rule):
+#   rule R1 "one sentence describing the trigger, condition, and transition" tier=driver confidence=LOW sources=SKELETON
+#     trigger register_write CTRL
+#     transition clear_on_read(CTRL.EN)
+#     framework registerinfo hook=post_read rationale="replace with the reason for this hook"
+#     observe trace="demo.r1" log="none" error="guest_error"
+#     qtest "replace with the assertion that proves this rule"
+#
+# Example flow and unresolved entries to adapt:
+#   flow init R1
+
+unresolved "replace the skeleton placeholders and add symbols, rules, and flows from cited evidence"

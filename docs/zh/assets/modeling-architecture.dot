@@ -1,0 +1,46 @@
+digraph modeling_architecture_zh {
+  rankdir=TB;
+  graph [fontname="PingFang SC", fontsize=12, bgcolor="white", splines=ortho, nodesep=0.35, ranksep=0.35, pad=0.25];
+  node [shape=box, style="rounded,filled", fontname="PingFang SC", fontsize=11, fillcolor="#f6f9fc", color="#4a6785", margin="0.14,0.08"];
+  edge [fontname="PingFang SC", fontsize=10, color="#4a6785", arrowsize=0.7];
+
+  subgraph cluster_inputs {
+    label="输入与证据"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    req [label="请求 / 问题 / 上一轮状态", fillcolor="#e8f0fe"];
+    src [label="QEMU 源码 checkout\ndrivers · TRM · DTB · traces", fillcolor="#fbfbfb"];
+    ws [label="审计工作区\n.oh-my-qemu/<task>/", fillcolor="#fbfbfb"];
+  }
+
+  modeler [label="qemu-modeler\n路由 · 阶段/轮次循环 · 状态 · 门禁 · 交接", fillcolor="#d9e6ff", penwidth=2.2];
+
+  subgraph cluster_skills {
+    label="按阶段加载的 Skill"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    s1 [label="P1 证据与契约\nqemu-register-extraction（契约 + RS-IR）\nqemu-board-modeling（板卡契约 · 内存映射）"];
+    s2 [label="P2 翻译\nRS-IR --translate → RegisterInfo / 手动 MMIO /\nUnimplemented Device · trace/log/error · qtest"];
+    s3 [label="P3 实现\nqemu-peripheral-modeling · qemu-board-modeling\nqemu-tcg-frontend/backend · qemu-build/image"];
+    s4 [label="P4 验证\nqemu-qtest · qemu-boot-run · qemu-linux-boot\nqemu-model-verification"];
+    s5 [label="P5 调试\nqemu-debug（崩溃 · trace · replay · gdb）"];
+    s6 [label="P6 独立评审\nqemu-model-review（只读 · 清单 · review-checks.sh）"];
+    s7 [label="P7 反馈与决策\nqemu-agent-feedback（脱敏 · 需批准）"];
+    s8 [label="横切规则\nqemu-workflow（provenance · gates.sh · patch series · evidence mining）"];
+  }
+
+  subgraph cluster_outputs {
+    label="输出 / 证据"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    out1 [label="源码 + 测试\n（仅请求范围）"];
+    out2 [label="audit.md · commands.md\nlogs/ · round-result.md\nevidence-manifest · task-state.md"];
+    out3 [label="评审报告 + 结论\n交接摘要"];
+  }
+
+  req -> modeler;
+  src -> modeler [style=dashed];
+  modeler -> ws [style=dashed, dir=both, label="状态 / 证据"];
+  modeler -> s1 [label="加载"];
+  s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7 [style=dashed];
+  modeler -> s8 [style=dashed, label="门禁 / 规则"];
+  s3 -> out1 [style=dotted];
+  s4 -> out2 [style=dotted];
+  s6 -> out3 [style=dotted];
+  s7 -> out3 [style=dotted];
+  s2 -> ws [style=dotted, arrowhead=none];
+}

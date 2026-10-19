@@ -1,0 +1,46 @@
+digraph modeling_architecture {
+  rankdir=TB;
+  graph [fontname="Helvetica", fontsize=11, bgcolor="white", splines=ortho, nodesep=0.35, ranksep=0.35, pad=0.25];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#f6f9fc", color="#4a6785", margin="0.13,0.07"];
+  edge [fontname="Helvetica", fontsize=9, color="#4a6785", arrowsize=0.7];
+
+  subgraph cluster_inputs {
+    label="Inputs & evidence"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    req [label="request / issue\nprior round state", fillcolor="#e8f0fe"];
+    src [label="QEMU checkout\ndrivers · TRM · DTB · traces", fillcolor="#fbfbfb"];
+    ws [label="audit workspace\n.oh-my-qemu/<task>/", fillcolor="#fbfbfb"];
+  }
+
+  modeler [label="qemu-modeler\nroute · phase/round loop · state · gates · handoff", fillcolor="#d9e6ff", penwidth=2.2];
+
+  subgraph cluster_skills {
+    label="Skills loaded per phase"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    s1 [label="P1 Evidence & contract\nqemu-register-extraction (contract + RS-IR)\nqemu-board-modeling (board contract · memory map)"];
+    s2 [label="P2 Translation\nRS-IR --translate → RegisterInfo / manual MMIO /\nUnimplemented Device · trace/log/error · qtest"];
+    s3 [label="P3 Implementation\nqemu-peripheral-modeling · qemu-board-modeling\nqemu-tcg-frontend/backend · qemu-build/image"];
+    s4 [label="P4 Verification\nqemu-qtest · qemu-boot-run · qemu-linux-boot\nqemu-model-verification"];
+    s5 [label="P5 Debug\nqemu-debug (crash · trace · replay · gdb)"];
+    s6 [label="P6 Independent review\nqemu-model-review (read-only · checklist · review-checks.sh)"];
+    s7 [label="P7 Feedback & decision\nqemu-agent-feedback (sanitized, approval-gated)"];
+    s8 [label="Cross-cutting rules\nqemu-workflow (provenance · gates.sh · patch series · evidence mining)"];
+  }
+
+  subgraph cluster_outputs {
+    label="Outputs / evidence"; fontcolor="#1f3b63"; color="#8aa4c8"; style="rounded,dashed";
+    out1 [label="source + tests\n(requested scope only)"];
+    out2 [label="audit.md · commands.md\nlogs/ · round-result.md\nevidence-manifest · task-state.md"];
+    out3 [label="review report + verdict\nhandoff summary"];
+  }
+
+  req -> modeler;
+  src -> modeler [style=dashed];
+  modeler -> ws [style=dashed, dir=both, label="state / evidence"];
+  modeler -> s1 [label="load"];
+  s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7 [style=dashed];
+  modeler -> s8 [style=dashed, label="gates / rules"];
+  s3 -> out1 [style=dotted];
+  s4 -> out2 [style=dotted];
+  s6 -> out3 [style=dotted];
+  s7 -> out3 [style=dotted];
+  s2 -> ws [style=dotted, arrowhead=none];
+}
