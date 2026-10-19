@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,6 +22,8 @@ const expectedSkillNames = [
   "qemu-image",
   "qemu-kernel-build",
   "qemu-linux-boot",
+  "qemu-modeler",
+  "qemu-model-review",
   "qemu-model-verification",
   "qemu-peripheral-modeling",
   "qemu-qtest",
@@ -48,6 +51,23 @@ const retiredSkillNames = [
   "qemu-workflow-tcg-backend-adaptation",
   "qemu-workflow-tcg-frontend-instruction",
 ];
+const canonicalAuditSection = [
+  "## Audit workflow",
+  "",
+  "For a non-trivial task that writes to the workspace, use only the needed entries under",
+  "`.oh-my-qemu/<task-slug>/`: `audit.md` (baseline, plan, decisions, evidence, verification, and",
+  "gaps), `commands.md` (redacted commands, working directories, and results), `logs/` (decisive",
+  "build, test, and runtime output), `scripts/` (probes, parsers, and harnesses), and `output/`",
+  "(generated deliverables, third-party dependencies, and non-QEMU binaries). Keep QEMU's own build",
+  "tree at source-root `builds/build-<target>/`, never an unqualified `build/`. In a Git worktree,",
+  "add `.agents/`, `.oh-my-qemu/`, and `builds/` to the file from",
+  "`git rev-parse --git-path info/exclude` before writing artifacts or configuring QEMU; preserve",
+  "existing entries and avoid duplicates. Never stage or commit these paths; stage source only when",
+  "the user explicitly requests that separate action. At handoff, reconcile `git status --short`",
+  "with the baseline and report the task directory, build directory, source changes, pre-existing",
+  "changes, and unresolved gaps.",
+  "",
+].join("\n");
 const auditMarkers = [
   ["task root", ".oh-my-qemu/<task-slug>/"],
   ["audit record", "audit.md"],
@@ -117,6 +137,21 @@ function parseFrontmatter(content) {
   }
 
   return Object.fromEntries(fields);
+}
+
+function normalizeSection(section) {
+  return section.replace(/\s+/g, " ").trim();
+}
+
+function extractSection(content, heading) {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = content.match(new RegExp(`^${escaped}$`, "gm")) ?? [];
+  if (matches.length !== 1) {
+    return { section: "", count: matches.length };
+  }
+  const start = content.indexOf(heading);
+  const next = content.indexOf("\n## ", start + heading.length);
+  return { section: content.slice(start, next === -1 ? content.length : next), count: 1 };
 }
 
 function auditSection(content) {
@@ -192,8 +227,9 @@ export function validateSkill(skill) {
   if (audit.count !== 1) {
     errors.push(`${skill.name}: must contain exactly one \"## Audit workflow\" section`);
   } else {
+    const auditText = normalizeSection(audit.section).toLowerCase();
     for (const [label, marker] of auditMarkers) {
-      if (!audit.section.toLowerCase().includes(marker.toLowerCase())) {
+      if (!auditText.includes(marker.toLowerCase())) {
         errors.push(`${skill.name}: Audit workflow is missing ${label}: ${marker}`);
       }
     }
@@ -208,6 +244,61 @@ export function validateSkill(skill) {
     }
     if (audit.section.includes("scratch/")) {
       errors.push(`${skill.name}: Audit workflow must use scripts/ instead of scratch/`);
+    }
+    if (normalizeSection(audit.section) !== normalizeSection(canonicalAuditSection)) {
+      errors.push(`${skill.name}: Audit workflow must match the canonical shared block exactly`);
+    }
+  }
+
+  const boundary = extractSection(content, "## QEMU upstream boundary");
+  if (boundary.count !== 1) {
+    errors.push(`${skill.name}: must contain exactly one "## QEMU upstream boundary" section`);
+  } else {
+    for (const marker of ["code-provenance.rst", "MAINTAINERS", "only when requested"]) {
+      if (!boundary.section.includes(marker)) {
+        errors.push(`${skill.name}: QEMU upstream boundary is missing ${marker}`);
+      }
+    }
+  }
+
+  for (const resourceRoot of ["references", "scripts", "assets"]) {
+    const resourcePath = join(skill.dir, resourceRoot);
+    if (!existsSync(resourcePath)) {
+      continue;
+    }
+    for (const entry of readdirSync(resourcePath, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        errors.push(`${skill.name}: ${resourceRoot}/ must stay one level deep; found directory ${entry.name}/`);
+        continue;
+      }
+      if (entry.name === ".DS_Store") {
+        continue;
+      }
+      const relativeResource = `${resourceRoot}/${entry.name}`;
+      if (!content.includes(relativeResource)) {
+        errors.push(`${skill.name}: resource ${relativeResource} is not mentioned in SKILL.md`);
+      }
+      const filePath = join(resourcePath, entry.name);
+      if (entry.name.endsWith(".sh")) {
+        try {
+          execFileSync("bash", ["-n", filePath], { stdio: "pipe" });
+        } catch (error) {
+          errors.push(`${skill.name}: bash syntax error in ${relativeResource}: ${error.stderr?.toString().trim() || error.message}`);
+        }
+      }
+      if (entry.name.endsWith(".py")) {
+        try {
+          execFileSync(
+            "python3",
+            ["-c", "import sys; compile(open(sys.argv[1], 'r', encoding='utf-8').read(), sys.argv[1], 'exec')", filePath],
+            { stdio: "pipe" },
+          );
+        } catch (error) {
+          if (error.code !== "ENOENT") {
+            errors.push(`${skill.name}: python syntax error in ${relativeResource}: ${error.stderr?.toString().trim() || error.message}`);
+          }
+        }
+      }
     }
   }
 
@@ -249,6 +340,9 @@ function textFilesUnder(path) {
   }
 
   return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.name.startsWith(".")) {
+      return [];
+    }
     const child = join(path, entry.name);
     return entry.isDirectory() ? textFilesUnder(child) : [child];
   });
@@ -296,7 +390,12 @@ function validateRepositoryConsistency() {
   }
 
   for (const file of files) {
-    const content = readFileSync(file, "utf8");
+    let content;
+    try {
+      content = readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
     const label = file.slice(repoRoot.length + 1);
     for (const retiredName of retiredSkillNames) {
       if (content.includes(retiredName)) {
@@ -343,7 +442,7 @@ function validateCatalog(skills) {
   }
   for (const name of actual) {
     if (!expected.has(name)) {
-      errors.push(`catalog: unexpected skill ${name}; update the 17-skill architecture intentionally`);
+      errors.push(`catalog: unexpected skill ${name}; update the skill catalog intentionally`);
     }
   }
 
@@ -372,12 +471,30 @@ function validateManifests() {
 
 export function validateAll(root = skillsRoot) {
   const skills = discoverSkills(root);
+  const displayNames = new Map();
   const errors = [
     ...skills.flatMap(validateSkill),
     ...validateCatalog(skills),
     ...validateRepositoryConsistency(),
     ...validateManifests(),
   ];
+
+  for (const skill of skills) {
+    if (!existsSync(skill.agentFile)) {
+      continue;
+    }
+    const match = readFileSync(skill.agentFile, "utf8").match(/^  display_name: "([^"]+)"$/m);
+    if (!match) {
+      continue;
+    }
+    const previous = displayNames.get(match[1]);
+    if (previous) {
+      errors.push(`${skill.name}: display_name "${match[1]}" duplicates ${previous}`);
+    } else {
+      displayNames.set(match[1], skill.name);
+    }
+  }
+
   return { skills, errors };
 }
 

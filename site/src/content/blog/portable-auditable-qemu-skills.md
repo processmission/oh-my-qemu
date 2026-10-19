@@ -7,7 +7,7 @@ tags: ["workflow", "skills", "qemu"]
 draft: false
 ---
 
-Oh My QEMU is a set of 17 portable skills for local QEMU work. Each skill can
+Oh My QEMU is a set of 19 portable skills for local QEMU work. Each skill can
 be installed on its own and carries the same small workspace contract, so a
 project does not need any source-repository runtime.
 
@@ -19,7 +19,7 @@ From a QEMU source root, the recommended path is:
 curl -fsSL https://raw.githubusercontent.com/processmission/oh-my-qemu/main/install.sh | bash
 ```
 
-It requires no manual clone, installs all 17 skills into project-local Codex and
+It requires no manual clone, installs all 19 skills into project-local Codex and
 Claude Code, and rejects global flags. Skill contributors can instead clone Oh
 My QEMU and run `./install.sh --target /path/to/qemu`; that form installs all
 skills directly from their local working tree. The lower-level `npx skills add
