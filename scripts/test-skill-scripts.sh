@@ -291,6 +291,21 @@ not_qtests = ['ghost-test']
 EOF
     cp "$dir/test-board-test.c" "$dir/ghost-test.c"
     expect_rc 1 "check-registration rejects bucket leakage" bash "$ROOT/skills/qemu-qtest/scripts/check-registration.sh" --meson "$dir/meson.build" --source "$dir/ghost-test.c" --arch aarch64
+    cat > "$dir/meson.build" <<'EOF'
+qtests_aarch64 = (config_all_devices.has_key('x') ? ['guarded-test'] : [])
+EOF
+    cp "$dir/test-board-test.c" "$dir/guarded-test.c"
+    expect_rc 0 "check-registration accepts a guarded bucket expression" bash "$ROOT/skills/qemu-qtest/scripts/check-registration.sh" --meson "$dir/meson.build" --source "$dir/guarded-test.c" --arch aarch64
+    cat > "$dir/meson.build" <<'EOF'
+qtests_aarch64 = [] # conditional group (
+qtests_x86_64 = ['x86-test']
+EOF
+    cp "$dir/test-board-test.c" "$dir/x86-test.c"
+    expect_rc 1 "check-registration ignores delimiters in comments" bash "$ROOT/skills/qemu-qtest/scripts/check-registration.sh" --meson "$dir/meson.build" --source "$dir/x86-test.c" --arch aarch64
+    cat > "$dir/meson.build" <<'EOF'
+qtests_aarch64 = [] # 'ghost-test'
+EOF
+    expect_rc 1 "check-registration ignores test names in comments" bash "$ROOT/skills/qemu-qtest/scripts/check-registration.sh" --meson "$dir/meson.build" --source "$dir/ghost-test.c" --arch aarch64
 }
 
 test_validate_register_ir() {
@@ -332,6 +347,24 @@ rule R1 "enable starts timer" tier=driver confidence=HIGH sources=S1
 flow init R1
 EOF
     expect_rc 0 "register IR minimal rule validates" python3 "$ir" "$TMPROOT/base.ir"
+    cat > "$TMPROOT/logging-only.ir" <<'EOF'
+ir 1.0
+target ip fixture
+target variants demo
+target workload boot
+source S1 fixture:1
+symbol register CTRL offset=0x00 width=32 access=rw reset=0x0 source=S1
+rule R1 "logging-only access" tier=driver confidence=HIGH sources=S1
+  trigger register_read CTRL width=32
+  transition log_unimp(CTRL)
+  framework registerinfo hook=post_read rationale="visibility-only fixture"
+  observe trace="none" log="unimp" error="none"
+  qtest "read logs that the register is unimplemented"
+  gap "hardware behavior is unknown"
+EOF
+    expect_rc 0 "register IR logging-only rule with gap validates" python3 "$ir" "$TMPROOT/logging-only.ir"
+    sed '/^  gap /d' "$TMPROOT/logging-only.ir" > "$TMPROOT/logging-only-gap.ir"
+    expect_rc 1 "register IR logging-only rule without gap fails" python3 "$ir" "$TMPROOT/logging-only-gap.ir"
     sed 's/^ir 1.0/ir 2.0/' "$TMPROOT/base.ir" > "$TMPROOT/bad-version.ir"
     expect_rc 1 "register IR rejects bad version" python3 "$ir" "$TMPROOT/bad-version.ir"
     sed 's/schedule_timer/unknown_op/' "$TMPROOT/base.ir" > "$TMPROOT/bad-op.ir"
@@ -373,12 +406,24 @@ test_orchestrator_state() {
     printf '# audit\n' > "$task/audit.md"
     printf '# commands\n' > "$task/commands.md"
     loop="$ROOT/skills/qemu-modeler/scripts/loop-state.sh"
+    fresh="$TMPROOT/orch-init/.oh-my-qemu/demo"
+    mkdir -p "$fresh"
+    printf '# audit\n' > "$fresh/audit.md"
+    printf '# commands\n' > "$fresh/commands.md"
+    expect_rc 1 "loop-state init fails when state temp is unavailable" env TMPDIR=/nonexistent bash "$loop" init "$fresh"
+    if [ -f "$fresh/output/task-state.md" ]; then fail "loop-state init left a failed state file"; else pass "loop-state init removes a failed state file"; fi
+    expect_rc 0 "loop-state init retries after failure" bash "$loop" init "$fresh"
+    if grep -q '<ISO-8601>' "$fresh/output/task-state.md"; then fail "loop-state init retry left template placeholder"; else pass "loop-state init retry repairs the state"; fi
+    expect_rc 1 "loop-state verdict fails when state temp is unavailable" env TMPDIR=/nonexistent bash "$loop" verdict "$fresh" PASS "marker X" "logs/x.log"
+    if [ -f "$fresh/output/rounds.tsv" ] && grep -q 'PASS' "$fresh/output/rounds.tsv"; then fail "loop-state appended a verdict before state update"; else pass "loop-state does not append a verdict on failed state update"; fi
     expect_rc 0 "loop-state init" bash "$loop" init "$task"
     expect_rc 0 "loop-state phase" bash "$loop" phase "$task" evidence
     expect_rc 0 "loop-state start-round" bash "$loop" start-round "$task" "probe reset value"
+    expect_rc 1 "loop-state fails when state temp is unavailable" env TMPDIR=/nonexistent bash "$loop" phase "$task" build
     rm -f "$task/output/rounds.tsv"
     mkdir "$task/output/rounds.tsv"
     expect_rc 1 "loop-state rejects unappendable round history" bash "$loop" verdict "$task" PASS "marker BOOT READY" "logs/serial.log"
+    if grep -q '^review status: <not-requested | requested | passed | blocked>' "$task/output/task-state.md"; then pass "loop-state rolls back state when round history fails"; else fail "loop-state changed state before round history"; fi
     rmdir "$task/output/rounds.tsv"
     expect_rc 0 "loop-state verdict" bash "$loop" verdict "$task" PASS "marker BOOT READY" "logs/serial.log"
     expect_rc 0 "loop-state finding" bash "$loop" finding "$task" F-01 BLOCKER "missing trace event"
@@ -395,6 +440,20 @@ test_orchestrator_state() {
     printf '# audit\n' > "$nostate/audit.md"
     printf '# commands\n' > "$nostate/commands.md"
     expect_rc 1 "loop-state rejects verdict before init" bash "$loop" verdict "$nostate" PASS "marker X" "logs/x.log"
+    parallel="$TMPROOT/orch-parallel/.oh-my-qemu/demo"
+    mkdir -p "$parallel"
+    printf '# audit\n' > "$parallel/audit.md"
+    printf '# commands\n' > "$parallel/commands.md"
+    bash "$loop" init "$parallel" >/dev/null
+    n=1
+    while [ "$n" -le 8 ]; do
+        bash "$loop" verdict "$parallel" PASS "marker M$n" "logs/$n.log" >/dev/null &
+        n=$((n + 1))
+    done
+    wait
+    rows=$(grep -c '^0[[:space:]]PASS' "$parallel/output/rounds.tsv" 2>/dev/null || true)
+    if [ "${rows:-0}" = "8" ]; then pass "loop-state serializes concurrent verdicts"; else fail "loop-state lost concurrent verdicts: rows=$rows"; fi
+    if [ ! -d "$parallel/output/.rounds.lock" ]; then pass "loop-state releases the verdict lock"; else fail "loop-state left the verdict lock"; fi
     expect_rc 1 "loop-state rejects finding before init" bash "$loop" finding "$nostate" F-02 BLOCKER "must not be lost"
     rm -rf "$task/output"
     expect_rc 1 "loop-state rejects finding after output removal" bash "$loop" finding "$task" F-03 BLOCKER "must not be lost"
@@ -549,6 +608,15 @@ test_collect_context() {
     expect_contains "$out" "## Provenance" "collect-context report has provenance section"
     expect_rc 2 "collect-context requires --output" bash "$ROOT/skills/qemu-debug/scripts/collect-context.sh" --qemu "$(command -v sh)"
     expect_rc 1 "collect-context fails on missing config.log" bash "$ROOT/skills/qemu-debug/scripts/collect-context.sh" --output "$TMPROOT/crash-missing.md" --qemu "$(command -v sh)" --build-dir "$TMPROOT/no-such-build" --cwd "$repo"
+    runroot="$TMPROOT/runroot"
+    mkdir -p "$runroot/bin" "$runroot/builds/build-test"
+    cp "$(command -v sh)" "$runroot/bin/qemu"
+    printf '# Configured with: %s/builds/build-test/../../configure --target-list=aarch64-softmmu\n' "$runroot" > "$runroot/builds/build-test/config.log"
+    printf 'serial output\n' > "$runroot/serial.log"
+    out2="$TMPROOT/crash-relative.md"
+    expect_rc 0 "collect-context resolves relative artifacts from --cwd" bash "$ROOT/skills/qemu-debug/scripts/collect-context.sh" --output "$out2" --qemu bin/qemu --build-dir builds/build-test --log serial.log --cwd "$runroot"
+    expect_contains "$out2" "$runroot/bin/qemu" "collect-context resolves relative binary"
+    expect_contains "$out2" "$runroot/serial.log" "collect-context resolves relative log"
 }
 
 test_assets_exist() {

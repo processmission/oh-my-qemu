@@ -60,41 +60,79 @@ registered_line() {
 }
 
 enclosing_bucket() {
-    # Return the qtests_* variable whose list actually contains the quoted test
-    # name. Stop at the assignment's closing bracket so a later variable cannot
-    # inherit the bucket.
+    # Return the qtests_* variable whose assignment expression contains the
+    # quoted test name. Strip comments and quoted text before counting
+    # delimiters, so guarded expressions and multi-line lists both work.
     awk -v target="$2" '
+        BEGIN { sq = sprintf("%c", 39) }
+        function without_comment(s,   i, c, q, esc, out) {
+            q = ""; esc = 0; out = ""
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (q != "") {
+                    out = out c
+                    if (esc) esc = 0
+                    else if (c == "\\") esc = 1
+                    else if (c == q) q = ""
+                    continue
+                }
+                if (c == sq || c == "\"") { q = c; out = out c; continue }
+                if (c == "#") break
+                out = out c
+            }
+            return out
+        }
+        function delimiter_text(s,   i, c, q, esc, out) {
+            q = ""; esc = 0; out = ""
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (q != "") {
+                    if (esc) esc = 0
+                    else if (c == "\\") esc = 1
+                    else if (c == q) q = ""
+                    continue
+                }
+                if (c == sq || c == "\"") { q = c; continue }
+                out = out c
+            }
+            return out
+        }
+        function assignment_prefix(text, n) {
+            if (match(text, /^[A-Za-z0-9_]+[ \t]*\+?=[ \t]*/)) {
+                bucket = substr(text, 1, RLENGTH)
+                sub(/[ \t]*\+?=[ \t]*$/, "", bucket)
+                return RLENGTH
+            }
+            return 0
+        }
         {
-            line = $0
-            if (inlist) {
-                if (!found && index(line, target)) found = 1
-                if (index(line, "]")) {
-                    if (found) { print bucket; done = 1; exit }
-                    inlist = 0; found = 0
-                }
-                next
+            line = without_comment($0)
+            if (!in_assign) {
+                pos = index(line, "qtests_")
+                if (pos == 0) next
+                if (pos > 1 && substr(line, pos - 1, 1) ~ /[A-Za-z0-9_]/) next
+                scan = substr(line, pos)
+                skip = assignment_prefix(scan)
+                if (skip == 0) next
+                in_assign = 1; depth = 0; seen = 0; found = 0; done = 0
+                scan = substr(scan, skip)
+            } else {
+                scan = line
             }
-            pos = index(line, "qtests_")
-            if (pos == 0) next
-            if (pos > 1) {
-                prev = substr(line, pos - 1, 1)
-                if (prev ~ /[A-Za-z0-9_]/) next
+            if (!found && index(scan, target)) found = 1
+            clean = delimiter_text(scan)
+            for (i = 1; i <= length(clean); i++) {
+                c = substr(clean, i, 1)
+                if (c == "[" || c == "(") { depth++; seen = 1 }
+                else if ((c == "]" || c == ")") && depth > 0) depth--
             }
-            rest = substr(line, pos)
-            if (match(rest, /^[A-Za-z0-9_]+[ \t]*\+?=[ \t]*\[/)) {
-                bucket = rest
-                sub(/[ \t]*\+?=.*/, "", bucket)
-                after = rest
-                sub(/^[^[]*\[/, "", after)
-                inlist = 1
-                found = (index(after, target) > 0)
-                if (index(after, "]")) {
-                    if (found) { print bucket; done = 1; exit }
-                    inlist = 0; found = 0
-                }
+            if (!seen) { in_assign = 0; found = 0; next }
+            if (depth == 0) {
+                if (found) { print bucket; done = 1; exit }
+                in_assign = 0; found = 0; seen = 0
             }
         }
-        END { if (!done && inlist && found) print bucket }
+        END { if (!done && in_assign && found) print bucket }
     ' "$1"
 }
 

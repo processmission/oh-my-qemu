@@ -832,7 +832,7 @@ def validate(doc, vocab):
 
         expands = False
         unsupported = False
-        logging_only_all = bool(rule.transitions)
+        logging_only_any = False
         for transition in rule.transitions:
             defn = vocab.get("operation", transition.op)
             if defn is None:
@@ -866,8 +866,8 @@ def validate(doc, vocab):
                 expands = True
             if "UNSUPPORTED" in effective:
                 unsupported = True
-            if not ("LOGGING_ONLY" in effective):
-                logging_only_all = False
+            if "LOGGING_ONLY" in effective:
+                logging_only_any = True
             if defn.variadic:
                 if not transition.args:
                     add(transition.line, "%s: variadic %s needs at least one operand" %
@@ -886,8 +886,8 @@ def validate(doc, vocab):
                                  "%s.%s[%d]" % (where, transition.op, index))
                 except IrError as exc:
                     add(exc.line, exc.message)
-        if logging_only_all:
-            add(rule.line, "%s: logging-only rule must record a gap" % where)
+        if logging_only_any and not rule.gaps:
+            add(rule.line, "%s: logging-only transition must record a gap" % where)
         if expands and not rule.expansions:
             add(rule.line, "%s: EXPANDS requires an expansion note" % where)
         if unsupported and not rule.gaps:
