@@ -9,177 +9,116 @@ description: Use for QEMU qtest design, registration, execution, debugging, and 
 
 ## Audit workflow
 
-For non-trivial workspace writes, use a stable
-`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
-
-```text
-.oh-my-qemu/<task-slug>/
-├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
-├── commands.md   # Redacted commands, working directories, and results
-├── logs/         # Decisive build, test, runtime, or diagnostic logs
-├── scripts/      # Temporary scripts, probes, parsers, and harnesses
-└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
-```
-
-Before changing source or mutable artifacts, record the workspace root,
-revision, `git status --short`, pre-existing changes, goal, scope, and
-acceptance checks in `audit.md`. Log exact redacted commands and results in
-`commands.md`; record revisions, configurations, tool versions, and hashes when
-they affect reproducibility. Separate observations from inferences and edit
-source only when requested.
-
-Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
-dependencies and non-QEMU binaries in task `output/`. Before writing audit
-artifacts or configuring QEMU in a Git worktree, add `.agents/`,
-`.oh-my-qemu/`, and `builds/` to the repository-local file from
-`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. At handoff, verify them
-absent from `git status --short`. Report the task directory and unresolved gaps.
+For a non-trivial task that writes to the workspace, use only the needed entries under
+`.oh-my-qemu/<task-slug>/`: `audit.md` (baseline, plan, decisions, evidence, verification, and
+gaps), `commands.md` (redacted commands, working directories, and results), `logs/` (decisive
+build, test, and runtime output), `scripts/` (probes, parsers, and harnesses), and `output/`
+(generated deliverables, third-party dependencies, and non-QEMU binaries). Keep QEMU's own build
+tree at source-root `builds/build-<target>/`, never an unqualified `build/`. In a Git worktree,
+add `.agents/`, `.oh-my-qemu/`, and `builds/` to the file from
+`git rev-parse --git-path info/exclude` before writing artifacts or configuring QEMU; preserve
+existing entries and avoid duplicates. Never stage or commit these paths; stage source only when
+the user explicitly requests that separate action. At handoff, reconcile `git status --short`
+with the baseline and report the task directory, build directory, source changes, pre-existing
+changes, and unresolved gaps.
 
 ## QEMU upstream boundary
 
-QEMU's official GitLab and mailing lists are upstream project channels. A
-patch becomes an upstream contribution when sent to the mailing-list recipients
-selected through `MAINTAINERS`; do not prepare or send agent-generated patches
-for that submission. Local branches, commits, patch files, pushes, and pull
-requests are not by themselves QEMU upstream contributions. Perform those Git
-actions only when requested and follow the workspace's Git policy.
+QEMU's official GitLab and mailing lists are upstream channels. A patch becomes an upstream
+contribution when it is sent to the maintainers selected through `MAINTAINERS`. Do not prepare or
+send agent-generated code, documentation, commit messages, or patches for upstream submission; see
+the checked-out tree's `docs/devel/code-provenance.rst`. Research, debugging, analysis, local
+experiments, verification, and workflow guidance remain allowed. Local branches, commits, patch
+files, pushes, and pull requests are not by themselves upstream contributions; perform those Git
+actions only when requested.
 
 ## What qtest should prove
 
-Use qtest for:
+Use qtest for MMIO/PIO register contracts, reset behavior, IRQ
+assertion/deassertion, virtual-clock and timer behavior, QMP-visible state and
+hotplug, board instantiation and memory-map probes, and simple DMA or
+guest-memory effects. Prefer qtest over boot smoke for a device contract.
 
-- MMIO/PIO register contracts;
-- reset behavior;
-- IRQ assertion/deassertion;
-- virtual clock/timer behavior;
-- QMP-visible state and hotplug;
-- board instantiation and memory-map probes;
-- simple DMA or guest-memory effects.
+A qtest proves only what its assertions read. A test that reads the wrong
+address can hide a model bug. Copyable recipes are in
+[qtest patterns](references/patterns.md).
 
-Prefer qtest over boot smoke for device contracts.
+## Run from the QEMU source root
 
-## Running qtests
-
-Run from the named build directory that matches the target, such as
-`builds/build-riscv64/`. Do not fall back to an unqualified `build/`.
-
-List tests:
+Address the build directory explicitly; never rely on an unqualified `build/`:
 
 ```bash
-builds/build-riscv64/pyvenv/bin/meson test \
-  -C builds/build-riscv64 --list
+builds/build-<target>/pyvenv/bin/meson test \
+  -C builds/build-<target> --list
+builds/build-<target>/pyvenv/bin/meson test \
+  -C builds/build-<target> qtest-<arch>/<test>
+builds/build-<target>/pyvenv/bin/meson test \
+  -C builds/build-<target> -v qtest-<arch>/<test>
 ```
 
-Run one test:
+Inside the build directory the equivalent is `pyvenv/bin/meson test
+qtest-<arch>/<test>`. The Makefile wrappers take the same build directory:
+`make -C builds/build-<target> check-qtest-<arch>`. Meson registers a test as
+`qtest-<arch>/<name>`, where `<arch>` is the target without `-softmmu`
+(`tests/qtest/meson.build`).
 
-```bash
-builds/build-riscv64/pyvenv/bin/meson test \
-  -C builds/build-riscv64 qtest-riscv64/<test-name>
-```
+## Find, register, and run
 
-Make frontends can target the same directory:
+- `tests/qtest/meson.build` owns registration; put architecture-specific tests
+  in `qtests_<arch>` and only truly generic ones in `qtests_generic`.
+- `tests/qtest/<name>.c` is the source and `tests/qtest/libqtest.h` the API.
+- `builds/build-<target>/meson-logs/testlog.txt` has failure detail.
+- Run the narrow test name first; widen only when needed.
+- Plan the assertions and evidence with the
+  [qtest plan template](assets/qtest-plan-template.md) before writing code.
+- After editing, run the skill's `scripts/check-registration.sh --help` (or
+  with `--meson`, `--source`, `--arch`) to check registration, bucket, and
+  lifecycle.
 
-```bash
-make -C builds/build-riscv64 check-qtest
-make -C builds/build-riscv64 check-qtest-riscv64
-V=1 make -C builds/build-riscv64 check-qtest-riscv64
-```
+## Verify APIs before authoring
 
-Use the narrow Meson test name when possible.
+libqtest names and helpers change between QEMU versions. Locate every call you
+use in the checked-out `tests/qtest/libqtest.h` and nearby tests; do not write
+an API from memory. When a helper is absent, use a QMP command that exists in
+this tree or the qtest protocol through a checked-out helper.
 
-## Finding/registering tests
+## Author before the machine builds
 
-Inspect:
+When the machine or device does not build yet, syntax-check only the new test:
+take a sibling qtest's compile command from
+`builds/build-<target>/compile_commands.json`, replace the source file with the
+new one, add `-fsyntax-only`, run it from the build directory, and record the
+command. Register the test in `tests/qtest/meson.build` in the same change and
+build it for real before claiming a PASS.
 
-- `tests/qtest/meson.build` for architecture buckets;
-- `tests/qtest/<name>.c` for source;
-- `tests/qtest/libqtest.h` for API;
-- `builds/build-<target>/meson-logs/testlog.txt` for failures.
+## Framework preflight
 
-Register architecture-specific tests under the matching `qtests_<arch>` list. Use `qtests_generic` only when the test is truly architecture-independent.
+Read the model source and know its register framework and unimplemented
+windows before writing or accepting a device qtest. Keep tests behavioral:
+exercise the guest-visible interface, not the selected framework. Report a
+contradiction between model and register contract as FAIL or INCONCLUSIVE with
+citations, not as a test-only problem; record the verdict and what evidence
+would change it in `audit.md`.
 
-## Useful libqtest APIs
+## Tests are requested scope
 
-- startup/shutdown: `qtest_init()`, `qtest_initf()`, `qtest_quit()`;
-- reset: `qtest_system_reset()`;
-- QMP/HMP: `qtest_qmp()`, `qtest_qmp_assert_success()`, `qtest_qmp_eventwait()`, `qtest_hmp()`;
-- MMIO: `qtest_readb/readw/readl/readq()`, `qtest_writeb/writew/writel/writeq()`;
-- memory: `qtest_memread()`, `qtest_memwrite()`, `qtest_memset()`;
-- PIO: `qtest_inb/inw/inl()`, `qtest_outb/outw/outl()`;
-- IRQ: `qtest_irq_intercept_in()`, `qtest_irq_intercept_out()`, `qtest_set_irq_in()`;
-- virtual clock: `qtest_clock_step_next()`, `qtest_clock_step()`, `qtest_clock_set()`.
-
-Use libqos/qgraph when nearby subsystem tests already do.
-
-## Register model preflight
-
-Before writing or running device qtests, or accepting their results, inspect
-the model source and reconstruct its framework decision from current evidence.
-Apply policy present in the target QEMU workspace first, compatible explicit
-user direction only when policy does not decide, and a clear nearby subsystem
-convention only when neither higher-priority input decides and that convention
-is maintained. Use `RegisterInfo` when none of those inputs decides. Compare
-any existing decision record with the result, but do not require a prior
-artifact. For a non-trivial task that writes to the workspace, record the
-reconstructed decision and rationale in `audit.md`.
-
-Both `RegisterInfo` and manual MMIO callbacks are valid when selected by this
-gate. Register offsets, field macros, backing storage, framework tables, and
-register-local callbacks must remain in the device `.c` file, not a header or
-board file. Report a contradiction between the reconstructed decision and
-either the implementation or an existing record, an unjustified
-implementation, or a source-layout violation as a model-structure failure.
-Keep qtests behavioral: exercise the guest-visible interface rather than
-coupling tests to the selected framework.
-
-## Device qtest checklist
-
-- reset values;
-- masks and reserved bits;
-- read-only/write-only/W1C behavior;
-- unsupported width behavior when guest-visible;
-- IRQ level and clear path;
-- virtual-clock timer expiry;
-- DMA guest-memory effects;
-- dirty-state reset.
-
-## Debugging qtests
-
-Qtest environment variables include:
-
-- `QTEST_QEMU_BINARY`
-- `QTEST_QEMU_ARGS`
-- `QTEST_QEMU_IMG`
-- `QTEST_QEMU_STORAGE_DAEMON_BINARY`
-- `QTEST_STOP`
-- `QTEST_LOG`
-
-Use verbose test output to recover exact commands. Use `QTEST_STOP=1` when attaching a debugger to spawned QEMU is needed.
-
-## Portability rules
-
-- Use GLib temp/file APIs.
-- Avoid hardcoded `/tmp`.
-- Avoid POSIX-only paths unless guarded.
-- Use double quotes in extra QEMU command-line strings.
-- Open binary files in binary mode when data comparison matters.
+Add tests when the user asks or the acceptance criteria require them; do not
+expand a fix-only request into a test mandate. When the user drops a requested
+test, remove it and its registration cleanly, and record the change.
 
 ## Report
 
-Include:
-
-- PASS/FAIL/INCONCLUSIVE;
-- build dir;
-- exact command;
-- qtest name;
-- decisive excerpt;
-- log path;
-- behavior proven and not proven.
+Record PASS, FAIL, or INCONCLUSIVE with the build directory, exact command,
+test name, decisive excerpt, log path, and what the run does and does not
+prove. Keep logs under `.oh-my-qemu/<task-slug>/logs/`.
 
 ## Upstream references
 
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
 - Testing overview: `docs/devel/testing/main.rst`.
 - QTest docs: `docs/devel/testing/qtest.rst`.
+- Build and test invocation: `docs/devel/build-system.rst`.
 - API: `tests/qtest/libqtest.h`.
+- Registration: `tests/qtest/meson.build`.
+
+Paths can differ between QEMU versions; locate them in the checked-out tree.

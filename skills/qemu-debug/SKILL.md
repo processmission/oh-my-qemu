@@ -2,191 +2,149 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
 # SPDX-License-Identifier: MIT
 name: qemu-debug
-description: Use for debugging QEMU itself or guests under QEMU with host-side gdb/lldb, guest gdbstub, QEMU log flags, trace events, replay, one-insn-per-tb, and structured .oh-my-qemu artifacts.
+description: Use when QEMU crashes, asserts, or hangs, when a guest stalls before a boot marker, or when device, board, TCG, or replay behavior is suspected; debug with host gdb/lldb, the gdbstub, logs, traces, and replay.
 ---
 
 # QEMU Debug
 
 ## Audit workflow
 
-For non-trivial workspace writes, use a stable
-`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
-
-```text
-.oh-my-qemu/<task-slug>/
-├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
-├── commands.md   # Redacted commands, working directories, and results
-├── logs/         # Decisive build, test, runtime, or diagnostic logs
-├── scripts/      # Temporary scripts, probes, parsers, and harnesses
-└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
-```
-
-Before changing source or mutable artifacts, record the workspace root,
-revision, `git status --short`, pre-existing changes, goal, scope, and
-acceptance checks in `audit.md`. Log exact redacted commands and results in
-`commands.md`; record revisions, configurations, tool versions, and hashes when
-they affect reproducibility. Separate observations from inferences and edit
-source only when requested.
-
-Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
-dependencies and non-QEMU binaries in task `output/`. Before writing audit
-artifacts or configuring QEMU in a Git worktree, add `.agents/`,
-`.oh-my-qemu/`, and `builds/` to the repository-local file from
-`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. At handoff, verify them
-absent from `git status --short`. Report the task directory and unresolved gaps.
+For a non-trivial task that writes to the workspace, use only the needed entries under
+`.oh-my-qemu/<task-slug>/`: `audit.md` (baseline, plan, decisions, evidence, verification, and
+gaps), `commands.md` (redacted commands, working directories, and results), `logs/` (decisive
+build, test, and runtime output), `scripts/` (probes, parsers, and harnesses), and `output/`
+(generated deliverables, third-party dependencies, and non-QEMU binaries). Keep QEMU's own build
+tree at source-root `builds/build-<target>/`, never an unqualified `build/`. In a Git worktree,
+add `.agents/`, `.oh-my-qemu/`, and `builds/` to the file from
+`git rev-parse --git-path info/exclude` before writing artifacts or configuring QEMU; preserve
+existing entries and avoid duplicates. Never stage or commit these paths; stage source only when
+the user explicitly requests that separate action. At handoff, reconcile `git status --short`
+with the baseline and report the task directory, build directory, source changes, pre-existing
+changes, and unresolved gaps.
 
 ## QEMU upstream boundary
 
-QEMU's official GitLab and mailing lists are upstream project channels. A
-patch becomes an upstream contribution when sent to the mailing-list recipients
-selected through `MAINTAINERS`; do not prepare or send agent-generated patches
-for that submission. Local branches, commits, patch files, pushes, and pull
-requests are not by themselves QEMU upstream contributions. Perform those Git
-actions only when requested and follow the workspace's Git policy.
+QEMU's official GitLab and mailing lists are upstream channels. A patch becomes an upstream
+contribution when it is sent to the maintainers selected through `MAINTAINERS`. Do not prepare or
+send agent-generated code, documentation, commit messages, or patches for upstream submission; see
+the checked-out tree's `docs/devel/code-provenance.rst`. Research, debugging, analysis, local
+experiments, verification, and workflow guidance remain allowed. Local branches, commits, patch
+files, pushes, and pull requests are not by themselves upstream contributions; perform those Git
+actions only when requested.
 
-## Classify first
+## Classify the failure first
 
-Identify the debug target:
+Map the symptom to a target before choosing a tool:
 
-- guest code;
-- QEMU device model;
-- board topology/boot ABI;
-- QEMU core runtime;
-- TCG frontend;
-- TCG backend;
-- stale image/build/environment.
+- QEMU crash, assert, or abort: host process.
+- Hang with no progress: host event loop or guest execution.
+- Guest stall before a boot marker: image, boot ABI, board, or device model.
+- Wrong device or guest instruction behavior: device, board, or TCG.
+- Intermittent failure: record/replay or timing. Confirm command line, image
+  provenance, and host environment before assuming a model bug.
 
-Do not assume a model bug before command line and image provenance are known.
+## Crash intake
 
-## Host-side debugging of the QEMU process
+For a QEMU process failure, capture in order: exact command line and working
+directory in `commands.md`; QEMU binary, build directory, and build ID; the
+abort/assert message with `file:line`; all-thread backtrace under gdb/lldb; core
+dump path and signal; an ASAN/TSan build for memory corruption (`--enable-asan`,
+`--enable-tsan`; confirm in the checked-out configure help); and a minimized
+reproducer. Record whether the debugger target is host QEMU or guest CPU state.
 
-Host GDB controls the emulator process; the guest gdbstub controls guest CPU
-state. Use host GDB or LLDB for QEMU crashes, assertions, hangs, migration
-bugs, TCG backend emission, or qtest-spawned failures.
+## Environment preflight
 
-Before attaching:
+Record absolute paths and versions for gdb/lldb, objdump/llvm-objdump, ninja,
+meson, python3, and the QEMU binary. macOS notes:
 
-- ensure the relevant binary is built with debug info;
-- record the exact QEMU command in `.oh-my-qemu/<task-slug>/commands.md`;
-- put debugger transcripts and notes under `.oh-my-qemu/<task-slug>/logs/`;
-- keep guest logs/traces separate from host debugger notes.
+- no `timeout`/`gtimeout`; use a bounded foreground command and record it;
+- a long `TMPDIR` breaks qtest sockets; use a short temporary directory;
+- an x86_64 cross objdump can fail with exec-format errors; use native
+  `llvm-objdump`/`readelf` or a container, which also covers missing
+  `llvm-nm`, `llvm-readelf`, `pdftotext`, and host libraries; record the fallback.
 
-Common launch patterns:
+## Host debugging of the QEMU process
+
+Host GDB/LLDB controls the emulator; the gdbstub controls guest CPU. Use it for
+crashes, assertions, hangs, migration, TCG backend, and qtest-spawned failures.
 
 ```bash
-gdb --args builds/build-riscv64/qemu-system-riscv64 <qemu-options>
-gdb -ex 'run' --args builds/build-riscv64/qemu-system-riscv64 <qemu-options>
-lldb -- builds/build-riscv64/qemu-system-riscv64 <qemu-options>
-```
-
-Common attach patterns:
-
-```bash
+gdb --args builds/build-<target>/qemu-system-<arch> <qemu-options>
 gdb -p <qemu-pid>
-lldb -p <qemu-pid>
 ```
 
-For qtest-spawned QEMU, use verbose qtest output to recover the exact command/environment. `QTEST_STOP=1` can stop the spawned QEMU early so a host debugger can attach before the test continues.
+Check all-thread backtraces, the asserting frame, breakpoints in MMIO
+callbacks/reset/realize/translation, watchpoints on device state, and event-loop
+state for hangs. For qtest-spawned QEMU, recover the command from verbose test
+output and set `QTEST_STOP=1` to attach early.
 
-Useful host-debugger checks:
+## Guest debugging with the gdbstub
 
-- backtrace of all threads;
-- current thread and frame around QEMU assertions;
-- breakpoints in device MMIO callbacks, reset hooks, realize paths, TCG translation, or qemu_ld/st helpers;
-- watchpoints on device state when corruption is suspected;
-- `handle SIGPIPE nostop noprint` and similar signal policy only after confirming it matches the failure;
-- thread names and event-loop state for hangs.
+- `-s` listens on TCP port 1234; `-S` starts paused; `-gdb dev` selects
+  another backend such as `tcp::3117`, a unix socket, or stdio.
+- Multi-cluster machines: `target extended-remote`, `add-inferior`,
+  `inferior N`, `attach N`, `set schedule-multiple on`.
+- Check registers, disassembly at PC, virtual memory, gdbstub physical-memory
+  mode, and the single-step mask when IRQ/timer stepping matters.
 
-If guest execution must be paused while host debugging, combine host GDB with QEMU `-S` or an early qtest stop. Do not confuse a guest breakpoint with a host breakpoint.
+## Logs, traces, and serial
 
-## Guest debugging with gdbstub
+Use `-d item,...` with `-D .oh-my-qemu/<task-slug>/logs/qemu.log`; list items
+with `-d help`. Common items: `unimp`, `guest_errors`, `int`, `cpu`,
+`in_asm`, `exec`, `mmu`. Use `-dfilter` for a known PC area and
+`-accel tcg,one-insn-per-tb=on` to isolate instruction boundaries.
 
-Use:
+Trace syntax is `--trace [[enable=]pattern][,events=<file>][,file=<file>]`:
+`events=` names a file listing events to enable, `file=` is the trace output;
+the monitor `trace-event` command changes events at runtime.
 
-- `-s`: listen on TCP port 1234;
-- `-S`: start paused;
-- `-gdb dev`: choose another backend, such as `tcp::3117`, unix socket, chardev, or stdio.
+Serial output and QEMU diagnostics are different channels: `-serial` carries
+guest serial, while `-d`, trace, and `error_report` output goes to stderr or
+`-D`. Never read a boot marker from a QEMU diagnostic line as guest serial.
 
-For multi-cluster machines, use GDB `target extended-remote`, `add-inferior`, `inferior N`, `attach N`, and `set schedule-multiple on`.
+## Measure unimplemented access
 
-Useful GDB checks:
+Before shrinking or discussing an unimplemented map, measure guest access:
 
-- registers;
-- disassembly at PC;
-- virtual memory;
-- gdbstub physical memory mode;
-- QEMU single-step mask when IRQ/timer stepping matters.
+```bash
+builds/build-<target>/qemu-system-<arch> -M <machine> ... \
+  -d unimp,guest_errors -D .oh-my-qemu/<task-slug>/logs/unimp.log
+```
 
-## QEMU logs and traces
+Group logged addresses by window, compare with the declared map and with
+`info mtree`/`info qtree` in the monitor, and record counts. Logged access is
+not modeled behavior; a diagnostic sink is not modeled success.
 
-Use `-d item1,...` with `-D .oh-my-qemu/<task-slug>/logs/qemu.log`. Use `-d help` on the target binary to discover log items.
+## Replay and reverse debugging
 
-Use `-dfilter` when a target PC range is known. Use `-accel tcg,one-insn-per-tb=on` to isolate guest-instruction boundaries.
+Record with `-icount shift=auto,rr=record,rrfile=...` and replay with
+`rr=replay`. Use QEMU's replay path, not a host record/replay tool: with a
+loaded replay and the gdbstub attached, GDB's `reverse-stepi` and
+`reverse-continue` replay backwards from snapshots because QEMU cannot execute
+in reverse, using the replay snapshots. The monitor `info replay` reports mode
+and icount; verify the commands in this QEMU version (`docs/system/replay.rst`).
 
-Use trace events for structured evidence:
+## Ladders
 
-- `--trace "pattern"` for quick checks;
-- `--trace events=.oh-my-qemu/<task-slug>/scripts/trace-events.txt` for repeatable runs;
-- local `trace-events` files for source-side event definitions.
+Crash, device/board, unimplemented-map, TCG frontend/backend, KVM, CPU/GIC, and
+replay playbooks are in [debug playbooks](references/playbooks.md);
+qemu-tcg-frontend and qemu-tcg-backend are optional context for TCG work.
 
-## Replay and determinism
+## Report
 
-For intermittent bugs, use record/replay when applicable:
-
-- record: `-icount shift=auto,rr=record,rrfile=.oh-my-qemu/<task-slug>/logs/replay.bin`;
-- replay: `-icount shift=auto,rr=replay,rrfile=.oh-my-qemu/<task-slug>/logs/replay.bin`.
-
-Record QEMU binary, image hashes, machine options, and replay file path.
-
-## Debug ladders
-
-### QEMU process
-
-1. Reproduce with the same QEMU binary and command line.
-2. Build with debug info if symbols are missing.
-3. Launch under host GDB/LLDB for startup failures, or attach to the running PID for hangs.
-4. Capture all-thread backtrace and the crashing/asserting frame.
-5. Set source breakpoints at the suspected QEMU path and rerun.
-6. Add traces or qtest reproduction only after the host-side failure location is known.
-
-### Device/board
-
-1. Confirm image and command line.
-2. qtest the MMIO/IRQ path if possible.
-3. Enable targeted traces.
-4. Check reset state and interrupt-controller route.
-5. Only then interpret full boot logs.
-
-### TCG
-
-1. Reproduce under `-accel tcg`.
-2. Use `one-insn-per-tb` for instruction boundary issues.
-3. Compare guest instruction, TCG IR, and host code logs.
-4. Check frontend feature gates and PC/TB state.
-5. Check backend constraints, optional flags, and emitted code.
-
-## Debug report
-
-Write the report in `.oh-my-qemu/<task-slug>/audit.md` and include:
-
-- command;
-- build directory and QEMU binary;
-- whether debugger target is host QEMU process or guest CPU state;
-- image hashes;
-- failure marker;
-- decisive log/trace paths;
-- classification;
-- next narrow check.
-
-Stop only QEMU processes, debugger servers, and terminal sessions started for
-this task. Record cleanup and any target-state-changing operation.
+Write the report in `.oh-my-qemu/<task-slug>/audit.md` from the
+[crash report template](assets/crash-report-template.md); capture the first
+pass with the skill's `scripts/collect-context.sh --output <file> --qemu <binary>`.
+Keep the command, build directory and binary, debugger target, image hashes,
+failure marker, decisive log/trace paths, classification, next narrow check,
+and cleanup of only the processes started for this task.
 
 ## Upstream references
 
 - QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
 - GDB usage: `docs/system/gdb.rst`.
-- CLI debug options: `qemu-options.hx`.
 - Tracing: `docs/devel/tracing.rst`.
 - Replay: `docs/system/replay.rst`.
-- TCG internals: `docs/devel/tcg.rst` and `docs/devel/tcg-ops.rst`.
+- CLI debug options: `qemu-options.hx`.
+
+Paths can differ between QEMU versions; locate them in the checked-out tree.
