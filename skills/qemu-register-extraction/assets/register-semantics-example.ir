@@ -1,0 +1,39 @@
+# Register-semantics RS-IR example (fictional demo timer; illustrative only).
+# Validates as-is; replace with a real source-cited contract before modeling.
+
+ir 1.0
+target ip demo-timer-1.0
+target variants demo-soc
+target workload "periodic timer interrupt for a demo firmware"
+source DRV "drivers/demo-timer.c:10-120"
+source MAN "Demo Timer TRM, revision 1.0, section 4"
+
+symbol register CTRL offset=0x00 width=32 access=rw reset=0x00000000 source=DRV
+symbol field CTRL.EN bits=0 access=rw reset=0 source=DRV
+symbol field CTRL.MODE bits=1..2 access=rw reset=0 source=MAN
+symbol constant MODE_PERIODIC value=1 source=MAN
+symbol constant PERIOD value=1000
+symbol state counter type=uint32 source=DRV
+symbol timer period_timer source=DRV
+symbol irq irq0 kind=level source=MAN
+symbol address UNMODELED_WINDOW base=0x1000 size=0x100 status=unimplemented placeholder=board_unimpl source=MAN
+
+rule R1 "enable periodic mode schedules the period timer" tier=driver confidence=HIGH sources=DRV,MAN
+  trigger register_write CTRL
+  condition all_of(bit_set(CTRL.EN), eq(CTRL.MODE, MODE_PERIODIC))
+  transition schedule_timer(period_timer, PERIOD)
+  framework registerinfo hook=post_write rationale="schedule after the register write commits"
+  observe trace="demo_timer.r1" log="none" error="none"
+  qtest "write CTRL with EN=1 and MODE=PERIODIC, then check the timer is scheduled"
+
+rule R2 "period timer expiry increments the counter and raises irq0" tier=driver confidence=HIGH sources=DRV,MAN
+  trigger timer_expiry period_timer
+  transition inc_field(counter)
+  transition assert_irq(irq0)
+  framework manual-mmio hook=manual rationale="the timer callback raises the line outside register hooks"
+  observe trace="demo_timer.r2" log="none" error="guest_error"
+  qtest "advance the virtual clock past PERIOD and check counter and irq0"
+
+flow init R1 -> R2
+
+unresolved "PERIOD is not documented; value 1000 is assumed from the driver default"
