@@ -19,7 +19,8 @@ options:
   --qemu <path>      QEMU system binary from the failing run (required)
   --command <text>   exact command line; quote it in the shell
   --build-dir <dir>  QEMU build directory (for config.log)
-  --cwd <dir>        working directory of the failing run (default: current)
+  --cwd <dir>        working directory of the failing run (default: current);
+                     relative --qemu/--build-dir/--log paths resolve from it
   --log <path>       evidence log path; repeat the option for each log
   --help             show this help
 exit codes: 0 report written, 1 a collection check failed, 2 usage error
@@ -38,7 +39,7 @@ need_arg() {
 absolute_path() {
     case "$1" in
         /*) printf '%s\n' "$1" ;;
-        *) printf '%s\n' "$PWD/$1" ;;
+        *) printf '%s/%s\n' "${2:-$PWD}" "$1" ;;
     esac
 }
 hash_file() {
@@ -82,7 +83,7 @@ git_state() {
 }
 log_line() {
     local abs
-    abs=$(absolute_path "$1")
+    abs=$(absolute_path "$1" "$2")
     if [ -f "$abs" ]; then
         printf '%s (exists, sha256: %s)\n' "$abs" "$(hash_file "$abs")"
     else
@@ -113,7 +114,7 @@ write_report() {
         printf '\n## Provenance\n\n%s\n' "$(git_state "$cwd")"
         printf '\n## Logs\n\n'
         printf '%s' "$logs" | while IFS= read -r path; do
-            if [ -n "$path" ]; then printf -- '- %s\n' "$(log_line "$path")"; fi
+            if [ -n "$path" ]; then printf -- '- %s\n' "$(log_line "$path" "$cwd")"; fi
         done
         if [ -z "$logs" ]; then printf -- '- (no --log paths recorded)\n'; fi
         printf '\n## Classification and next check\n\n'
@@ -144,14 +145,15 @@ main() {
     fi
     out_dir="${output%/*}"; if [ "$out_dir" = "$output" ]; then out_dir="."; fi
     if [ ! -d "$out_dir" ]; then fail "output: directory does not exist: $out_dir"; return 1; fi
-    qemu_abs=$(absolute_path "$qemu"); hash="unavailable"
+    if [ -z "$cwd" ]; then cwd="$PWD"; fi
+    cwd=$(absolute_path "$cwd")
+    if [ -n "$build_dir" ]; then build_dir=$(absolute_path "$build_dir" "$cwd"); fi
+    qemu_abs=$(absolute_path "$qemu" "$cwd"); hash="unavailable"
     if [ -f "$qemu_abs" ]; then
         hash=$(hash_file "$qemu_abs"); pass "binary: $qemu_abs (sha256 $hash)"
     else
         fail "binary: not found: $qemu_abs"; errors=1
     fi
-    if [ -z "$cwd" ]; then cwd="$PWD"; fi
-    cwd=$(absolute_path "$cwd")
     if [ -z "$command_line" ]; then command_line="(not provided)"; fi
     config_line="(no --build-dir given)"
     if [ -n "$build_dir" ]; then

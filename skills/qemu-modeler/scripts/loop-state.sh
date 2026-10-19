@@ -45,7 +45,17 @@ set_field() {
         { print }
         END { if (!done) print k ": " v }
     ' "$1" > "$_tmp" && mv "$_tmp" "$1"
+    _rc=$?
     rm -f "$_tmp" 2>/dev/null || true
+    return "$_rc"
+}
+
+update_state() {
+    _st="$1"; shift
+    while [ "$#" -gt 1 ]; do
+        set_field "$_st" "$1" "$2" || { fail "cannot update $_st"; return 1; }
+        shift 2
+    done
 }
 
 init_state() {
@@ -58,7 +68,10 @@ init_state() {
     if [ -f "$_template" ]; then cp "$_template" "$_state"; else
         printf '# Task state\n\nphase: intake\nround: 0\nupdated: %s\nnext action: <set>\n' "$(now)" > "$_state"
     fi
-    set_field "$_state" updated "$(now)"
+    if ! update_state "$_state" updated "$(now)"; then
+        rm -f "$_state"
+        return 1
+    fi
     log "created $_state"
 }
 
@@ -72,7 +85,7 @@ set_phase() {
     esac
     _state="$(state_file "$_dir")"
     [ -f "$_state" ] || { fail "state not initialized: $_state"; return 1; }
-    set_field "$_state" phase "$_phase"; set_field "$_state" updated "$(now)"
+    update_state "$_state" phase "$_phase" updated "$(now)" || return 1
     log "phase=$_phase"
 }
 
@@ -85,9 +98,21 @@ start_round() {
     _round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
     case "$_round" in ''|*[!0-9]*) _round=0 ;; esac
     _round=$((_round + 1))
-    set_field "$_state" round "$_round"; set_field "$_state" objective "$_objective"
-    set_field "$_state" phase implement; set_field "$_state" updated "$(now)"
+    update_state "$_state" round "$_round" objective "$_objective" phase implement updated "$(now)" || return 1
     log "round=$_round objective=$_objective"
+}
+
+acquire_lock() {
+    _lock="$1"; _tries=0
+    while ! mkdir "$_lock" 2>/dev/null; do
+        _tries=$((_tries + 1))
+        [ "$_tries" -ge 100 ] && return 1
+        sleep 0.05
+    done
+}
+
+release_lock() {
+    rmdir "$1" 2>/dev/null || true
 }
 
 record_verdict() {
@@ -96,15 +121,31 @@ record_verdict() {
     case "$_verdict" in PASS|FAIL|INCONCLUSIVE) ;; *) fail "invalid verdict: $_verdict"; return 2 ;; esac
     [ -n "$_gate" ] && [ -n "$_evidence" ] || { fail "verdict requires gate and evidence"; return 2; }
     _state="$(state_file "$_dir")"
-    [ -f "$_state" ] || { fail "state not initialized: $_state"; return 1; }
+    _lock="$_dir/output/.rounds.lock"
+    if ! acquire_lock "$_lock"; then fail "cannot acquire verdict lock: $_lock"; return 1; fi
+    if [ ! -f "$_state" ]; then release_lock "$_lock"; fail "state not initialized: $_state"; return 1; fi
     _round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
     case "$_round" in ''|*[!0-9]*) _round=0 ;; esac
     _rounds="$(rounds_file "$_dir")"
-    if [ ! -f "$_rounds" ]; then
-        printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$_rounds" || { fail "cannot create $_rounds"; return 1; }
+    if [ -d "$_rounds" ]; then release_lock "$_lock"; fail "round history is a directory: $_rounds"; return 1; fi
+    _state_backup="$(mktemp "${TMPDIR:-/tmp}/loop-state.XXXXXX")" || { release_lock "$_lock"; fail "cannot stage $_state"; return 1; }
+    if ! cp "$_state" "$_state_backup"; then rm -f "$_state_backup"; release_lock "$_lock"; fail "cannot stage $_state"; return 1; fi
+    if ! update_state "$_state" "review status" "$_verdict" updated "$(now)"; then
+        cp "$_state_backup" "$_state" 2>/dev/null || true
+        rm -f "$_state_backup"; release_lock "$_lock"; return 1
     fi
-    printf '%s\t%s\t%s\t%s\t%s\n' "$_round" "$_verdict" "$_gate" "$_evidence" "$(now)" >> "$_rounds" || { fail "cannot append $_rounds"; return 1; }
-    set_field "$_state" "review status" "$_verdict"; set_field "$_state" updated "$(now)"
+    if [ ! -f "$_rounds" ]; then
+        if ! printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$_rounds"; then
+            cp "$_state_backup" "$_state" 2>/dev/null || true
+            rm -f "$_state_backup"; release_lock "$_lock"; fail "cannot create $_rounds"; return 1
+        fi
+    fi
+    if ! printf '%s\t%s\t%s\t%s\t%s\n' "$_round" "$_verdict" "$_gate" "$_evidence" "$(now)" >> "$_rounds"; then
+        cp "$_state_backup" "$_state" 2>/dev/null || true
+        rm -f "$_state_backup"; release_lock "$_lock"; fail "cannot append $_rounds"; return 1
+    fi
+    rm -f "$_state_backup"
+    release_lock "$_lock"
     log "verdict=$_verdict round=$_round evidence=$_evidence"
 }
 
@@ -128,7 +169,7 @@ set_next() {
     need_dir "$@" || return $?
     _dir="$1"; _action="${2:-}"; [ -n "$_action" ] || { fail "missing next action"; return 2; }
     _state="$(state_file "$_dir")"; [ -f "$_state" ] || { fail "state not initialized: $_state"; return 1; }
-    set_field "$_state" "next action" "$_action"; set_field "$_state" updated "$(now)"
+    update_state "$_state" "next action" "$_action" updated "$(now)" || return 1
     log "next=$_action"
 }
 
