@@ -2,73 +2,72 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Process Mission
 # SPDX-License-Identifier: MIT
 name: qemu-build
-description: Use for configuring, reusing, building, or diagnosing named QEMU build directories under source-root builds/, including target-specific, debug, sanitizer, and trace configurations.
+description: Use for configuring, reusing, building, or diagnosing named QEMU build directories under source-root builds/, including target-specific, debug, sanitizer, and trace configurations. Use for the QEMU source tree only; kernel and U-Boot builds belong to qemu-kernel-build and qemu-uboot-build.
 ---
 
 # QEMU Build
 
 ## Audit workflow
 
-For non-trivial workspace writes, use a stable
-`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
-
-```text
-.oh-my-qemu/<task-slug>/
-├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
-├── commands.md   # Redacted commands, working directories, and results
-├── logs/         # Decisive build, test, runtime, or diagnostic logs
-├── scripts/      # Temporary scripts, probes, parsers, and harnesses
-└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
-```
-
-Before changing source or mutable artifacts, record the workspace root,
-revision, `git status --short`, pre-existing changes, goal, scope, and
-acceptance checks in `audit.md`. Log exact redacted commands and results in
-`commands.md`; record revisions, configurations, tool versions, and hashes when
-they affect reproducibility. Separate observations from inferences and edit
-source only when requested.
-
-Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
-dependencies and non-QEMU binaries in task `output/`. Before writing audit
-artifacts or configuring QEMU in a Git worktree, add `.agents/`,
-`.oh-my-qemu/`, and `builds/` to the repository-local file from
-`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. At handoff, verify them
-absent from `git status --short`. Report the task directory and unresolved gaps.
+For a non-trivial task that writes to the workspace, use only the needed entries under
+`.oh-my-qemu/<task-slug>/`: `audit.md` (baseline, plan, decisions, evidence, verification, and
+gaps), `commands.md` (redacted commands, working directories, and results), `logs/` (decisive
+build, test, and runtime output), `scripts/` (probes, parsers, and harnesses), and `output/`
+(generated deliverables, third-party dependencies, and non-QEMU binaries). Keep QEMU's own build
+tree at source-root `builds/build-<target>/`, never an unqualified `build/`. In a Git worktree,
+add `.agents/`, `.oh-my-qemu/`, and `builds/` to the file from
+`git rev-parse --git-path info/exclude` before writing artifacts or configuring QEMU; preserve
+existing entries and avoid duplicates. Never stage or commit these paths; stage source only when
+the user explicitly requests that separate action. At handoff, reconcile `git status --short`
+with the baseline and report the task directory, build directory, source changes, pre-existing
+changes, and unresolved gaps.
 
 ## QEMU upstream boundary
 
-QEMU's official GitLab and mailing lists are upstream project channels. A
-patch becomes an upstream contribution when sent to the mailing-list recipients
-selected through `MAINTAINERS`; do not prepare or send agent-generated patches
-for that submission. Local branches, commits, patch files, pushes, and pull
-requests are not by themselves QEMU upstream contributions. Perform those Git
-actions only when requested and follow the workspace's Git policy.
+QEMU's official GitLab and mailing lists are upstream channels. A patch becomes an upstream
+contribution when it is sent to the maintainers selected through `MAINTAINERS`. Do not prepare or
+send agent-generated code, documentation, commit messages, or patches for upstream submission; see
+the checked-out tree's `docs/devel/code-provenance.rst`. Research, debugging, analysis, local
+experiments, verification, and workflow guidance remain allowed. Local branches, commits, patch
+files, pushes, and pull requests are not by themselves upstream contributions; perform those Git
+actions only when requested.
+
+## Scope boundary
+
+This skill configures and builds the QEMU source tree only. Use `qemu-kernel-build` for Linux
+kernel artifacts and `qemu-uboot-build` for U-Boot and firmware-stage artifacts. One named build
+directory per component; one skill per build class.
 
 ## Build directory rule
 
-Use a descriptive directory under source-root `builds/` for every QEMU
-configuration. Derive the name from the target and important variant, for
-example:
+Use a descriptive directory under source-root `builds/` for every configuration, such as
+`builds/build-aarch64/` or `builds/build-riscv64-debug/`. Never configure QEMU in `build/`, the
+source root, or the task `output/` directory. Reuse a directory only when its recorded
+configuration matches the task.
 
-- `builds/build-aarch64/`;
-- `builds/build-riscv64-debug/`;
-- `builds/build-x86_64-asan/`.
+Inspect before creating or reconfiguring: `config.log` for the configure command and source
+path; `build.ninja` for configured state; `pyvenv/bin/meson` for Meson commands;
+`meson-logs/meson-log.txt` for configure failures. If `config.log` names a different source
+root, prefix, or toolchain, the directory is stale: create a new named directory instead.
 
-Do not configure QEMU in `build/`, the source root, or the task `output/`
-directory. Reuse a named build only when its recorded configuration matches the
-task.
+## Environment preflight
 
-Before creating or reconfiguring anything, inspect:
+Record absolute paths and versions before the first build; do not rely on an interactive shell.
+Run `scripts/preflight.sh` first, or see `references/host-matrix.md` for host notes and failures.
 
-- `<build-dir>/config.log` for the configure command;
-- `<build-dir>/build.ninja` for configured state;
-- `<build-dir>/pyvenv/bin/meson` for Meson commands;
-- `<build-dir>/meson-logs/meson-log.txt` for configure failures;
-- `<build-dir>/meson-info/intro-buildoptions.json` for options.
+- `command -v ninja meson python3 pkg-config cc` and each resolved path plus version.
+- The build directory's `pyvenv/bin/meson` and the configured Ninja when `PATH` lacks them.
+- A readable and writable `HOME` for the executing user; a Meson reconfigure can fail when
+  `HOME` belongs to another user.
+- Compiler, sysroot, and `pkg-config` paths recorded in `config.log`.
+- Host runtime libraries needed to run the built QEMU; if missing, build and run in the
+  documented container and record both environments.
 
-Create another named directory for a materially different target or
-configuration, such as sanitizer versus non-sanitizer.
+## Concurrency
+
+Run one configure step and one Ninja invocation per build directory at a time. Do not share a
+build directory between concurrent agents or tasks. If a build is already running, inspect its
+process and log, then wait or use a separate named build directory.
 
 ## Configure
 
@@ -80,87 +79,61 @@ cd builds/build-aarch64
 ../../configure --target-list=aarch64-softmmu
 ```
 
-Common targets:
+Use `../../configure --help` in the build directory for options supported by the checked-out
+version. Typical options are `--enable-debug`, `--enable-trace-backends=log`, and
+`--enable-asan` or `--enable-ubsan` or `--enable-tsan`. Reconfigure from `config.log`,
+changing only the needed option; keep the target list and diagnostic options unless the task
+changes them.
 
-- `x86_64-softmmu`
-- `aarch64-softmmu`
-- `riscv64-softmmu`
-- `loongarch64-softmmu`
-- `x86_64-linux-user`
-- `aarch64-linux-user`
-
-Useful options:
-
-- `--enable-debug`
-- `--enable-debug-info`
-- `--enable-trace-backends=log`
-- `--enable-asan`
-- `--enable-tsan`
-- `--enable-ubsan`
-
-From that build directory, use `../../configure --help` for the checked-out
-QEMU version.
-
-## Reconfigure safely
-
-Reconstruct the old command from `<build-dir>/config.log`, then change only the
-needed option.
-
-Preserve:
-
-- target list unless the task changes it;
-- debug/sanitizer/trace options;
-- dependency/accelerator options;
-- build directory evidence until diagnosis is complete.
-
-Do not delete a named build directory merely to make an error disappear. Keep
-its decisive logs until the failure is classified.
+Record any deviation, for example `--disable-werror` with the warning text that forced it. Do not
+disable warnings silently, and for generated-source failures fix the generator input rather than
+files under `builds/build-<target>/`.
 
 ## Build
 
-From the source root:
+From the source root, build the whole configuration or prefer narrow targets:
 
 ```bash
 ninja -C builds/build-aarch64
+ninja -C builds/build-riscv64 qemu-system-riscv64 tests/qtest/<test-name>
 ```
 
-Prefer narrow targets when possible:
+Use `-v` only for diagnosis.
 
-```bash
-ninja -C builds/build-riscv64 qemu-system-riscv64
-ninja -C builds/build-riscv64 tests/qtest/<test-name>
-```
+## Pre-compile checklist
 
-Use verbose mode only for diagnosis:
+Before a long build after source edits: confirm edited headers are included; confirm called QEMU
+APIs and struct fields exist in the checked-out tree; confirm feature guards match configured
+targets and options; confirm new sources and qtests are registered in Meson; confirm changed
+public signatures have all call sites updated.
 
-```bash
-ninja -C builds/build-riscv64 -v <target>
-```
+## Canonical gate
+
+For a change or a build claim, record these results before reporting PASS: the narrow build of
+the affected target from a named build directory; the matching qtest or focused verification;
+`scripts/checkpatch.pl` when source patches exist; `git diff --check` and reconciliation of
+`git status --short`. Record the build in `assets/build-record-template.md`; report every
+skipped gate as an unresolved gap.
 
 ## Failure classification
 
-- Configure: missing dependency, unsupported option, Python/Meson issue, compiler mismatch.
-- Compile: API/type/include/feature guard mismatch.
+- Configure: missing dependency, unsupported option, Python/Meson issue, compiler mismatch,
+  unreadable `HOME`, or stale build directory.
+- Compile: API/type/include/feature-guard mismatch; check the checked-out headers and nearby
+  maintained code.
 - Link: missing object in Meson, missing dependency, target-specific source not linked.
-- Generated source: QAPI, trace-events, decodetree, or Meson generator input.
-- Toolchain/host: sanitizer or compiler incompatibility.
+- Generated source: QAPI, trace-events, decodetree, or another Meson generator input.
+- Toolchain/host: sanitizer or compiler incompatibility, missing host library.
 
-For generated-source failures, fix the generator input, not generated files in
-`builds/build-<target>/`.
-
-## Report
-
-Write/report:
-
-- PASS/FAIL/INCONCLUSIVE;
-- source root and build dir;
-- exact command;
-- target list and key options;
-- decisive failure excerpt;
-- full log paths under `.oh-my-qemu/<task-slug>/`;
-- what the build proves.
+When background or sub-agent execution is unavailable, run the build as a bounded foreground
+command, keep the full log under task `logs/`, and report the exit status and failure excerpt
+instead of claiming completion.
 
 ## Upstream references
 
-- QEMU code provenance and AI policy: `docs/devel/code-provenance.rst`.
-- Testing overview: `docs/devel/testing/main.rst`.
+- `docs/devel/build-system.rst`
+- `docs/devel/testing/main.rst`
+- `docs/devel/submitting-a-patch.rst`
+- `docs/devel/code-provenance.rst`
+
+Paths can differ between QEMU versions; locate them in the checked-out tree.

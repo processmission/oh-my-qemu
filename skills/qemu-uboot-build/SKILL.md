@@ -9,60 +9,88 @@ description: Use for building U-Boot artifacts for QEMU firmware boot testing, i
 
 ## Audit workflow
 
-For non-trivial workspace writes, use a stable
-`.oh-my-qemu/<task-slug>/` directory and create only needed entries:
+For a non-trivial task that writes to the workspace, use only the needed entries under
+`.oh-my-qemu/<task-slug>/`: `audit.md` (baseline, plan, decisions, evidence, verification, and
+gaps), `commands.md` (redacted commands, working directories, and results), `logs/` (decisive
+build, test, and runtime output), `scripts/` (probes, parsers, and harnesses), and `output/`
+(generated deliverables, third-party dependencies, and non-QEMU binaries). Keep QEMU's own build
+tree at source-root `builds/build-<target>/`, never an unqualified `build/`. In a Git worktree,
+add `.agents/`, `.oh-my-qemu/`, and `builds/` to the file from
+`git rev-parse --git-path info/exclude` before writing artifacts or configuring QEMU; preserve
+existing entries and avoid duplicates. Never stage or commit these paths; stage source only when
+the user explicitly requests that separate action. At handoff, reconcile `git status --short`
+with the baseline and report the task directory, build directory, source changes, pre-existing
+changes, and unresolved gaps.
 
-```text
-.oh-my-qemu/<task-slug>/
-├── audit.md      # Baseline, scope, decisions, evidence, verification, and gaps
-├── commands.md   # Redacted commands, working directories, and results
-├── logs/         # Decisive build, test, runtime, or diagnostic logs
-├── scripts/      # Temporary scripts, probes, parsers, and harnesses
-└── output/       # Generated deliverables, dependencies, and non-QEMU binaries
-```
+## QEMU upstream boundary
 
-Before changing source or mutable artifacts, record the workspace root,
-revision, `git status --short`, pre-existing changes, goal, scope, and
-acceptance checks in `audit.md`. Log exact redacted commands and results in
-`commands.md`; record revisions, configurations, tool versions, and hashes when
-they affect reproducibility. Separate observations from inferences and edit
-source only when requested.
+QEMU's official GitLab and mailing lists are upstream channels. A patch becomes an upstream
+contribution when it is sent to the maintainers selected through `MAINTAINERS`. Do not prepare or
+send agent-generated code, documentation, commit messages, or patches for upstream submission; see
+the checked-out tree's `docs/devel/code-provenance.rst`. Research, debugging, analysis, local
+experiments, verification, and workflow guidance remain allowed. Local branches, commits, patch
+files, pushes, and pull requests are not by themselves upstream contributions; perform those Git
+actions only when requested.
 
-Keep QEMU builds under source-root `builds/build-<target>/`; put third-party
-dependencies and non-QEMU binaries in task `output/`. Before writing audit
-artifacts or configuring QEMU in a Git worktree, add `.agents/`,
-`.oh-my-qemu/`, and `builds/` to the repository-local file from
-`git rev-parse --git-path info/exclude`; preserve existing entries and avoid
-duplicates. Never stage or commit those directories. At handoff, verify them
-absent from `git status --short`. Report the task directory and unresolved gaps.
+## Scope
 
-## Build Flow
+Build U-Boot and its loader stages for QEMU firmware boot tests. QEMU itself belongs to
+`qemu-build` and the Linux kernel to `qemu-kernel-build`. Keep U-Boot outputs and dependency
+packages under the task `output/` directory.
 
-Record:
+## Build flow
 
-- U-Boot source path, revision, and dirty state;
-- board defconfig and any config fragments;
-- architecture, cross compiler prefix, compiler version, and output directory
-  under `.oh-my-qemu/<task-slug>/output/`;
-- external dependencies such as BL31, TEE, firmware blobs, device trees, or DDR init binaries;
-- output artifacts such as `spl/u-boot-spl`, `u-boot`, `u-boot.bin`, `u-boot.itb`, or platform-specific combined images;
-- exact command, log path, and hashes.
-
-## Command Shape
-
-Use local documentation first. Typical U-Boot patterns are:
+Record U-Boot source revision and dirty state; board defconfig and config fragments; cross
+compiler prefix, absolute path, and version; output directory; external dependencies such as
+BL31/TF-A, TEE or OP-TEE, DDR init, device trees, or vendor firmware blobs; and a hash of every
+artifact consumed by QEMU or packaged into an image. Adapt the tree's documentation:
 
 ```bash
-make O=<task-output>/uboot <board_defconfig>
-make O=<task-output>/uboot CROSS_COMPILE=<prefix> -j$(nproc)
+make O=<abs-output>/uboot <board_defconfig>
+make O=<abs-output>/uboot CROSS_COMPILE=<prefix> -j<nproc>
 ```
 
-If a firmware chain requires environment variables such as `BL31`, record their resolved paths and hashes before building.
+Use an absolute `O=` path. When the firmware chain needs environment variables such as `BL31`,
+record their resolved paths and hashes before building. Some vendor U-Boot trees must be built
+in-tree or with vendor-specific variables; inspect the tree's documentation and record any
+deviation from the generic shape.
 
-## Output Rules
+## Artifact inspection
 
-- Treat each boot stage as a separate provenance item.
-- Keep dependency packages and all U-Boot build outputs under
-  `.oh-my-qemu/<task-slug>/output/`.
-- Do not assume a combined image contains the expected stage; inspect and record the packaging command.
-- If firmware reaches U-Boot but Linux does not boot, separate U-Boot command/environment issues from QEMU model issues.
+Inspect every artifact before use; a filename does not describe its contents.
+
+- Use `file`, `dumpimage -l`, and `mkimage` metadata to identify SPL, U-Boot proper, FIT/ITB,
+  and combined images; record sizes, load addresses, and component names.
+- Treat each boot stage as a separate provenance item and hash it separately.
+- A combined image may contain a different stage than expected: record the packaging command and
+  verify the embedded bytes. FIT signing needs keys and a policy; do not call an image signed
+  when signing was not configured.
+- Copy `assets/artifact-manifest-template.md` and fill one row per stage before packaging.
+
+## Firmware chain packaging
+
+When packaging U-Boot into a vendor firmware image (FIP, BIOS, or a flash image):
+
+- record the input U-Boot artifact hash and the documented destination offset;
+- package an isolated copy and compare the embedded bytes against the source artifact at that
+  offset, not only the container hash;
+- record whether TF-A/BL31 was built from source or supplied as a blob, with revision and hash;
+- keep the source media read-only and write the test image to a task-local path.
+
+## Common failures
+
+| Symptom | Check |
+| --- | --- |
+| `dtc`, `pyelftools`, `swig`, or `libssl` missing | host build dependencies |
+| Compiler or target mismatch | `CROSS_COMPILE`, board defconfig, compiler version |
+| Missing BL31 or FIT component | external dependency path and packaging command |
+| Boot reaches no firmware prompt | image layout, boot media, and console routing |
+
+## Upstream references
+
+- `docs/system/linuxboot.rst`
+- `docs/system/invocation.rst`
+- `docs/devel/testing/main.rst`
+- `docs/devel/code-provenance.rst`
+
+Paths can differ between QEMU versions; locate them in the checked-out tree.
