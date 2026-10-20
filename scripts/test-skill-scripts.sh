@@ -220,6 +220,9 @@ test_gates_source_comments() {
     output="$TMPROOT/source-output.c"
     printf '/* data: output/serial.log */\n' > "$output"
     expect_rc 1 "gates source-comments rejects general output paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$output"
+    hostpath="$TMPROOT/source-hostpath.c"
+    printf '/* workspace: /workspace/qemu/evidence */\n' > "$hostpath"
+    expect_rc 1 "gates source-comments rejects absolute host paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$hostpath"
 }
 
 test_rst_gates() {
@@ -454,7 +457,8 @@ test_orchestrator_state() {
     if grep -q '^next action: add trace and rerun' "$task/output/task-state.md"; then pass "loop-state writes next action field"; else fail "loop-state next action field missing"; fi
     expect_rc 1 "loop-state check blocks an incomplete goal" bash "$loop" check "$task"
     goal_task="$TMPROOT/orch-goal/.oh-my-qemu/demo"
-    mkdir -p "$goal_task"
+    mkdir -p "$goal_task/logs"
+    for f in demo-timer.log demo-timer-final.log demo-timer-rereview.log demo-timer-round2.log; do : > "$goal_task/logs/$f"; done
     printf '# audit\n' > "$goal_task/audit.md"
     printf '# commands\n' > "$goal_task/commands.md"
     expect_rc 0 "goal task init" bash "$loop" init "$goal_task"
@@ -485,6 +489,9 @@ test_orchestrator_state() {
     expect_rc 0 "loop-state records a verdict after contract changes" bash "$loop" verdict "$goal_task" PASS "marker demo-timer final" "logs/demo-timer-final.log"
     expect_rc 0 "loop-state completes the goal" bash "$loop" loop "$goal_task"
     expect_rc 0 "loop-state check passes a complete goal" bash "$loop" check "$goal_task"
+    expect_rc 0 "loop-state records a verdict with missing evidence" bash "$loop" verdict "$goal_task" PASS "marker demo-timer missing" "logs/missing.log"
+    expect_rc 1 "loop-state blocks when PASS evidence is missing" bash "$loop" loop "$goal_task"
+    expect_rc 0 "loop-state restores a valid verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer final" "logs/demo-timer-final.log"
     expect_rc 1 "loop-state rejects changing a completed goal" bash "$loop" goal "$goal_task" "different goal" goal
     expect_rc 0 "loop-state accepts the unchanged goal" bash "$loop" goal "$goal_task" "demo timer goal" goal
     expect_rc 0 "loop-state records a review blocker" bash "$loop" finding "$goal_task" F-01 BLOCKER "missing trace event"
@@ -498,7 +505,8 @@ test_orchestrator_state() {
     expect_rc 0 "loop-state records the new round verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer round2" "logs/demo-timer-round2.log"
     expect_rc 0 "loop-state completes after the new round PASS" bash "$loop" loop "$goal_task"
     round_task="$TMPROOT/orch-round/.oh-my-qemu/demo"
-    mkdir -p "$round_task"
+    mkdir -p "$round_task/logs"
+    : > "$round_task/logs/round.log"
     printf '# audit\n' > "$round_task/audit.md"
     printf '# commands\n' > "$round_task/commands.md"
     bash "$loop" init "$round_task" >/dev/null
@@ -541,7 +549,8 @@ EOF
         fail "loop-state round mode did not hand off"
     fi
     resumed="$TMPROOT/orch-round-resumed/.oh-my-qemu/demo"
-    mkdir -p "$resumed"
+    mkdir -p "$resumed/logs"
+    : > "$resumed/logs/resumed.log"
     printf '# audit\n' > "$resumed/audit.md"
     printf '# commands\n' > "$resumed/commands.md"
     bash "$loop" init "$resumed" >/dev/null
@@ -632,6 +641,13 @@ Gate: marker BOOT READY
 Evidence: logs/../../../etc/passwd
 EOF
     expect_rc 1 "review-checks rejects an evidence path escaping the task packet" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: /tmp/elsewhere/logs/serial.log
+EOF
+    expect_rc 1 "review-checks rejects an absolute evidence path" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
     cat > "$task/output/round-result.md" <<'EOF'
 Round: 1
 Verdict: PASS

@@ -139,6 +139,15 @@ valid_pass() {
     return 0
 }
 
+valid_evidence() {
+    _ve_dir="$1"; _ve_value="$2"
+    case "$_ve_value" in /*|*[[:space:]]/*) return 1 ;; esac
+    _ve_path="$(printf '%s' "$_ve_value" | grep -oE '(logs|output|evidence)/[A-Za-z0-9._/-]+' | sed -n '1p')"
+    [ -n "$_ve_path" ] || return 0
+    case "$_ve_path" in /*|*..*) return 1 ;; esac
+    [ -e "$_ve_dir/$_ve_path" ]
+}
+
 record_verdict() {
     need_dir "$@" || return $?
     _dir="$1"; _verdict="${2:-}"; _gate="${3:-}"; _evidence="${4:-}"
@@ -433,6 +442,10 @@ loop_goal() {
                 log "ROUND MODE: round $_round PASS needs a marker/qtest/test gate and non-empty evidence, not timeout/none."
                 return 1
             fi
+            if [ "$_rr_verdict" = PASS ] && ! valid_evidence "$_dir" "$_rr_evidence"; then
+                log "ROUND MODE: round $_round PASS evidence path is missing under the task packet."
+                return 1
+            fi
             _review="$(awk -F': ' '/^review status:/ { print $2; exit }' "$_state")"
             case "$_review" in
                 PASS|FAIL|INCONCLUSIVE) ;;
@@ -512,6 +525,9 @@ check_state() {
         _last_evidence="$(awk -F'\t' 'NR > 1 { e=$4 } END { print e }' "$(rounds_file "$_dir")" 2>/dev/null)"
         if [ "$_last_verdict" = PASS ] && ! valid_pass "$_last_gate" "$_last_evidence"; then
             fail "latest PASS verdict lacks a validated gate/evidence"; _fail=1
+        fi
+        if [ "$_last_verdict" = PASS ] && ! valid_evidence "$_dir" "$_last_evidence"; then
+            fail "latest PASS evidence path is missing under the task packet"; _fail=1
         fi
     fi
     show_goal_status "$_dir"

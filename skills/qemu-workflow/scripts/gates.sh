@@ -294,7 +294,7 @@ gate_source_comments() {
         if (out != "") print out
       }
     ' "$file")
-    hits=$(printf '%s\n' "$comments" | grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/Users/[^ ]*|/home/[^ ]*|task artifact directory' | sed -n '1,5p')
+    hits=$(printf '%s\n' "$comments" | grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/(Users|home|workspace|tmp|root|private|mnt|opt)/[^ ]*|task artifact directory' | sed -n '1,5p')
     if [[ -n "$hits" ]]; then
       fail source-comments "local audit/output references in source comments: $file"
       printf '%s\n' "$hits" | sed 's/^/  /'

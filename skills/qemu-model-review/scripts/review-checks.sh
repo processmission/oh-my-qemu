@@ -122,6 +122,7 @@ check_goal_contract() {
         _rr_gate="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
         _rr_evidence="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
         if [ -z "$_rr_gate" ] || [ -z "$_rr_evidence" ]; then fail "final goal: round-result needs non-empty gate and evidence"; return 1; fi
+        case "$_rr_evidence" in /*|*[[:space:]]/*) fail "final goal: evidence path must be task-local, not absolute"; return 1 ;; esac
         pass "goal contract final: $_m_done/$_m_total evidence-backed milestones, $_a_pass/$_a_total ACs, round PASS"
     else
         pass "goal contract valid: intermediate ($_m_done/$_m_total milestones, $_a_pass/$_a_total ACs); final completion not claimed"
@@ -240,6 +241,7 @@ check_round_result() {
                 fail "PASS round-result needs gate and evidence"
                 return 1
             fi
+            case "$_evidence" in /*|*[[:space:]]/*) fail "PASS evidence path must be task-local, not absolute"; return 1 ;; esac
             _evidence_path="$(printf '%s' "$_evidence" | grep -oE '(logs|output|evidence)/[A-Za-z0-9._/-]+' | sed -n '1p')"
             case "$_evidence_path" in
                 ''|/*|*..*) fail "PASS evidence path must stay inside the task packet: ${_evidence_path:-missing}"; return 1 ;;
