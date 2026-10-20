@@ -84,7 +84,8 @@ concrete input, authority, or external change required to continue.
 `bash <skill-dir>/scripts/gates.sh all .oh-my-qemu/<task-slug>` from the skill directory.
 
 Run `workspace` and `audit-sections` after planning, `round-result` and `marker` after a
-round, and `handoff`, `git-status`, and `evidence-manifest` before handoff. Copy the
+round, `source-comments` on changed source files before review, and `handoff`,
+`git-status`, and `evidence-manifest` before handoff. Copy the
 [audit](assets/audit-template.md), [round-result](assets/round-result-template.md),
 [evidence-manifest](assets/evidence-manifest-template.md), and
 [handoff](assets/handoff-template.md) templates when those records are due. Each gate

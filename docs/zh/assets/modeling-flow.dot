@@ -29,7 +29,7 @@ digraph modeling_flow_zh {
   p7 -> p3 [label="下一轮", style=dashed];
   p7 -> p8 [label="全部验收通过 / 停止"];
   p8 -> done [label="交接"];
-  done [label="完成 · 阻塞 · 轮次预算用尽", shape=ellipse, fillcolor="#f2f2f2"];
+  done [label="完成 · 阻塞 · 用户停止", shape=ellipse, fillcolor="#f2f2f2"];
 
   note [shape=note, fillcolor="#fffbe6", label="硬规则：\n· PASS 必须有 marker 或可证伪 qtest\n· 超时 / 空串口 / 未崩溃 = INCONCLUSIVE\n· 日志占位 / 未实现占位 / 启动横幅 ≠ 已建模行为\n· 评审通过前不推进；每轮只有一个目标"];
   p4 -> note [style=dotted, arrowhead=none];

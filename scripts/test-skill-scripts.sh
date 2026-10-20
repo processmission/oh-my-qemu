@@ -207,6 +207,24 @@ EOF
     expect_rc 1 "gates git-status rejects untracked excluded paths" bash -c "cd '$status_repo' && bash '$ROOT/skills/qemu-workflow/scripts/gates.sh' git-status '$TMPROOT/baseline-status.txt'"
 }
 
+test_gates_source_comments() {
+    good="$TMPROOT/source-good.c"
+    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\nconst char *p = "/home/test/image";\nconst char *u = "https://example.test/output/result.log";\n' > "$good"
+    expect_rc 0 "gates source-comments accepts comments and ignores code literals" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$good"
+    bad="$TMPROOT/source-bad.c"
+    printf '/*\n * Contract: output/register-contracts-r2.md section 2.\n * Decision recorded in audit.md.\n */\n' > "$bad"
+    expect_rc 1 "gates source-comments rejects local output references" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$bad"
+    evidence="$TMPROOT/source-evidence.c"
+    printf '/* Evidence: logs/serial.log */\n' > "$evidence"
+    expect_rc 1 "gates source-comments rejects local evidence paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$evidence"
+    output="$TMPROOT/source-output.c"
+    printf '/* data: output/serial.log */\n' > "$output"
+    expect_rc 1 "gates source-comments rejects general output paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$output"
+    hostpath="$TMPROOT/source-hostpath.c"
+    printf '/* workspace: /workspace/qemu/evidence */\n' > "$hostpath"
+    expect_rc 1 "gates source-comments rejects absolute host paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$hostpath"
+}
+
 test_rst_gates() {
     repo="$TMPROOT/rst-repo"
     mkdir -p "$repo/docs/system/arm"
@@ -417,13 +435,16 @@ test_orchestrator_state() {
     expect_rc 1 "loop-state verdict fails when state temp is unavailable" env TMPDIR=/nonexistent bash "$loop" verdict "$fresh" PASS "marker X" "logs/x.log"
     if [ -f "$fresh/output/rounds.tsv" ] && grep -q 'PASS' "$fresh/output/rounds.tsv"; then fail "loop-state appended a verdict before state update"; else pass "loop-state does not append a verdict on failed state update"; fi
     expect_rc 0 "loop-state init" bash "$loop" init "$task"
+    expect_rc 0 "loop-state goal" bash "$loop" goal "$task" "model demo timer" goal
+    expect_rc 0 "loop-state milestone" bash "$loop" milestone add "$task" M1 "timer model implemented"
+    expect_rc 0 "loop-state AC" bash "$loop" ac add "$task" AC1 "periodic interrupt fires"
     expect_rc 0 "loop-state phase" bash "$loop" phase "$task" evidence
     expect_rc 0 "loop-state start-round" bash "$loop" start-round "$task" "probe reset value"
     expect_rc 1 "loop-state fails when state temp is unavailable" env TMPDIR=/nonexistent bash "$loop" phase "$task" build
     rm -f "$task/output/rounds.tsv"
     mkdir "$task/output/rounds.tsv"
     expect_rc 1 "loop-state rejects unappendable round history" bash "$loop" verdict "$task" PASS "marker BOOT READY" "logs/serial.log"
-    if grep -q '^review status: <not-requested | requested | passed | blocked>' "$task/output/task-state.md"; then pass "loop-state rolls back state when round history fails"; else fail "loop-state changed state before round history"; fi
+    if grep -q '^review status: not-requested' "$task/output/task-state.md"; then pass "loop-state rolls back state when round history fails"; else fail "loop-state changed state before round history"; fi
     rmdir "$task/output/rounds.tsv"
     expect_rc 0 "loop-state verdict" bash "$loop" verdict "$task" PASS "marker BOOT READY" "logs/serial.log"
     expect_rc 0 "loop-state finding" bash "$loop" finding "$task" F-01 BLOCKER "missing trace event"
@@ -432,9 +453,122 @@ test_orchestrator_state() {
     if grep -q 'probe reset value' "$task/output/task-state.md"; then pass "loop-state records objective"; else fail "loop-state objective missing"; fi
     expect_contains "$task/output/rounds.tsv" "PASS" "loop-state records verdict"
     expect_contains "$task/output/findings.tsv" "F-01" "loop-state records finding"
-    if grep -q '^review status: PASS' "$task/output/task-state.md"; then pass "loop-state writes review status field"; else fail "loop-state review status field missing"; fi
+    if grep -q '^review status: not-requested' "$task/output/task-state.md"; then pass "loop-state invalidates review when a finding is added"; else fail "loop-state review status field missing"; fi
     if grep -q '^next action: add trace and rerun' "$task/output/task-state.md"; then pass "loop-state writes next action field"; else fail "loop-state next action field missing"; fi
-    expect_rc 0 "loop-state check" bash "$loop" check "$task"
+    expect_rc 1 "loop-state check blocks an incomplete goal" bash "$loop" check "$task"
+    goal_task="$TMPROOT/orch-goal/.oh-my-qemu/demo"
+    mkdir -p "$goal_task/logs"
+    for f in demo-timer.log demo-timer-final.log demo-timer-rereview.log demo-timer-round2.log; do : > "$goal_task/logs/$f"; done
+    printf '# audit\n' > "$goal_task/audit.md"
+    printf '# commands\n' > "$goal_task/commands.md"
+    expect_rc 0 "goal task init" bash "$loop" init "$goal_task"
+    expect_rc 0 "goal task contract" bash "$loop" goal "$goal_task" "demo timer goal" goal
+    colon_task="$TMPROOT/orch-goal-colon/.oh-my-qemu/demo"
+    mkdir -p "$colon_task"
+    printf '# audit\n' > "$colon_task/audit.md"
+    printf '# commands\n' > "$colon_task/commands.md"
+    bash "$loop" init "$colon_task" >/dev/null
+    expect_rc 0 "loop-state stores a goal containing a colon" bash "$loop" goal "$colon_task" "model timer: boot succeeds" goal
+    expect_rc 0 "loop-state accepts the unchanged colon goal" bash "$loop" goal "$colon_task" "model timer: boot succeeds" goal
+    expect_rc 0 "goal task milestone" bash "$loop" milestone add "$goal_task" M1 "timer model implemented"
+    expect_rc 0 "goal task second milestone" bash "$loop" milestone add "$goal_task" M2 "timer interrupt wired"
+    expect_rc 0 "goal task AC" bash "$loop" ac add "$goal_task" AC1 "periodic interrupt fires"
+    bash "$loop" start-round "$goal_task" "implement timer" >/dev/null
+    expect_rc 1 "loop-state rejects a timeout PASS verdict" bash "$loop" verdict "$goal_task" PASS "timeout after 1s" "logs/demo-timer.log"
+    expect_rc 0 "goal task records a round verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer" "logs/demo-timer.log"
+    expect_rc 1 "loop-state loop continues while AC is open" bash "$loop" loop "$goal_task"
+    expect_rc 1 "loop-state rejects PASS AC without evidence" bash "$loop" ac status "$goal_task" AC1 pass
+    expect_rc 0 "loop-state records evidence-backed AC pass" bash "$loop" ac status "$goal_task" AC1 pass "qtest demo-timer"
+    expect_rc 0 "loop-state records a failed AC" bash "$loop" ac status "$goal_task" AC1 fail "logs/failure.log"
+    expect_rc 1 "loop-state rejects PASS AC inheriting failure evidence" bash "$loop" ac status "$goal_task" AC1 pass
+    expect_rc 0 "loop-state records fresh AC pass evidence" bash "$loop" ac status "$goal_task" AC1 pass "qtest demo-timer fixed"
+    expect_rc 1 "loop-state loop waits for milestone completion" bash "$loop" loop "$goal_task"
+    expect_rc 1 "loop-state rejects milestone done without evidence" bash "$loop" milestone status "$goal_task" M1 done
+    expect_rc 0 "loop-state records milestone done" bash "$loop" milestone status "$goal_task" M1 done "qtest demo-timer exit gate"
+    expect_rc 0 "loop-state records the second milestone done" bash "$loop" milestone status "$goal_task" M2 done "qtest demo-timer irq exit gate"
+    expect_rc 0 "loop-state records a verdict after contract changes" bash "$loop" verdict "$goal_task" PASS "marker demo-timer final" "logs/demo-timer-final.log"
+    expect_rc 0 "loop-state completes the goal" bash "$loop" loop "$goal_task"
+    expect_rc 0 "loop-state check passes a complete goal" bash "$loop" check "$goal_task"
+    expect_rc 0 "loop-state records a verdict with missing evidence" bash "$loop" verdict "$goal_task" PASS "marker demo-timer missing" "logs/missing.log"
+    expect_rc 1 "loop-state blocks when PASS evidence is missing" bash "$loop" loop "$goal_task"
+    expect_rc 0 "loop-state restores a valid verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer final" "logs/demo-timer-final.log"
+    expect_rc 1 "loop-state rejects changing a completed goal" bash "$loop" goal "$goal_task" "different goal" goal
+    expect_rc 0 "loop-state accepts the unchanged goal" bash "$loop" goal "$goal_task" "demo timer goal" goal
+    expect_rc 0 "loop-state records a review blocker" bash "$loop" finding "$goal_task" F-01 BLOCKER "missing trace event"
+    expect_rc 1 "loop-state blocks on an open BLOCKER" bash "$loop" loop "$goal_task"
+    expect_rc 1 "loop-state resolve rejects an unknown finding" bash "$loop" finding resolve "$goal_task" F-99
+    expect_rc 0 "loop-state resolves a fixed blocker" bash "$loop" finding resolve "$goal_task" F-01
+    expect_rc 0 "loop-state records a verdict after blocker resolution" bash "$loop" verdict "$goal_task" PASS "marker demo-timer re-review" "logs/demo-timer-rereview.log"
+    expect_rc 0 "loop-state completes after blocker resolution" bash "$loop" loop "$goal_task"
+    bash "$loop" start-round "$goal_task" "next regression round" >/dev/null
+    expect_rc 1 "loop-state invalidates the previous verdict on a new round" bash "$loop" loop "$goal_task"
+    expect_rc 0 "loop-state records the new round verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer round2" "logs/demo-timer-round2.log"
+    expect_rc 0 "loop-state completes after the new round PASS" bash "$loop" loop "$goal_task"
+    round_task="$TMPROOT/orch-round/.oh-my-qemu/demo"
+    mkdir -p "$round_task/logs"
+    : > "$round_task/logs/round.log"
+    printf '# audit\n' > "$round_task/audit.md"
+    printf '# commands\n' > "$round_task/commands.md"
+    bash "$loop" init "$round_task" >/dev/null
+    bash "$loop" goal "$round_task" "one-round demo" round >/dev/null
+    bash "$loop" milestone add "$round_task" M1 "round model" >/dev/null
+    bash "$loop" ac add "$round_task" AC1 "one behavior" >/dev/null
+    expect_rc 1 "loop-state round mode waits for the requested round" bash "$loop" loop "$round_task"
+    bash "$loop" start-round "$round_task" "single round" >/dev/null
+    printf 'Round: 1\n' > "$round_task/output/round-result.md"
+    expect_rc 1 "loop-state round mode rejects a header-only round result" bash "$loop" loop "$round_task"
+    cat > "$round_task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate:
+- Evidence:
+EOF
+    bash "$loop" verdict "$round_task" PASS "marker ROUND READY" "logs/round.log" >/dev/null
+    expect_rc 1 "loop-state round mode rejects empty gate/evidence" bash "$loop" loop "$round_task"
+    cat > "$round_task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate: timeout after 1 second
+- Evidence: none
+EOF
+    expect_rc 1 "loop-state round mode rejects invalid PASS semantics" bash "$loop" loop "$round_task"
+    cat > "$round_task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker ROUND READY
+- Evidence: logs/failed.log
+## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker ROUND READY
+- Evidence: logs/round.log
+EOF
+    bash "$loop" verdict "$round_task" PASS "marker ROUND READY" "logs/round.log" >/dev/null
+    if bash "$loop" loop "$round_task" > "$TMPROOT/round-mode.out" 2>&1; then
+        if grep -q 'ROUND COMPLETE' "$TMPROOT/round-mode.out"; then pass "loop-state round mode hands off after a validated round"; else fail "loop-state round-mode handoff message missing"; fi
+    else
+        fail "loop-state round mode did not hand off"
+    fi
+    resumed="$TMPROOT/orch-round-resumed/.oh-my-qemu/demo"
+    mkdir -p "$resumed/logs"
+    : > "$resumed/logs/resumed.log"
+    printf '# audit\n' > "$resumed/audit.md"
+    printf '# commands\n' > "$resumed/commands.md"
+    bash "$loop" init "$resumed" >/dev/null
+    bash "$loop" goal "$resumed" "resumed round demo" goal >/dev/null
+    bash "$loop" start-round "$resumed" "historical round" >/dev/null
+    printf 'Round: 1\n' > "$resumed/output/round-result.md"
+    bash "$loop" goal "$resumed" "resumed round demo" round >/dev/null
+    expect_rc 1 "loop-state round mode ignores a historical round result" bash "$loop" loop "$resumed"
+    bash "$loop" start-round "$resumed" "requested round" >/dev/null
+    expect_rc 1 "loop-state round mode rejects a stale round result" bash "$loop" loop "$resumed"
+    cat > "$resumed/output/round-result.md" <<'EOF'
+Round: 2
+Verdict: PASS
+Gate: marker RESUMED READY
+Evidence: logs/resumed.log
+EOF
+    bash "$loop" verdict "$resumed" PASS "marker RESUMED READY" "logs/resumed.log" >/dev/null
+    expect_rc 0 "loop-state round mode accepts the validated requested round result" bash "$loop" loop "$resumed"
     nostate="$TMPROOT/no-state/.oh-my-qemu/demo"
     mkdir -p "$nostate"
     printf '# audit\n' > "$nostate/audit.md"
@@ -462,7 +596,8 @@ test_orchestrator_state() {
 test_review_checks() {
     root="$TMPROOT/review-task"
     task="$root/.oh-my-qemu/demo"
-    mkdir -p "$task/output"
+    mkdir -p "$task/output" "$task/logs"
+    : > "$task/logs/serial.log"
     printf '# commands\n' > "$task/commands.md"
     cat > "$task/audit.md" <<'EOF'
 # Task
@@ -494,10 +629,108 @@ EOF
         --translation "$task/output/translation.tsv"
     cat > "$task/output/round-result.md" <<'EOF'
 Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/missing.log
+EOF
+    expect_rc 1 "review-checks rejects a missing PASS evidence path" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/../../../etc/passwd
+EOF
+    expect_rc 1 "review-checks rejects an evidence path escaping the task packet" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: /tmp/elsewhere/logs/serial.log
+EOF
+    expect_rc 1 "review-checks rejects an absolute evidence path" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/serial.log
+EOF
+    expect_rc 1 "review-checks --final-goal requires task-state" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/task-state.md" <<'EOF'
+goal: demo timer goal
+goal mode: goal
+round: 1
+phase: review
+review status: PASS
+EOF
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '1\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
+    printf 'id\tstatus\tdescription\tevidence\tupdated\n' > "$task/output/milestones.tsv"
+    printf 'M1\tpending\ttimer model\t-\tnow\n' >> "$task/output/milestones.tsv"
+    printf 'id\tstatus\tcriterion\tevidence\tupdated\n' > "$task/output/acceptance.tsv"
+    printf 'AC1\tpending\tinterrupt fires\t-\tnow\n' >> "$task/output/acceptance.tsv"
+    expect_rc 1 "review-checks enforces the 2-5 milestone contract" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    printf 'M2\tpending\tinterrupt wired\t-\tnow\n' >> "$task/output/milestones.tsv"
+    expect_rc 0 "review-checks accepts an intermediate goal contract" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    expect_rc 1 "review-checks --final-goal rejects an incomplete goal" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    printf 'id\tstatus\tdescription\tevidence\tupdated\n' > "$task/output/milestones.tsv"
+    printf 'M1\tdone\ttimer model\tqtest demo-timer exit gate\tnow\n' >> "$task/output/milestones.tsv"
+    printf 'M2\tdone\tinterrupt wired\tqtest demo-timer irq exit gate\tnow\n' >> "$task/output/milestones.tsv"
+    printf 'id\tstatus\tcriterion\tevidence\tupdated\n' > "$task/output/acceptance.tsv"
+    printf 'AC1\tpass\tinterrupt fires\tqtest demo-timer\tnow\n' >> "$task/output/acceptance.tsv"
+    expect_rc 0 "review-checks --final-goal accepts a complete goal" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    sed 's/^round: 1$/round: 2/' "$task/output/task-state.md" > "$TMPROOT/state-round2.md"
+    mv "$TMPROOT/state-round2.md" "$task/output/task-state.md"
+    expect_rc 1 "review-checks --final-goal rejects a stale round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+- Next blocker: historical blocker
+## Round 2 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+EOF
+    expect_rc 1 "review-checks scopes next-blocker to the current round" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+EOF
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '2\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
+    expect_rc 0 "review-checks --final-goal accepts the current canonical round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 2 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/failed.log
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+EOF
+    expect_rc 0 "review-checks --final-goal accepts the latest repeated round section" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence:
+EOF
+    expect_rc 1 "review-checks --final-goal rejects empty round evidence" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    sed 's/^round: 2$/round: 1/' "$task/output/task-state.md" > "$TMPROOT/state-round1.md"
+    mv "$TMPROOT/state-round1.md" "$task/output/task-state.md"
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '1\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
 Verdict: FAIL
 Gate: marker BOOT READY
 Evidence: logs/serial.log
 EOF
+    expect_rc 1 "review-checks --final-goal rejects a FAIL round" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     expect_rc 1 "review-checks rejects non-PASS without blocker" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
     printf 'Next blocker: add the missing trace event\n' >> "$task/output/round-result.md"
     expect_rc 0 "review-checks accepts non-PASS with blocker" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
@@ -619,6 +852,68 @@ test_collect_context() {
     expect_contains "$out2" "$runroot/serial.log" "collect-context resolves relative log"
 }
 
+test_framework_decision() {
+    good="$TMPROOT/framework-good.md"
+    cat > "$good" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- RegisterInfo default applies: yes
+- Implementation: RegisterInfo
+- Decisive input: none: RegisterInfo default
+- Rationale: control/status storage with W1C and IRQ hooks
+- Structural reason (required for manual/hybrid): <not applicable>
+- Hybrid split: none
+- Accepted limits: 4-byte accesses only
+- Review gate: reviewer F-01 PASS
+EOF
+    expect_rc 0 "framework decision accepts RegisterInfo default" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$good"
+    manual="$TMPROOT/framework-manual.md"
+    cat > "$manual" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: manual MMIO
+- Decisive input: none: no policy, user direction, or comparable sibling
+- Rationale: command doorbell and FIFO aperture need explicit sequencing
+- Structural reason (required for manual/hybrid): command doorbell and FIFO aperture cannot be expressed by RegisterAccessInfo hooks
+- Hybrid split: none
+- Accepted limits: 4-byte accesses only
+- Review gate: reviewer F-02 PASS
+EOF
+    expect_rc 0 "framework decision accepts a structural manual exception" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$manual"
+    bad="$TMPROOT/framework-bad.md"
+    cat > "$bad" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: manual MMIO
+- Decisive input: nearby devices are manual
+- Rationale: we are behind schedule
+- Structural reason (required for manual/hybrid): nearby devices are manual
+- Hybrid split: none
+- Accepted limits: <access sizes, side effects, reentrancy>
+- Review gate: <reviewer/date/verdict>
+EOF
+    expect_rc 1 "framework decision rejects a weak manual rationale" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$bad"
+    quoted="$TMPROOT/framework-backtick.md"
+    cat > "$quoted" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: RegisterInfo
+- Decisive input: `<path:line>` or `none found`
+- Rationale: `<one or two sentences>`
+- Accepted limits: `<access sizes, side effects, reentrancy>`
+- Review gate: `<reviewer/date/verdict>`
+EOF
+    expect_rc 1 "framework decision rejects backtick-wrapped placeholders" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$quoted"
+}
+
 test_assets_exist() {
     for asset in         "$ROOT/skills/qemu-workflow/assets/audit-template.md"         "$ROOT/skills/qemu-workflow/assets/round-result-template.md"         "$ROOT/skills/qemu-workflow/assets/evidence-manifest-template.md"         "$ROOT/skills/qemu-workflow/assets/handoff-template.md"         "$ROOT/skills/qemu-board-modeling/assets/board-contract-template.md"         "$ROOT/skills/qemu-board-modeling/assets/unimplemented-map-template.csv"         "$ROOT/skills/qemu-rst-documentation/assets/board-machine-page-template.rst"         "$ROOT/skills/qemu-register-extraction/assets/ir-ops.def" "$ROOT/skills/qemu-register-extraction/assets/register-semantics-template.ir" "$ROOT/skills/qemu-register-extraction/assets/register-semantics-example.ir"         "$ROOT/skills/qemu-qtest/assets/qtest-plan-template.md"         "$ROOT/skills/qemu-model-verification/assets/claim-record-template.md"         "$ROOT/skills/qemu-debug/assets/crash-report-template.md"         "$ROOT/skills/qemu-build/assets/build-record-template.md"         "$ROOT/skills/qemu-kernel-build/assets/build-record-template.md"         "$ROOT/skills/qemu-uboot-build/assets/artifact-manifest-template.md"         "$ROOT/skills/qemu-image/assets/packaging-plan-template.md"         "$ROOT/skills/qemu-boot-run/assets/run-record-template.md"         "$ROOT/skills/qemu-linux-boot/assets/boot-evidence-template.md"         "$ROOT/skills/qemu-tcg-frontend/assets/isa-coverage-template.md"         "$ROOT/skills/qemu-tcg-backend/assets/backend-change-template.md" \
         "$ROOT/skills/qemu-modeler/assets/task-state-template.md" \
@@ -639,12 +934,14 @@ main() {
     test_gates_manifest_and_marker
     test_gates_build_dir
     test_gates_handoff_and_all
+    test_gates_source_comments
     test_rst_gates
     test_check_registration
     test_validate_register_ir
     test_orchestrator_state
     test_review_checks
     test_preflight
+    test_framework_decision
     test_redaction
     test_collect_context
     printf '\nsummary: %s passed, %s failed, %s skipped\n' "$PASS_COUNT" "$FAIL_COUNT" "$SKIP_COUNT"

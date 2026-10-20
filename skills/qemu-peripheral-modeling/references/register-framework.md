@@ -21,10 +21,24 @@ Apply these inputs in order and stop at the first decisive one:
 3. A clear maintained convention in a nearby device of the same subsystem.
    Cite `path:line` and prefer recently maintained code.
 
-When none decides, use `RegisterInfo` from the checked-out tree. Manual MMIO
-callbacks are permitted when the gate justifies them and are not a failure
-merely because they avoid `RegisterInfo`. A selected data aperture remains
-independent of the control/status decision.
+When none decides, use `RegisterInfo` from the checked-out tree. A nearby
+convention is decisive only when it is the **same subsystem**, actively
+maintained, and has a comparable **control/status** bank; cite the exact
+`path:line` and explain the semantic match. "Most nearby devices use manual
+MMIO" is not a decision input.
+
+Manual MMIO for a control/status bank is exceptional. It is permitted only when
+the bank has a command, FIFO, DMA, timing, or reentrant structure that
+`RegisterInfo` cannot express without distortion. Split hybrid models instead
+of choosing manual for the whole window: control/status fields on
+`RegisterInfo`, plus explicit `MemoryRegionOps` for the command/data aperture.
+Time pressure, round budget, register count, and "every register has side
+effects" are not decisive inputs.
+
+A missing, vague, or unsupported framework decision is a review BLOCKER. The
+decision must state the bank kind, the decisive input (or "none, default"),
+whether the bank is hybrid, and the structural reason when manual MMIO is
+selected.
 
 ## Decision record for `audit.md`
 
@@ -170,7 +184,14 @@ Verify each in the checked-out tree before relying on it.
 
 ## When manual MMIO is the right choice
 
-Prefer manual `MemoryRegionOps` when the block has streaming or command
-apertures, access semantics the register framework cannot express without
-distortion, or reentrancy requirements that need explicit control. Record the
-reason in the decision record; justified manual MMIO is a valid outcome.
+Prefer manual `MemoryRegionOps` only for streaming, command, configuration
+view, or timing apertures whose access semantics the register framework cannot
+express without distortion, or where explicit reentrancy control is required.
+Record the **structural reason** in the decision record: which behavior cannot
+be expressed by `RegisterAccessInfo` hooks, and which limits are accepted.
+
+For a mixed block, keep control/status registers on `RegisterInfo` and put the
+command/FIFO/data aperture in manual `MemoryRegionOps`. A whole-window manual
+choice needs an explicit reason why splitting is not possible. "Neighboring
+devices are manual", "the register bank is large", and "we are in a hurry" are
+not structural reasons.

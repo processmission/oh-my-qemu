@@ -4,8 +4,14 @@ Use this checklist against one modeling round. For each row, record PASS, FAIL,
 or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 `file:line` or artifact path. Do not edit anything while reviewing.
 
-## A. Scope and plan
+## A. Goal contract, scope, and plan
 
+- [ ] The overall goal is recorded as an observable end state, not an activity
+      or a round count.
+- [ ] The goal is decomposed into 2-5 milestones with exit conditions, and into
+      falsifiable acceptance criteria that each name their evidence.
+- [ ] Each round objective maps to at least one AC; a completed round is not
+      treated as a completed goal.
 - [ ] The diff matches the requested scope and current round objective; no
       unrelated changes.
 - [ ] Acceptance criteria are testable and unchanged; any change is recorded in
@@ -29,7 +35,20 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 - [ ] PASS/FAIL/INCONCLUSIVE is based on the configured marker or falsifiable
       test, not timeout/absence of crash.
 
-## C. RS-IR and translation
+## C. Register framework decision
+
+- [ ] A framework decision record exists for every guest-visible control/status
+      bank, with bank kind, decisive input, rationale, hybrid split, structural
+      reason (if manual), accepted limits, and review gate.
+- [ ] Control/status registers use RegisterInfo unless the record has a
+      decisive policy/user direction or a same-subsystem, maintained,
+      semantically comparable convention cited by file:line.
+- [ ] Manual MMIO is limited to a structural command/FIFO/DMA/timing/reentrancy
+      aperture, or to a hybrid split; "neighboring devices are manual", time,
+      budget, and register count are rejected as rationale.
+- [ ] Missing, vague, or contradictory decision records are BLOCKERs.
+
+## D. RS-IR and translation
 
 - [ ] RS-IR validates with the extraction skill's validator when available.
 - [ ] Every rule has a mechanism (RegisterInfo, manual MMIO, helper) and a hook
@@ -43,8 +62,12 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       implemented as the IR states.
 - [ ] `EXPANDS` operations have an expansion note; `UNSUPPORTED` has a gap.
 
-## D. Model implementation
+## E. Model implementation
 
+- [ ] Source headers and body comments describe hardware behavior and public
+      references only; they contain no `.oh-my-qemu/...`, `output/...`,
+      `audit.md`, evidence paths, round/review IDs, or absolute host paths.
+      Local evidence stays in the audit workspace; a leak is a BLOCKER.
 - [ ] Register layout, field macros, storage, tables, and hooks live in the
       device `.c` file, not a header or board file.
 - [ ] Framework choice follows the recorded decision gate and is justified.
@@ -60,7 +83,7 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 - [ ] Board versus device ownership is respected (topology in board, behavior in
       device, placeholders at board level).
 
-## E. Tests and runtime evidence
+## F. Tests and runtime evidence
 
 - [ ] qtests exercise the real offsets, widths, reset values, masks, W1C, IRQ,
       timer, and DMA behavior claimed by the rule.
@@ -72,19 +95,26 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       asset was assumed.
 - [ ] Tests are within the requested scope; removed tests were removed cleanly.
 
-## F. Audit, gates, and handoff
+## G. Audit, gates, and handoff
 
 - [ ] `audit.md` has baseline, goal, scope, acceptance criteria, plan/gates,
       provenance, decisions, round record, evidence, unresolved gaps, handoff.
 - [ ] `commands.md` records effective commands, working directories, and
       results; decisive logs are under `logs/`.
+- [ ] A PASS round names a marker/qtest/test gate (not timeout/none) and its
+      evidence path exists under the task packet without `..` escaping it.
 - [ ] Excluded paths (`.agents/`, `.oh-my-qemu/`, `builds/`) are not staged or
       tracked; the worktree matches the recorded baseline.
 - [ ] Round result has verdict, gate, evidence, changed paths, commands, and a
       concrete next blocker when not PASS.
+- [ ] Goal completion is claimed only when every AC has evidence-backed PASS,
+      every milestone is evidence-backed done, and no BLOCKER is unresolved;
+      a round budget or round count is not accepted as completion. Final
+      completion uses `review-checks.sh --final-goal`; intermediate rounds use
+      the default contract check.
 - [ ] The review packet includes previous findings and their status.
 
-## G. Review quality
+## H. Review quality
 
 - [ ] The review is independent from the implementation pass when an independent
       context was available; otherwise this is stated.

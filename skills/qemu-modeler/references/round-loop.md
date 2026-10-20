@@ -1,7 +1,20 @@
 # Round loop
 
 One round is one coherent objective, one verification gate, one independent
-review, and one recorded decision. The loop repeats until a stop condition.
+review, and one recorded decision. The loop repeats until the **goal** is
+complete, not until a round count is reached.
+
+Goal mode and round mode:
+
+- **goal mode (default)**: after the decision, call `loop-state.sh loop`; if it
+  prints CONTINUE, start the next round against the next pending AC/milestone.
+  Do not pause for permission between rounds.
+- **round mode**: only when the user explicitly asks for exactly one round and a
+  handoff; state that limitation in the round result. After the requested round,
+  `loop` prints ROUND COMPLETE and returns 0; hand off instead of starting
+  another round.
+- Resolve a fixed BLOCKER with `loop-state.sh finding resolve <task> <id>`;
+  open blockers continue to block the goal check.
 
 ## Round anatomy
 
@@ -79,19 +92,23 @@ the failing assertion.
 
 | Situation | Next action |
 | --- | --- |
-| AC met with evidence | advance to the next AC or hand off |
-| Objective met but AC not yet | plan the next narrow objective; keep the same phase |
+| AC met with evidence | advance to the next AC; if all ACs/milestones are done, run `loop-state.sh loop` for the goal-level check |
+| Objective met but goal not yet | plan the next narrow objective against a pending AC; keep the same phase |
 | Gate failed with a single blocker | keep the round, fix the blocker, rerun the gate |
 | Gate failed because the evidence is insufficient | narrow the probe or add a qtest/trace; do not change model behavior yet |
 | Two independent blockers or a new stage | replan: split rounds, update the plan and state |
 | External input/authority missing | stop as blocked and state exactly what is needed |
-| Budget/stop signal reached | hand off the current state; do not silently continue |
+| Round budget/checkpoint reached | summarize proven/open work, replan the next 1-3 rounds, continue; do not call the goal complete |
+| User explicitly stops | hand off the current state and mark it as user-stopped, not goal-complete |
 
 ## Guardrails
 
 - One objective per round; no unrelated cleanups.
+- One round is not the goal: do not stop after Round 0/1/2 or at a budget.
+  Run `loop-state.sh loop` and keep going while it prints CONTINUE.
 - No self-approval: the review is independent from implementation.
 - No hidden PASS: every verdict maps to a named gate and evidence path.
+- No AC marked `pass` without evidence; `loop-state.sh` rejects it.
 - No stale placeholder or logging sink counted as modeled behavior.
 - No commits or pushes unless the user requests that separate action.
 - Preserve the previous state; state and rounds are append-only.

@@ -43,7 +43,8 @@ in what order, and what counts as done**:
 - **Gates**: reuse `qemu-workflow`'s `gates.sh` when installed; a missing skill
   is recorded as a gap, never imitated.
 - **Stop**: all ACs pass, scope complete, external input/authority missing,
-  budget/stop signal reached, or continuing would cross the provenance boundary.
+  explicit user stop, or continuing would cross the provenance boundary. A round
+  budget is a design checkpoint, not a stop condition.
 
 ## Data flow
 

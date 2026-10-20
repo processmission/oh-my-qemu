@@ -19,11 +19,52 @@ handoff or the next round.
   `missing skill: <name>` in `audit.md` and use the nearest available rules.
   Never invent or impersonate the missing skill.
 
+## Goal mode: finish the goal, not the round
+
+A complex QEMU modeling task is not complete because Round 0/1/2 ran. The default
+qemu-modeler mode is **goal mode**:
+
+| Level | Question | Requirement |
+| --- | --- | --- |
+| Goal | What end state does the user need? | observable outcome, not "finish N rounds" |
+| Milestone | Which checkpoint unlocks the next stage? | 2-5, each with an exit gate; not a task list |
+| Acceptance criterion | Which falsifiable fact proves a goal promise? | evidence-bound (qtest/marker/trace/log) |
+| Round | What is the smallest step now? | one objective; it must name an AC |
+
+Completion is **goal-level**: every AC has evidence-backed PASS, every milestone
+is done, and no BLOCKER remains. Only then does loop-state.sh loop print
+"PASS goal complete". Otherwise it prints "CONTINUE"; the agent keeps starting
+rounds instead of pausing to ask whether to continue.
+
+<pre>
+loop-state.sh goal &lt;task&gt; "&lt;goal&gt;" goal
+loop-state.sh milestone add &lt;task&gt; M1 "&lt;checkpoint&gt;"
+loop-state.sh ac add &lt;task&gt; AC1 "&lt;observable outcome&gt;"
+loop-state.sh ac status &lt;task&gt; AC1 pass "&lt;evidence&gt;"
+loop-state.sh milestone status &lt;task&gt; M1 done "&lt;exit-gate-evidence&gt;"
+loop-state.sh loop &lt;task&gt;          # CONTINUE or PASS goal complete
+loop-state.sh finding resolve &lt;task&gt; F-01   # unblock after fix + re-review
+</pre>
+
+A milestone `done` requires exit-gate evidence. Changing an AC, milestone,
+evidence, or blocker finding resets review status, so record a fresh review
+verdict afterward.
+In round mode, `loop` only accepts the requested round's own round-result with a
+valid verdict, gate, evidence, and a recorded review verdict (a baseline prevents
+a historical result from triggering handoff). Review checks default to the intermediate
+contract; use `review-checks.sh --final-goal` only for a goal-completion claim.
+
+A round budget is a design checkpoint, not a stop condition: summarize what is
+proven and open, replan the next 1-3 rounds, and continue. Stop only when all
+ACs are evidenced and all milestones are evidence-backed done, scope is complete,
+external input/authority is missing, the user explicitly stops, or provenance
+would be violated.
+
 ## Phases P0-P8
 
 | Phase | Goal | Key actions | Exit |
 | --- | --- | --- | --- |
-| P0 Intake | Freeze the task | Classify task, scope, ACs, provenance intent, allowed paths, stop condition; read prior state | `audit.md` baseline/scope/AC/stop recorded |
+| P0 Intake | Freeze the task and goal contract | Classify task, scope, ACs, provenance intent, allowed paths, stop condition; read prior state | `audit.md` baseline/goal/milestones/AC/stop recorded |
 | P1 Evidence & contract | Source-cited facts | Read driver/TRM/SVD/DTB/trace; extract register/board/boot facts; produce `register-contract.md` + `register-semantics.ir` | Contract exists; unknowns/conflicts visible; RS-IR validates |
 | P2 Translation | Turn contract into an implementation worklist | `--translate` to mechanism/hook/observe/placeholder/qtest; choose RegisterInfo/manual MMIO/Unimplemented Device, trace/log/error | Every rule has mechanism+hook+qtest; guest-visible has observe; unimplemented has placeholder |
 | P3 Implementation | Advance one narrow objective | Domain skill implements one coherent change within requested scope; update audit/commands | Source change complete; no unrelated changes; test plan ready |
@@ -33,9 +74,40 @@ handoff or the next round.
 | P7 Feedback & decision | Decide next action | Fix blockers, re-review, capture reusable feedback, continue/replan/stop | Next action recorded; AC status updated |
 | P8 Handoff | Finish reproducibly | Summarize ACs, evidence, translation, review, source changes, gaps, next action | Handoff complete; no hidden blocker |
 
+## RegisterInfo framework decision
+
+Guest-visible control/status banks default to **RegisterInfo**. Manual MMIO is
+reserved for command/FIFO/DMA/timing/reentrancy structures that RegisterInfo
+hooks cannot express without distortion, or for a hybrid split (control/status
+on RegisterInfo, data/command aperture on MemoryRegionOps).
+
+- "Neighboring devices use manual MMIO" is not sufficient: the convention must
+  be same-subsystem, maintained, semantically comparable, and cited by file:line.
+- Time, budget, register count, and "every register has a side effect" are not
+  decisive inputs.
+- Record the decision in output/framework-decision.md with bank kind, decisive
+  input, structural reason, hybrid split, and accepted limits; a missing or
+  vague record is a review BLOCKER.
+- Run check-framework-decision.sh from qemu-peripheral-modeling before review.
+
+## Source comment hygiene
+
+QEMU source comments (especially the top of .c/.h files) describe hardware
+behavior and public manual/repository references only. Do not put local task
+artifacts into source:
+
+- no `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round/review
+  IDs, or absolute host paths;
+- no "contract is output/register-contracts-r2.md" task-local references;
+- keep evidence and provenance in audit/contract/output; source comments must
+  stand on their own outside the local workspace;
+- review leaked local paths as blockers; when qemu-workflow is installed, run
+  `gates.sh source-comments <files...>` on changed source.
+
 ## The round loop
 
 A round = one objective + one gate + one independent review + one decision.
+A round is a progress unit, not the goal; completion is checked at goal level.
 
 ### 1. Write the objective
 
@@ -72,20 +144,24 @@ Next blocker: <concrete next action or none>
   round result.
 - Reviewer is read-only and returns BLOCKER/MAJOR/MINOR/NOTE plus
   PASS/FAIL/INCONCLUSIVE.
-- PASS needs evidence for every AC and no blocker. INCONCLUSIVE must name the
-  missing evidence and the next narrow command.
+- An intermediate-round PASS needs evidence for the round objective/gate and no
+  blocker for that round; later ACs/milestones may remain pending. A final-goal
+  PASS additionally needs every AC evidenced and every milestone evidence-backed
+  done, via `review-checks.sh --final-goal`. INCONCLUSIVE must name the missing
+  evidence and the next narrow command.
 
 ### 5. Decide
 
 | Situation | Next action |
 | --- | --- |
-| All ACs have evidence | Advance to the next AC or hand off |
-| Objective met, AC not yet | Plan the next narrow objective in the same phase |
+| All ACs have evidence | Run loop-state.sh loop; hand off only on PASS goal complete, otherwise continue with the next AC/round |
+| Objective met, goal not yet | Plan the next narrow objective and start the next round automatically |
 | One blocker | Stay in the round; fix and rerun the gate |
 | Insufficient evidence | Add probe/qtest/trace; do not change model behavior first |
-| Two independent blockers / new stage | Replan, split rounds, update plan/state |
+| Two independent blockers / new stage | Replan, split rounds, update plan/state, continue the goal loop |
 | External input/authority missing | Stop and state the blocked condition |
-| Budget/stop signal reached | Hand off the current state; do not silently continue |
+| Budget/checkpoint reached | Summarize proven/open work, replan 1-3 rounds, continue; never call it complete |
+| User explicitly stops | Hand off; mark user-stopped, not goal-complete |
 
 ## Debug entry
 
@@ -103,18 +179,22 @@ A debug session is not PASS evidence by itself; return to P4 with a named gate.
 
 ## Stop and handoff
 
-Stop when any of the following is true:
+Stop only when:
 
-- all ACs have evidence-backed PASS;
-- requested scope is complete;
+- all ACs have fresh evidence-backed PASS, all milestones are evidence-backed done, review status is PASS, and the latest verdict belongs to the current round and is PASS (goal complete);
+- requested scope is complete and the user confirms handoff;
 - external input/authority is missing (record as blocked);
-- round budget or user stop signal is reached;
+- the user explicitly stops;
 - continuing would violate the provenance boundary.
 
-Handoff: task/build directories, AC status, translation mapping, review
-verdict/findings, evidence paths, source changes, pre-existing changes, policy
-limits, unresolved gaps. An INCONCLUSIVE handoff must name the missing evidence
-and the next narrow command.
+A round budget, a failed round, or a long log is not a stop condition: replan and
+continue. Completion is goal-level, not round-level.
+
+Handoff: task/build directories, goal and AC status, milestone status,
+translation mapping, review verdict/findings, evidence paths, source changes,
+pre-existing changes, policy limits, unresolved gaps. An INCONCLUSIVE handoff
+must name the missing evidence and the next narrow command; it is not goal
+completion.
 
 ## Hard rules
 
@@ -123,14 +203,21 @@ and the next narrow command.
 - A logging sink, unimplemented placeholder, or boot banner is not modeled
   behavior.
 - Review before advancing; one objective per round.
+- A round count or budget is not goal completion. Continue the goal loop while
+  `loop-state.sh loop` prints CONTINUE; stop only on PASS goal complete or a real
+  stop condition.
 - Do not commit or push unless the user explicitly requests it.
 - Local-only work must not accidentally become upstream-ready.
 
 ## Commands
 
 ```bash
-# task state
+# task state / goal loop
 bash skills/qemu-modeler/scripts/loop-state.sh init .oh-my-qemu/<task-slug>
+bash skills/qemu-modeler/scripts/loop-state.sh goal .oh-my-qemu/<task-slug> "<goal>" goal
+bash skills/qemu-modeler/scripts/loop-state.sh milestone add .oh-my-qemu/<task-slug> M1 "<checkpoint>"
+bash skills/qemu-modeler/scripts/loop-state.sh ac add .oh-my-qemu/<task-slug> AC1 "<observable outcome>"
+bash skills/qemu-modeler/scripts/loop-state.sh loop .oh-my-qemu/<task-slug>
 bash skills/qemu-modeler/scripts/loop-state.sh show .oh-my-qemu/<task-slug>
 
 # RS-IR
