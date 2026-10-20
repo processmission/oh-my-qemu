@@ -32,7 +32,8 @@ field() {
 }
 
 placeholder() {
-    case "$1" in
+    _ph_value="$(printf '%s' "$1" | tr -d '\140' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+    case "$_ph_value" in
         ''|'<'*|*'<placeholder>'*) return 0 ;;
         *) return 1 ;;
     esac

@@ -254,13 +254,32 @@ gate_patch_series() {
 }
 
 gate_source_comments() {
-  local file hits bad=0
+  local file comments hits bad=0
   [[ "$#" -gt 0 ]] || { fail source-comments 'usage: gates.sh source-comments <source-file...>'; return 2; }
   for file in "$@"; do
     if [[ ! -f "$file" ]]; then
       fail source-comments "file not found: $file"; bad=1; continue
     fi
-    hits=$(grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|output/(register-|audit|round-|task-state|evidence|framework)|register-contracts?-[A-Za-z0-9._-]+[.]md|/Users/[^ ]*|/home/[^ ]*|task artifact directory' "$file" 2>/dev/null | sed -n '1,5p')
+    comments=$(awk '
+      BEGIN { inblock=0 }
+      {
+        line=$0; out=""
+        while (length(line)>0) {
+          if (inblock) {
+            p=index(line,"*/")
+            if (p>0) { out=out " " substr(line,1,p-1); line=substr(line,p+2); inblock=0 }
+            else { out=out " " line; line="" }
+          } else {
+            p1=index(line,"/*"); p2=index(line,"//")
+            if (p1>0 && (p2==0 || p1<p2)) { out=out " " substr(line,p1+2); line=substr(line,p1+2); inblock=1 }
+            else if (p2>0) { out=out " " substr(line,p2+2); line="" }
+            else { line="" }
+          }
+        }
+        if (out!="") print out
+      }
+    ' "$file")
+    hits=$(printf '%s\n' "$comments" | grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/Users/[^ ]*|/home/[^ ]*|task artifact directory' | sed -n '1,5p')
     if [[ -n "$hits" ]]; then
       fail source-comments "local audit/output references in source comments: $file"
       printf '%s\n' "$hits" | sed 's/^/  /'

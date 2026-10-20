@@ -240,6 +240,11 @@ check_round_result() {
                 fail "PASS round-result needs gate and evidence"
                 return 1
             fi
+            _evidence_path="$(printf '%s' "$_evidence" | grep -oE '(logs|output|evidence)/[A-Za-z0-9._/-]+' | sed -n '1p')"
+            if [ -z "$_evidence_path" ] || [ ! -e "$TASK_DIR/$_evidence_path" ]; then
+                fail "PASS evidence path is missing under the task packet: ${_evidence_path:-missing}"
+                return 1
+            fi
             _gate_l="$(printf '%s' "$_gate" | tr '[:upper:]' '[:lower:]')"
             case "$_gate_l" in
                 *timeout*|*'timed out'*|*'no crash'*|*'no marker'*|*'empty log'*|*'empty serial'*)
@@ -257,7 +262,7 @@ check_round_result() {
             pass "PASS gate/evidence recorded"
             ;;
         FAIL|INCONCLUSIVE)
-            _blocker="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?next[ -]blocker:' "$_rr" | sed -n '1p')"
+            _blocker="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?next[ -]blocker:' | sed -n '1p')"
             if [ -z "$_blocker" ]; then
                 fail "non-PASS round-result needs a next-blocker line"
                 return 1

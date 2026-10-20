@@ -209,11 +209,17 @@ EOF
 
 test_gates_source_comments() {
     good="$TMPROOT/source-good.c"
-    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\n' > "$good"
-    expect_rc 0 "gates source-comments accepts a clean source header" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$good"
+    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\nconst char *p = "/home/test/image";\n' > "$good"
+    expect_rc 0 "gates source-comments accepts comments and ignores code literals" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$good"
     bad="$TMPROOT/source-bad.c"
     printf '/*\n * Contract: output/register-contracts-r2.md section 2.\n * Decision recorded in audit.md.\n */\n' > "$bad"
     expect_rc 1 "gates source-comments rejects local output references" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$bad"
+    evidence="$TMPROOT/source-evidence.c"
+    printf '/* Evidence: logs/serial.log */\n' > "$evidence"
+    expect_rc 1 "gates source-comments rejects local evidence paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$evidence"
+    output="$TMPROOT/source-output.c"
+    printf '/* data: output/serial.log */\n' > "$output"
+    expect_rc 1 "gates source-comments rejects general output paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$output"
 }
 
 test_rst_gates() {
@@ -453,10 +459,18 @@ test_orchestrator_state() {
     printf '# commands\n' > "$goal_task/commands.md"
     expect_rc 0 "goal task init" bash "$loop" init "$goal_task"
     expect_rc 0 "goal task contract" bash "$loop" goal "$goal_task" "demo timer goal" goal
+    colon_task="$TMPROOT/orch-goal-colon/.oh-my-qemu/demo"
+    mkdir -p "$colon_task"
+    printf '# audit\n' > "$colon_task/audit.md"
+    printf '# commands\n' > "$colon_task/commands.md"
+    bash "$loop" init "$colon_task" >/dev/null
+    expect_rc 0 "loop-state stores a goal containing a colon" bash "$loop" goal "$colon_task" "model timer: boot succeeds" goal
+    expect_rc 0 "loop-state accepts the unchanged colon goal" bash "$loop" goal "$colon_task" "model timer: boot succeeds" goal
     expect_rc 0 "goal task milestone" bash "$loop" milestone add "$goal_task" M1 "timer model implemented"
     expect_rc 0 "goal task second milestone" bash "$loop" milestone add "$goal_task" M2 "timer interrupt wired"
     expect_rc 0 "goal task AC" bash "$loop" ac add "$goal_task" AC1 "periodic interrupt fires"
     bash "$loop" start-round "$goal_task" "implement timer" >/dev/null
+    expect_rc 1 "loop-state rejects a timeout PASS verdict" bash "$loop" verdict "$goal_task" PASS "timeout after 1s" "logs/demo-timer.log"
     expect_rc 0 "goal task records a round verdict" bash "$loop" verdict "$goal_task" PASS "marker demo-timer" "logs/demo-timer.log"
     expect_rc 1 "loop-state loop continues while AC is open" bash "$loop" loop "$goal_task"
     expect_rc 1 "loop-state rejects PASS AC without evidence" bash "$loop" ac status "$goal_task" AC1 pass
@@ -566,7 +580,8 @@ EOF
 test_review_checks() {
     root="$TMPROOT/review-task"
     task="$root/.oh-my-qemu/demo"
-    mkdir -p "$task/output"
+    mkdir -p "$task/output" "$task/logs"
+    : > "$task/logs/serial.log"
     printf '# commands\n' > "$task/commands.md"
     cat > "$task/audit.md" <<'EOF'
 # Task
@@ -596,6 +611,19 @@ EOF
         --ir "$task/output/register-semantics.ir" \
         --validator "$ROOT/skills/qemu-register-extraction/scripts/validate_register_ir.py" \
         --translation "$task/output/translation.tsv"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/missing.log
+EOF
+    expect_rc 1 "review-checks rejects a missing PASS evidence path" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/serial.log
+EOF
     expect_rc 1 "review-checks --final-goal requires task-state" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     cat > "$task/output/task-state.md" <<'EOF'
 goal: demo timer goal
@@ -623,6 +651,18 @@ EOF
     sed 's/^round: 1$/round: 2/' "$task/output/task-state.md" > "$TMPROOT/state-round2.md"
     mv "$TMPROOT/state-round2.md" "$task/output/task-state.md"
     expect_rc 1 "review-checks --final-goal rejects a stale round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+- Next blocker: historical blocker
+## Round 2 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+EOF
+    expect_rc 1 "review-checks scopes next-blocker to the current round" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
     cat > "$task/output/round-result.md" <<'EOF'
 ## Round 2 - 2026-10-20
 - VERDICT: PASS
@@ -829,6 +869,19 @@ EOF
 - Review gate: <reviewer/date/verdict>
 EOF
     expect_rc 1 "framework decision rejects a weak manual rationale" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$bad"
+    quoted="$TMPROOT/framework-backtick.md"
+    cat > "$quoted" <<EOF
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: RegisterInfo
+- Decisive input: `<path:line>` or `none found`
+- Rationale: `<one or two sentences>`
+- Accepted limits: `<access sizes, side effects, reentrancy>`
+- Review gate: `<reviewer/date/verdict>`
+EOF
+    expect_rc 1 "framework decision rejects backtick-wrapped placeholders" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$quoted"
 }
 
 test_assets_exist() {

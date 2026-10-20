@@ -129,11 +129,24 @@ release_lock() {
     rmdir "$1" 2>/dev/null || true
 }
 
+valid_pass() {
+    _vp_gate="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    _vp_evidence="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+    case "$_vp_gate" in ''|none|n/a|-) return 1 ;; esac
+    case "$_vp_gate" in *timeout*|*'timed out'*|*'no crash'*|*'no marker'*|*'empty log'*|*'empty serial'*) return 1 ;; esac
+    case "$_vp_gate" in *marker*|*qtest*|*test*|*expected*) ;; *) return 1 ;; esac
+    case "$_vp_evidence" in ''|none|n/a|-) return 1 ;; esac
+    return 0
+}
+
 record_verdict() {
     need_dir "$@" || return $?
     _dir="$1"; _verdict="${2:-}"; _gate="${3:-}"; _evidence="${4:-}"
     case "$_verdict" in PASS|FAIL|INCONCLUSIVE) ;; *) fail "invalid verdict: $_verdict"; return 2 ;; esac
     [ -n "$_gate" ] && [ -n "$_evidence" ] || { fail "verdict requires gate and evidence"; return 2; }
+    if [ "$_verdict" = PASS ] && ! valid_pass "$_gate" "$_evidence"; then
+        fail "PASS verdict needs a marker/qtest/test gate and non-empty evidence, not timeout/none"; return 1
+    fi
     _state="$(state_file "$_dir")"
     _lock="$_dir/output/.rounds.lock"
     if ! acquire_lock "$_lock"; then fail "cannot acquire verdict lock: $_lock"; return 1; fi
@@ -209,7 +222,7 @@ set_next() {
 
 milestones_file() { printf '%s/output/milestones.tsv\n' "$1"; }
 acceptance_file() { printf '%s/output/acceptance.tsv\n' "$1"; }
-goal_value() { awk -F': ' '/^goal:/ { print $2; exit }' "$1"; }
+goal_value() { awk '/^goal:/ { line=$0; sub(/^goal:[[:space:]]*/, "", line); print line; exit }' "$1"; }
 goal_mode_value() { awk -F': ' '/^goal mode:/ { print $2; exit }' "$1"; }
 
 ensure_tsv() {
@@ -491,6 +504,11 @@ check_state() {
         _last_verdict="$(awk -F'\t' 'NR > 1 { v=$2 } END { print v }' "$(rounds_file "$_dir")" 2>/dev/null)"
         [ "$_last_round" = "$_current_round" ] || { fail "latest verdict is for round ${_last_round:-missing}, current round is ${_current_round:-missing}"; _fail=1; }
         [ "$_last_verdict" = PASS ] || { fail "latest round verdict is not PASS: ${_last_verdict:-missing}"; _fail=1; }
+        _last_gate="$(awk -F'\t' 'NR > 1 { g=$3 } END { print g }' "$(rounds_file "$_dir")" 2>/dev/null)"
+        _last_evidence="$(awk -F'\t' 'NR > 1 { e=$4 } END { print e }' "$(rounds_file "$_dir")" 2>/dev/null)"
+        if [ "$_last_verdict" = PASS ] && ! valid_pass "$_last_gate" "$_last_evidence"; then
+            fail "latest PASS verdict lacks a validated gate/evidence"; _fail=1
+        fi
     fi
     show_goal_status "$_dir"
     if [ "$_fail" -eq 0 ]; then
