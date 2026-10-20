@@ -16,6 +16,13 @@ report with [the report template](assets/review-report-template.md). Run
 [review-checks.sh](scripts/review-checks.sh) for the deterministic checks; the
 script does not replace judgment.
 
+Run review-checks for every round; by default it validates the goal contract as
+an intermediate state (pending milestones/ACs are allowed). Add `--final-goal`
+only when the task claims goal completion: it then requires a task-state goal
+contract, every milestone evidence-backed done, every AC evidence-backed PASS,
+no open BLOCKER, and a current round-result whose `Round:` number matches the
+state and whose verdict is PASS.
+
 ## Audit workflow
 
 For a non-trivial task that writes to the workspace, use only the needed entries under
@@ -45,7 +52,8 @@ actions only when requested.
 
 Request and inspect:
 
-- the plan, scope, acceptance criteria, and current round objective;
+- the overall goal, milestones, AC status, goal mode (goal/round), and current
+  round objective;
 - the exact diff or changed-path list (not the whole repository);
 - the register/board contract, RS-IR, translation worklist, and placeholders;
 - the round result, commands, decisive logs, qtests, boot evidence, and hashes;
@@ -56,7 +64,11 @@ evidence would unblock the review.
 
 ## Procedure
 
-1. **Scope check.** Match the diff to the requested scope and round objective.
+1. **Goal check.** Verify the goal is an observable end state, milestones have
+   exit conditions, and every AC names its evidence. A round count, a budget, or
+   "Round N is done" is not goal completion. Flag ACs marked PASS without
+   evidence or milestones marked done without their exit condition.
+2. **Scope check.** Match the diff to the requested scope and round objective.
    Flag unrelated changes, audit artifacts in the source diff, or unreviewed
    workspace paths.
 2. **Evidence check.** For every claimed fact or gate, verify a source and a
@@ -95,8 +107,14 @@ Classify findings:
 
 Verdict:
 
-- `PASS`: every acceptance criterion has evidence and no BLOCKER/MAJOR findings.
-  State the evidence per criterion.
+- `PASS` (intermediate round): the current round objective and gate are
+  satisfied with current evidence, and there is no BLOCKER/MAJOR finding for
+  this round's claims. Later ACs/milestones may remain pending; say explicitly
+  that this is not goal completion.
+- `PASS` (final goal): every acceptance criterion has evidence-backed PASS,
+  every milestone is evidence-backed done, no BLOCKER remains, and the current
+  round-result is PASS. Use this only with `review-checks.sh --final-goal`.
+  Do not issue PASS merely because the round count is exhausted.
 - `FAIL`: a claim is contradicted or a required gate fails. Name the blocking
   finding and the minimum fix.
 - `INCONCLUSIVE`: evidence is insufficient or the packet cannot be verified. Name
@@ -117,6 +135,8 @@ assertion. Preserve the previous report; append the new verdict and findings.
 - Do not stage, commit, push, or send upstream anything.
 - Do not restate the implementer's summary as review evidence.
 - Do not approve a placeholder, logging sink, or timeout as modeled behavior.
+- Do not treat a round budget, a round count, or "all rounds are done" as goal
+  completion; only the goal-level AC/milestone check counts.
 
 ## Upstream references
 

@@ -155,8 +155,8 @@
 <!-- p6&#45;&gt;p3 -->
 <g id="edge11" class="edge">
 <title>p6&#45;&gt;p3</title>
-<path fill="none" stroke="#aa3333" stroke-dasharray="5,2" d="M289.19,-248C269.86,-248 253.79,-248 253.79,-248 253.79,-248 253.79,-388.93 253.79,-388.93"/>
-<polygon fill="#aa3333" stroke="#aa3333" points="251.16,-388.93 253.79,-396.43 256.41,-388.93 251.16,-388.93"/>
+<path fill="none" stroke="#aa3333" stroke-dasharray="5,2" d="M289.07,-248C271.34,-248 256.97,-248 256.97,-248 256.97,-248 256.97,-388.93 256.97,-388.93"/>
+<polygon fill="#aa3333" stroke="#aa3333" points="254.35,-388.93 256.97,-396.43 259.6,-388.93 254.35,-388.93"/>
 <text xml:space="preserve" text-anchor="middle" x="207.38" y="-355.22" font-family="Helvetica,sans-Serif" font-size="9.00">BLOCKER</text>
 <text xml:space="preserve" text-anchor="middle" x="207.38" y="-345.47" font-family="Helvetica,sans-Serif" font-size="9.00">fix → re&#45;review</text>
 </g>
@@ -177,8 +177,8 @@
 <!-- p7&#45;&gt;p3 -->
 <g id="edge12" class="edge">
 <title>p7&#45;&gt;p3</title>
-<path fill="none" stroke="#4a6785" stroke-dasharray="5,2" d="M293.27,-165C265.8,-165 242.43,-165 242.43,-165 242.43,-165 242.43,-388.78 242.43,-388.78"/>
-<polygon fill="#4a6785" stroke="#4a6785" points="239.81,-388.78 242.43,-396.28 245.06,-388.78 239.81,-388.78"/>
+<path fill="none" stroke="#4a6785" stroke-dasharray="5,2" d="M293.12,-165C266.47,-165 244.03,-165 244.03,-165 244.03,-165 244.03,-388.78 244.03,-388.78"/>
+<polygon fill="#4a6785" stroke="#4a6785" points="241.4,-388.78 244.03,-396.28 246.65,-388.78 241.4,-388.78"/>
 <text xml:space="preserve" text-anchor="middle" x="475.75" y="-308.84" font-family="Helvetica,sans-Serif" font-size="9.00">next round</text>
 </g>
 <!-- p8 -->
@@ -198,8 +198,8 @@
 <!-- done -->
 <g id="node12" class="node">
 <title>done</title>
-<ellipse fill="#f2f2f2" stroke="#4a6785" cx="380" cy="-18" rx="114.86" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="380" y="-13.55" font-family="Helvetica,sans-Serif" font-size="11.00">done · blocked · budget reached</text>
+<ellipse fill="#f2f2f2" stroke="#4a6785" cx="380" cy="-18" rx="94.55" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="380" y="-13.55" font-family="Helvetica,sans-Serif" font-size="11.00">done · blocked · user stop</text>
 </g>
 <!-- p8&#45;&gt;done -->
 <g id="edge14" class="edge">

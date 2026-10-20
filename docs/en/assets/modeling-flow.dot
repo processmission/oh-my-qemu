@@ -29,7 +29,7 @@ digraph modeling_flow {
   p7 -> p3 [label="next round", style=dashed];
   p7 -> p8 [label="all AC PASS / stop"];
   p8 -> done [label="handoff"];
-  done [label="done · blocked · budget reached", shape=ellipse, fillcolor="#f2f2f2"];
+  done [label="done · blocked · user stop", shape=ellipse, fillcolor="#f2f2f2"];
 
   note [shape=note, fillcolor="#fffbe6", label="Hard rules:\n· PASS needs marker or falsifiable qtest\n· timeout / empty serial / no crash = INCONCLUSIVE\n· logging sink / placeholder / banner ≠ modeled behavior\n· review before advancing; one objective per round"];
   p4 -> note [style=dotted, arrowhead=none];

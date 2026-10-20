@@ -109,8 +109,8 @@
 <!-- p4&#45;&gt;p5 -->
 <g id="edge8" class="edge">
 <title>p4&#45;&gt;p5</title>
-<path fill="none" stroke="#aa3333" d="M276.37,-418.56C276.37,-383.13 276.37,-321 276.37,-321 276.37,-321 232.71,-321 232.71,-321"/>
-<polygon fill="#aa3333" stroke="#aa3333" points="232.71,-318.38 225.21,-321 232.71,-323.63 232.71,-318.38"/>
+<path fill="none" stroke="#aa3333" d="M282.36,-418.56C282.36,-383.13 282.36,-321 282.36,-321 282.36,-321 232.72,-321 232.72,-321"/>
+<polygon fill="#aa3333" stroke="#aa3333" points="232.72,-318.38 225.22,-321 232.72,-323.63 232.72,-318.38"/>
 <text xml:space="preserve" text-anchor="middle" x="274.12" y="-388.85" font-family="PingFang SC" font-size="10.00">失败 / 超时</text>
 </g>
 <!-- p6 -->
@@ -198,8 +198,8 @@
 <!-- done -->
 <g id="node12" class="node">
 <title>done</title>
-<ellipse fill="#f2f2f2" stroke="#4a6785" cx="415" cy="-21.36" rx="120.24" ry="21.36"/>
-<text xml:space="preserve" text-anchor="middle" x="415" y="-18.59" font-family="PingFang SC" font-size="12.00">完成 · 阻塞 · 轮次预算用尽</text>
+<ellipse fill="#f2f2f2" stroke="#4a6785" cx="415" cy="-21.36" rx="103.27" ry="21.36"/>
+<text xml:space="preserve" text-anchor="middle" x="415" y="-18.59" font-family="PingFang SC" font-size="12.00">完成 · 阻塞 · 用户停止</text>
 </g>
 <!-- p8&#45;&gt;done -->
 <g id="edge14" class="edge">

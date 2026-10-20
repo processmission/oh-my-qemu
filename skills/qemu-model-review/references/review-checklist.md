@@ -4,8 +4,14 @@ Use this checklist against one modeling round. For each row, record PASS, FAIL,
 or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 `file:line` or artifact path. Do not edit anything while reviewing.
 
-## A. Scope and plan
+## A. Goal contract, scope, and plan
 
+- [ ] The overall goal is recorded as an observable end state, not an activity
+      or a round count.
+- [ ] The goal is decomposed into 2-5 milestones with exit conditions, and into
+      falsifiable acceptance criteria that each name their evidence.
+- [ ] Each round objective maps to at least one AC; a completed round is not
+      treated as a completed goal.
 - [ ] The diff matches the requested scope and current round objective; no
       unrelated changes.
 - [ ] Acceptance criteria are testable and unchanged; any change is recorded in
@@ -82,6 +88,11 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       tracked; the worktree matches the recorded baseline.
 - [ ] Round result has verdict, gate, evidence, changed paths, commands, and a
       concrete next blocker when not PASS.
+- [ ] Goal completion is claimed only when every AC has evidence-backed PASS,
+      every milestone is evidence-backed done, and no BLOCKER is unresolved;
+      a round budget or round count is not accepted as completion. Final
+      completion uses `review-checks.sh --final-goal`; intermediate rounds use
+      the default contract check.
 - [ ] The review packet includes previous findings and their status.
 
 ## G. Review quality

@@ -19,6 +19,9 @@ Options:
   --ir FILE             RS-IR .ir file to check (optional)
   --validator FILE      validate_register_ir.py path (optional)
   --translation FILE    translation TSV produced by --translate (optional)
+  --final-goal          enforce all milestones evidence-backed done, all ACs
+                        evidence-backed PASS, and current round PASS (use only
+                        for a goal-completion claim)
   --help                show this help
 
 Checks: audit/commands, audit sections, excluded Git paths, RS-IR parse,
@@ -35,6 +38,7 @@ need_value() {
     [ -n "${2:-}" ] || { log "ERROR: missing value for $1"; usage >&2; return 2; }
 }
 TASK_DIR=""; REPO_DIR=""; IR_FILE=""; VALIDATOR=""; TRANSLATION=""
+FINAL_GOAL=0
 PASS=0; FAIL=0; SKIP=0
 
 check_task_dir() {
@@ -62,6 +66,57 @@ Unresolved gaps
 Handoff
 HEADINGS
     if [ -z "$_missing" ]; then pass "audit sections present"; else fail "audit missing sections:$_missing"; fi
+}
+
+check_goal_contract() {
+    _state="$TASK_DIR/output/task-state.md"
+    if [ ! -f "$_state" ]; then
+        if [ "$FINAL_GOAL" -eq 1 ]; then fail "final goal requires output/task-state.md"; return 1; fi
+        skip "goal contract (no task-state.md)"; return 0
+    fi
+    if ! grep -q '^goal: ' "$_state"; then
+        if [ "$FINAL_GOAL" -eq 1 ]; then fail "final goal requires a goal field"; return 1; fi
+        skip "goal contract (state has no goal)"; return 0
+    fi
+    if grep -Eq '^goal: (<|$)' "$_state"; then fail "goal is a placeholder"; return 1; fi
+    _ms="$TASK_DIR/output/milestones.tsv"
+    _ac="$TASK_DIR/output/acceptance.tsv"
+    if [ ! -f "$_ms" ]; then fail "goal contract missing milestones.tsv"; return 1; fi
+    if [ ! -f "$_ac" ]; then fail "goal contract missing acceptance.tsv"; return 1; fi
+    _m_total=$(awk 'END { print NR-1 }' "$_ms"); [ "$_m_total" -lt 0 ] && _m_total=0
+    _m_done=$(awk -F'\t' 'NR > 1 && $2=="done" && $4!="-" && $4!=""{n++} END{print n+0}' "$_ms")
+    _a_total=$(awk 'END { print NR-1 }' "$_ac"); [ "$_a_total" -lt 0 ] && _a_total=0
+    _a_pass=$(awk -F'\t' 'NR > 1 && $2=="pass" && $4!="-" && $4!=""{n++} END{print n+0}' "$_ac")
+    _m_bad=$(awk -F'\t' 'NR > 1 && ($2!="pending" && $2!="active" && $2!="done"){n++} NR > 1 && $2=="done" && ($4=="" || $4=="-"){n++} END{print n+0}' "$_ms")
+    _a_bad=$(awk -F'\t' 'NR > 1 && ($2!="pending" && $2!="pass" && $2!="fail" && $2!="inconclusive"){n++} NR > 1 && $2=="pass" && ($4=="" || $4=="-"){n++} END{print n+0}' "$_ac")
+    if [ "$_m_total" -lt 1 ] || [ "$_a_total" -lt 1 ]; then fail "goal contract has no milestones or ACs"; return 1; fi
+    if [ "$_m_total" -lt 2 ] || [ "$_m_total" -gt 5 ]; then fail "goal contract needs 2-5 milestones (found $_m_total)"; return 1; fi
+    if [ "$_m_bad" -gt 0 ]; then fail "invalid milestone rows or done milestones without evidence: $_m_bad"; return 1; fi
+    if [ "$_a_bad" -gt 0 ]; then fail "invalid AC rows or PASS ACs without evidence: $_a_bad"; return 1; fi
+    if [ "$FINAL_GOAL" -eq 1 ]; then
+        if [ "$_m_done" -ne "$_m_total" ]; then fail "final goal: milestones not evidence-backed done: $_m_done/$_m_total"; return 1; fi
+        if [ "$_a_pass" -ne "$_a_total" ]; then fail "final goal: ACs not evidence-backed PASS: $_a_pass/$_a_total"; return 1; fi
+        _blockers=0
+        if [ -f "$TASK_DIR/output/findings.tsv" ]; then
+            _blockers=$(awk -F'\t' 'NR > 1 && $2=="BLOCKER" && ($5=="" || $5=="open"){n++} END{print n+0}' "$TASK_DIR/output/findings.tsv")
+        fi
+        if [ "$_blockers" -gt 0 ]; then fail "final goal: unresolved BLOCKER findings: $_blockers"; return 1; fi
+        _rr="$TASK_DIR/output/round-result.md"
+        if [ ! -f "$_rr" ]; then fail "final goal: missing round-result.md"; return 1; fi
+        _state_round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
+        _rr_round="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?round:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?round:[[:space:]]*//I' | awk '{ print $1 }')"
+        if [ -z "$_rr_round" ] || [ "$_rr_round" != "$_state_round" ]; then
+            fail "final goal: round-result is for round ${_rr_round:-missing}, current round is ${_state_round:-missing}"; return 1
+        fi
+        _rr_verdict="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
+        if [ "$_rr_verdict" != PASS ]; then fail "final goal: round-result verdict is not PASS: ${_rr_verdict:-missing}"; return 1; fi
+        _rr_gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
+        _rr_evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
+        if [ -z "$_rr_gate" ] || [ -z "$_rr_evidence" ]; then fail "final goal: round-result needs non-empty gate and evidence"; return 1; fi
+        pass "goal contract final: $_m_done/$_m_total evidence-backed milestones, $_a_pass/$_a_total ACs, round PASS"
+    else
+        pass "goal contract valid: intermediate ($_m_done/$_m_total milestones, $_a_pass/$_a_total ACs); final completion not claimed"
+    fi
 }
 
 check_git() {
@@ -135,8 +190,8 @@ check_round_result() {
         PASS|FAIL|INCONCLUSIVE) pass "round-result verdict present" ;;
         *) fail "round-result verdict must be exactly PASS, FAIL, or INCONCLUSIVE"; return 1 ;;
     esac
-    _gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p')"
-    _evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p')"
+    _gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
+    _evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
     case "$_verdict" in
         PASS)
             if [ -z "$_gate" ] || [ -z "$_evidence" ]; then
@@ -182,12 +237,14 @@ main() {
             --ir) need_value "$1" "${2:-}" || return 2; IR_FILE="$2"; shift 2 ;;
             --validator) need_value "$1" "${2:-}" || return 2; VALIDATOR="$2"; shift 2 ;;
             --translation) need_value "$1" "${2:-}" || return 2; TRANSLATION="$2"; shift 2 ;;
+            --final-goal) FINAL_GOAL=1; shift ;;
             -h|--help) usage; return 0 ;;
             *) log "ERROR: unknown option: $1"; usage >&2; return 2 ;;
         esac
     done
     if [ -z "$TASK_DIR" ]; then log "ERROR: --task-dir is required"; usage >&2; return 2; fi
     check_task_dir
+    check_goal_contract
     check_audit_sections
     check_git
     check_ir

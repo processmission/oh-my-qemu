@@ -36,8 +36,8 @@
   `output/findings.tsv`；由 `scripts/loop-state.sh` 维护。
 - **门禁**：可复用 `qemu-workflow` 的 `gates.sh`；缺 skill 时记录 gap，
   不即兴复制规则。
-- **停止**：验收全部通过、范围完成、外部输入/授权缺失、预算/停止信号、
-  或继续会越过 provenance 边界。
+- **停止**：验收全部通过、范围完成、外部输入/授权缺失、用户明确停止、
+  或继续会越过 provenance 边界。轮次预算是设计检查点，不是停止条件。
 
 ## 数据流
 
