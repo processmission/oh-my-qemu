@@ -505,6 +505,10 @@ EOF
     expect_rc 1 "loop-state round mode rejects empty gate/evidence" bash "$loop" loop "$round_task"
     cat > "$round_task/output/round-result.md" <<'EOF'
 ## Round 1 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker ROUND READY
+- Evidence: logs/failed.log
+## Round 1 - 2026-10-20
 - VERDICT: PASS
 - Gate: marker ROUND READY
 - Evidence: logs/round.log
@@ -598,7 +602,10 @@ goal: demo timer goal
 goal mode: goal
 round: 1
 phase: review
+review status: PASS
 EOF
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '1\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
     printf 'id\tstatus\tdescription\tevidence\tupdated\n' > "$task/output/milestones.tsv"
     printf 'M1\tpending\ttimer model\t-\tnow\n' >> "$task/output/milestones.tsv"
     printf 'id\tstatus\tcriterion\tevidence\tupdated\n' > "$task/output/acceptance.tsv"
@@ -622,7 +629,20 @@ EOF
 - Gate: marker BOOT READY
 - Evidence: logs/serial.log
 EOF
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '2\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
     expect_rc 0 "review-checks --final-goal accepts the current canonical round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    cat > "$task/output/round-result.md" <<'EOF'
+## Round 2 - 2026-10-20
+- VERDICT: FAIL
+- Gate: marker BOOT READY
+- Evidence: logs/failed.log
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
+EOF
+    expect_rc 0 "review-checks --final-goal accepts the latest repeated round section" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     cat > "$task/output/round-result.md" <<'EOF'
 ## Round 2 - 2026-10-20
 - VERDICT: PASS
@@ -632,6 +652,8 @@ EOF
     expect_rc 1 "review-checks --final-goal rejects empty round evidence" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     sed 's/^round: 2$/round: 1/' "$task/output/task-state.md" > "$TMPROOT/state-round1.md"
     mv "$TMPROOT/state-round1.md" "$task/output/task-state.md"
+    printf 'round\tverdict\tgate\tevidence\tupdated\n' > "$task/output/rounds.tsv"
+    printf '1\tPASS\tmarker BOOT READY\tlogs/serial.log\tnow\n' >> "$task/output/rounds.tsv"
     cat > "$task/output/round-result.md" <<'EOF'
 Round: 1
 Verdict: FAIL

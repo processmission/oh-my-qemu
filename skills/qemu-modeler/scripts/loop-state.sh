@@ -361,15 +361,15 @@ round_result_block() {
     _rblk_file="$1"; _rblk_round="$2"
     if _rblk="$(awk -v want="$_rblk_round" '
         /^##[[:space:]]+Round[[:space:]]+[0-9]+/ {
-            if (inblk) exit
             line=$0
             sub(/^##[[:space:]]+Round[[:space:]]+/, "", line)
             sub(/[^0-9].*$/, "", line)
-            if (line == want) { inblk=1; found=1; print; next }
+            if (line == want) { capture=1; found=1; block=$0 "\n"; next }
+            if (capture) capture=0
             next
         }
-        inblk { print }
-        END { exit !found }
+        capture { block=block $0 "\n" }
+        END { if (!found) exit 1; printf "%s", block }
     ' "$_rblk_file")"; then
         printf '%s\n' "$_rblk"; return 0
     fi

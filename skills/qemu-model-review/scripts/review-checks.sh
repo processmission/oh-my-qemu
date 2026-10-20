@@ -101,6 +101,16 @@ check_goal_contract() {
             _blockers=$(awk -F'\t' 'NR > 1 && $2=="BLOCKER" && ($5=="" || $5=="open"){n++} END{print n+0}' "$TASK_DIR/output/findings.tsv")
         fi
         if [ "$_blockers" -gt 0 ]; then fail "final goal: unresolved BLOCKER findings: $_blockers"; return 1; fi
+        _review_status="$(awk -F': ' '/^review status:/ { print $2; exit }' "$_state")"
+        if [ "$_review_status" != PASS ]; then fail "final goal: review status is not PASS: ${_review_status:-missing}"; return 1; fi
+        _rounds="$TASK_DIR/output/rounds.tsv"
+        if [ ! -f "$_rounds" ]; then fail "final goal: missing rounds.tsv"; return 1; fi
+        _state_round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
+        _last_round="$(awk -F'\t' 'NR > 1 { r=$1 } END { print r }' "$_rounds")"
+        _last_verdict="$(awk -F'\t' 'NR > 1 { v=$2 } END { print v }' "$_rounds")"
+        if [ "$_last_round" != "$_state_round" ] || [ "$_last_verdict" != PASS ]; then
+            fail "final goal: latest round verdict is not PASS for current round (${_last_round:-missing}/${_last_verdict:-missing})"; return 1
+        fi
         _rr="$TASK_DIR/output/round-result.md"
         if [ ! -f "$_rr" ]; then fail "final goal: missing round-result.md"; return 1; fi
         _state_round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
@@ -183,15 +193,15 @@ round_result_block() {
     _rblk_file="$1"; _rblk_round="$2"
     if _rblk="$(awk -v want="$_rblk_round" '
         /^##[[:space:]]+Round[[:space:]]+[0-9]+/ {
-            if (inblk) exit
             line=$0
             sub(/^##[[:space:]]+Round[[:space:]]+/, "", line)
             sub(/[^0-9].*$/, "", line)
-            if (line == want) { inblk=1; found=1; print; next }
+            if (line == want) { capture=1; found=1; block=$0 "\n"; next }
+            if (capture) capture=0
             next
         }
-        inblk { print }
-        END { exit !found }
+        capture { block=block $0 "\n" }
+        END { if (!found) exit 1; printf "%s", block }
     ' "$_rblk_file")"; then
         printf '%s\n' "$_rblk"; return 0
     fi

@@ -20,8 +20,9 @@ Run review-checks for every round; by default it validates the goal contract as
 an intermediate state (pending milestones/ACs are allowed). Add `--final-goal`
 only when the task claims goal completion: it then requires a task-state goal
 contract, every milestone evidence-backed done, every AC evidence-backed PASS,
-no open BLOCKER, and a current round-result whose `Round:` number matches the
-state and whose verdict is PASS.
+no open BLOCKER, current `review status: PASS`, a latest `rounds.tsv` verdict
+for the current round that is PASS, and a current round-result section whose
+verdict is PASS.
 
 ## Audit workflow
 
