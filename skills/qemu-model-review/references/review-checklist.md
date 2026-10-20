@@ -64,10 +64,12 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 
 ## E. Model implementation
 
-- [ ] Source headers and body comments describe hardware behavior and public
-      references only; they contain no `.oh-my-qemu/...`, `output/...`,
-      `audit.md`, evidence paths, round/review IDs, or absolute host paths.
-      Local evidence stays in the audit workspace; a leak is a BLOCKER.
+- [ ] File headers are minimal (SPDX/copyright plus at most a one-line hardware
+      identity). Comments are limited to key code, 1-3 lines, with at most one
+      brief public source reference; no design/framework rationale, "modeled
+      contract" pointers, neighboring-convention defenses, process/round/review
+      information, `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence
+      paths, or absolute host paths. A leak or expanded rationale is a BLOCKER.
 - [ ] Register layout, field macros, storage, tables, and hooks live in the
       device `.c` file, not a header or board file.
 - [ ] Framework choice follows the recorded decision gate and is justified.

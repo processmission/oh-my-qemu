@@ -83,9 +83,12 @@ MemoryRegionOps）。
 
 ## 源码注释卫生
 
-QEMU 源码（尤其是 .c/.h 顶部注释）描述硬件行为、公共手册/仓库引用即可，不能把
-本地任务产物当作代码信息写进去：
+QEMU 文件头只保留 SPDX/copyright 加最多一行硬件标识；只给关键代码加 1-3 行
+简短注释，最多引用一个公共来源。不要把引用扩展成 contract 摘要、寄存器表、
+设计长文或过程记录：
 
+- 不写实现策略、framework 选择/辩护、"modeled contract" 指针、邻近设备惯例理由；
+- 不写过程信息：round、milestone、AC 状态、audit/review/finding、命令、进度；
 - 不写 `.oh-my-qemu/...`、`output/...`、`audit.md`、evidence 路径、round/review
   ID、绝对主机路径；
 - 不写 "contract is output/register-contracts-r2.md" 这类任务内引用；

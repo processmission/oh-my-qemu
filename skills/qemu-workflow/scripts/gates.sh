@@ -294,7 +294,7 @@ gate_source_comments() {
         if (out != "") print out
       }
     ' "$file")
-    hits=$(printf '%s\n' "$comments" | grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/(Users|home|workspace|tmp|root|private|mnt|opt)/[^ ]*|task artifact directory' | sed -n '1,5p')
+    hits=$(printf '%s\n' "$comments" | grep -niE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/(Users|home|workspace|tmp|root|private|mnt|opt)/[^ ]*|task artifact directory|modeled contract|neighboring[^ ]* (PCI|devices)|no policy in this tree|same manual style|register framework|framework decision|accepted (framework )?deviation|implementation decision|design rationale|(^|[^[:alnum:]_])(round[[:space:]]+[0-9]+|milestone|AC[0-9]+|audit|review (status|finding|passed|requested)|finding|evidence|next blocker|task[- ](slug|state|artifact)|session|in this round|process note|work log|progress)([^[:alnum:]_]|$)' | sed -n '1,5p')
     if [[ -n "$hits" ]]; then
       fail source-comments "local audit/output references in source comments: $file"
       printf '%s\n' "$hits" | sed 's/^/  /'

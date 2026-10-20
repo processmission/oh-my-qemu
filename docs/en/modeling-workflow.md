@@ -92,10 +92,15 @@ on RegisterInfo, data/command aperture on MemoryRegionOps).
 
 ## Source comment hygiene
 
-QEMU source comments (especially the top of .c/.h files) describe hardware
-behavior and public manual/repository references only. Do not put local task
-artifacts into source:
+Keep QEMU file headers minimal: SPDX/copyright plus at most a one-line hardware
+identity. Comment only key code, in 1-3 lines, with at most one brief public
+source reference. Do not expand a reference into a contract summary, register
+table, design essay, or process record:
 
+- no implementation strategy, framework choice/defense, "modeled contract"
+  pointer, or neighboring-convention rationale;
+- no process information: rounds, milestones, AC status, audit/review/finding
+  notes, commands, or progress;
 - no `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round/review
   IDs, or absolute host paths;
 - no "contract is output/register-contracts-r2.md" task-local references;
