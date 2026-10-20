@@ -209,7 +209,7 @@ EOF
 
 test_gates_source_comments() {
     good="$TMPROOT/source-good.c"
-    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\nconst char *p = "/home/test/image";\n' > "$good"
+    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\nconst char *p = "/home/test/image";\nconst char *u = "https://example.test/output/result.log";\n' > "$good"
     expect_rc 0 "gates source-comments accepts comments and ignores code literals" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$good"
     bad="$TMPROOT/source-bad.c"
     printf '/*\n * Contract: output/register-contracts-r2.md section 2.\n * Decision recorded in audit.md.\n */\n' > "$bad"
@@ -519,6 +519,13 @@ EOF
     expect_rc 1 "loop-state round mode rejects empty gate/evidence" bash "$loop" loop "$round_task"
     cat > "$round_task/output/round-result.md" <<'EOF'
 ## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate: timeout after 1 second
+- Evidence: none
+EOF
+    expect_rc 1 "loop-state round mode rejects invalid PASS semantics" bash "$loop" loop "$round_task"
+    cat > "$round_task/output/round-result.md" <<'EOF'
+## Round 1 - 2026-10-20
 - VERDICT: FAIL
 - Gate: marker ROUND READY
 - Evidence: logs/failed.log
@@ -618,6 +625,13 @@ Gate: marker BOOT READY
 Evidence: logs/missing.log
 EOF
     expect_rc 1 "review-checks rejects a missing PASS evidence path" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
+    cat > "$task/output/round-result.md" <<'EOF'
+Round: 1
+Verdict: PASS
+Gate: marker BOOT READY
+Evidence: logs/../../../etc/passwd
+EOF
+    expect_rc 1 "review-checks rejects an evidence path escaping the task packet" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task"
     cat > "$task/output/round-result.md" <<'EOF'
 Round: 1
 Verdict: PASS
@@ -870,7 +884,7 @@ EOF
 EOF
     expect_rc 1 "framework decision rejects a weak manual rationale" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$bad"
     quoted="$TMPROOT/framework-backtick.md"
-    cat > "$quoted" <<EOF
+    cat > "$quoted" <<'EOF'
 # Register bank framework decision record
 - Device: demo
 - Window: 0x1000+0x100

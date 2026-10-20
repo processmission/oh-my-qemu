@@ -261,22 +261,37 @@ gate_source_comments() {
       fail source-comments "file not found: $file"; bad=1; continue
     fi
     comments=$(awk '
-      BEGIN { inblock=0 }
+      BEGIN { inblock=0; instr=0; insq=0; esc=0; squote=sprintf("%c",39) }
       {
-        line=$0; out=""
-        while (length(line)>0) {
+        line=$0; out=""; i=1; n=length(line)
+        while (i <= n) {
+          c=substr(line,i,1)
           if (inblock) {
-            p=index(line,"*/")
-            if (p>0) { out=out " " substr(line,1,p-1); line=substr(line,p+2); inblock=0 }
-            else { out=out " " line; line="" }
-          } else {
-            p1=index(line,"/*"); p2=index(line,"//")
-            if (p1>0 && (p2==0 || p1<p2)) { out=out " " substr(line,p1+2); line=substr(line,p1+2); inblock=1 }
-            else if (p2>0) { out=out " " substr(line,p2+2); line="" }
-            else { line="" }
+            if (c=="*" && substr(line,i+1,1)=="/") { inblock=0; i+=2 }
+            else { out=out c; i++ }
+            continue
           }
+          if (instr) {
+            if (esc) { esc=0; i++ }
+            else if (c=="\\") { esc=1; i++ }
+            else if (c=="\"") { instr=0; i++ }
+            else { i++ }
+            continue
+          }
+          if (insq) {
+            if (esc) { esc=0; i++ }
+            else if (c=="\\") { esc=1; i++ }
+            else if (c==squote) { insq=0; i++ }
+            else { i++ }
+            continue
+          }
+          if (c=="\"") { instr=1; i++; continue }
+          if (c==squote) { insq=1; i++; continue }
+          if (c=="/" && substr(line,i+1,1)=="*") { inblock=1; i+=2; continue }
+          if (c=="/" && substr(line,i+1,1)=="/") { out=out " " substr(line,i+2); i=n+1; continue }
+          i++
         }
-        if (out!="") print out
+        if (out != "") print out
       }
     ' "$file")
     hits=$(printf '%s\n' "$comments" | grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|(^|[^[:alnum:]_])(logs|output|evidence)/[A-Za-z0-9._/-]+|register-contracts?-[A-Za-z0-9._-]+[.]md|/Users/[^ ]*|/home/[^ ]*|task artifact directory' | sed -n '1,5p')

@@ -241,9 +241,22 @@ check_round_result() {
                 return 1
             fi
             _evidence_path="$(printf '%s' "$_evidence" | grep -oE '(logs|output|evidence)/[A-Za-z0-9._/-]+' | sed -n '1p')"
-            if [ -z "$_evidence_path" ] || [ ! -e "$TASK_DIR/$_evidence_path" ]; then
-                fail "PASS evidence path is missing under the task packet: ${_evidence_path:-missing}"
-                return 1
+            case "$_evidence_path" in
+                ''|/*|*..*) fail "PASS evidence path must stay inside the task packet: ${_evidence_path:-missing}"; return 1 ;;
+            esac
+            _task_phys="$(cd "$TASK_DIR" && pwd -P)"
+            _ev_dir="$(dirname "$_evidence_path")"
+            _ev_base="$(basename "$_evidence_path")"
+            if [ ! -d "$TASK_DIR/$_ev_dir" ]; then
+                fail "PASS evidence path is missing under the task packet: $_evidence_path"; return 1
+            fi
+            _ev_dir_phys="$(cd "$TASK_DIR/$_ev_dir" && pwd -P)"
+            case "$_ev_dir_phys" in
+                "$_task_phys"|"$_task_phys"/*) ;;
+                *) fail "PASS evidence path escapes the task packet: $_evidence_path"; return 1 ;;
+            esac
+            if [ ! -f "$_ev_dir_phys/$_ev_base" ]; then
+                fail "PASS evidence file is missing under the task packet: $_evidence_path"; return 1
             fi
             _gate_l="$(printf '%s' "$_gate" | tr '[:upper:]' '[:lower:]')"
             case "$_gate_l" in

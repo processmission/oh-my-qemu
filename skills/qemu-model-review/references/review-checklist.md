@@ -101,6 +101,8 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       provenance, decisions, round record, evidence, unresolved gaps, handoff.
 - [ ] `commands.md` records effective commands, working directories, and
       results; decisive logs are under `logs/`.
+- [ ] A PASS round names a marker/qtest/test gate (not timeout/none) and its
+      evidence path exists under the task packet without `..` escaping it.
 - [ ] Excluded paths (`.agents/`, `.oh-my-qemu/`, `builds/`) are not staged or
       tracked; the worktree matches the recorded baseline.
 - [ ] Round result has verdict, gate, evidence, changed paths, commands, and a

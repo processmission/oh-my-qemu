@@ -429,6 +429,10 @@ loop_goal() {
                 log "ROUND MODE: round $_round result needs gate and evidence before handoff."
                 return 1
             fi
+            if [ "$_rr_verdict" = PASS ] && ! valid_pass "$_rr_gate" "$_rr_evidence"; then
+                log "ROUND MODE: round $_round PASS needs a marker/qtest/test gate and non-empty evidence, not timeout/none."
+                return 1
+            fi
             _review="$(awk -F': ' '/^review status:/ { print $2; exit }' "$_state")"
             case "$_review" in
                 PASS|FAIL|INCONCLUSIVE) ;;
