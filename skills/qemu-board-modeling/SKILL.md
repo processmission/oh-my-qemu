@@ -62,12 +62,14 @@ the device `.c` file and follow the register contract handoff for the record.
 Keep board/SoC file-header comments minimal: SPDX/copyright plus at most a
 one-line top-level description. Do not put implementation strategy, framework
 choice/defense, "modeled contract" pointers, neighboring-device convention, or
-review/audit rationale in source. Body comments may describe topology, boot ABI,
-memory map, IRQ wiring, and public hardware references; evidence and source
-citations belong in `audit.md`. Do not write `.oh-my-qemu/...`, `output/...`,
-`audit.md`, evidence paths, round/review IDs, or absolute host paths into
-source. If `qemu-workflow` is installed, run its `source-comments` gate on
-changed source files.
+review/audit rationale in source. Comment only key topology, boot ABI, memory
+map, or IRQ-wiring code, in one to three lines with at most one brief public
+hardware reference; do not expand it into a contract summary or large map. Put
+evidence and citations in `audit.md`. Do not write `.oh-my-qemu/...`,
+`output/...`, `audit.md`, evidence paths, round/milestone/AC status, review
+notes, commands, progress, or absolute host paths into source. If
+`qemu-workflow` is installed, run its `source-comments` gate on changed source
+files.
 
 ## Board versus SoC ownership
 

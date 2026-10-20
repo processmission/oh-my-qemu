@@ -226,6 +226,9 @@ test_gates_source_comments() {
     rationale="$TMPROOT/source-rationale.c"
     printf '/* There is no policy in this tree; neighboring PCI devices use the same manual style. */\n' > "$rationale"
     expect_rc 1 "gates source-comments rejects design rationale" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$rationale"
+    process="$TMPROOT/source-process.c"
+    printf '/* Round 2 review passed; milestone M1 complete, next blocker none. */\n' > "$process"
+    expect_rc 1 "gates source-comments rejects process information" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$process"
 }
 
 test_rst_gates() {

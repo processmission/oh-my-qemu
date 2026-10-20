@@ -114,11 +114,15 @@ code walkthrough, review/audit decision, or justification ("no policy in this
 tree", "neighboring devices use manual style"). Those belong in
 `audit.md` / `output/framework-decision.md`.
 
-Body comments explain non-obvious hardware behavior and cite public evidence
-only: datasheet/TRM section, vendor HAL path, checked-in QEMU docs, or a stable
-public reference. Never write local task artifacts into source:
-`.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round/review IDs,
-or absolute host paths. The source must stand on its own and remain reviewable
+Comment only **key code** where the behavior is non-obvious, and keep each
+comment short: one to three lines, with at most one brief reference to a public
+source (datasheet/TRM section, vendor HAL path, checked-in QEMU doc, or stable
+public reference). Do not expand the reference into a contract summary, register
+table, design essay, or multi-paragraph explanation; put that material in
+`audit.md` / `output/`. Never write local task artifacts or process
+information into source: `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence
+paths, round/milestone/AC status, review/finding notes, commands, progress, or
+absolute host paths. The source must stand on its own and remain reviewable
 outside the local workspace.
 
 When `qemu-workflow` is installed, run
