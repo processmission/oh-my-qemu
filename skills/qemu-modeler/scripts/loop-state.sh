@@ -176,6 +176,7 @@ add_finding() {
         printf 'id\tseverity\ttext\tupdated\tstatus\n' > "$_findings" || { fail "cannot write $_findings"; return 1; }
     fi
     printf '%s\t%s\t%s\t%s\t%s\n' "$_id" "$_severity" "$_text" "$(now)" open >> "$_findings" || { fail "cannot append $_findings"; return 1; }
+    invalidate_review "$_dir" || { fail "cannot invalidate review state"; return 1; }
     log "finding=$_id severity=$_severity status=open"
 }
 
@@ -194,6 +195,7 @@ resolve_finding() {
         rm -f "$_tmp"; fail "finding not found: $_id"; return 1
     fi
     mv "$_tmp" "$_findings" || { rm -f "$_tmp"; fail "cannot update $_findings"; return 1; }
+    invalidate_review "$_dir" || { fail "cannot invalidate review state"; return 1; }
     log "finding=$_id status=resolved"
 }
 
@@ -355,6 +357,29 @@ show_goal_status() {
     fi
 }
 
+round_result_block() {
+    _rblk_file="$1"; _rblk_round="$2"
+    if _rblk="$(awk -v want="$_rblk_round" '
+        /^##[[:space:]]+Round[[:space:]]+[0-9]+/ {
+            if (inblk) exit
+            line=$0
+            sub(/^##[[:space:]]+Round[[:space:]]+/, "", line)
+            sub(/[^0-9].*$/, "", line)
+            if (line == want) { inblk=1; found=1; print; next }
+            next
+        }
+        inblk { print }
+        END { exit !found }
+    ' "$_rblk_file")"; then
+        printf '%s\n' "$_rblk"; return 0
+    fi
+    awk -v want="$_rblk_round" '
+        $0 ~ ("^[[:space:]]*Round:[[:space:]]*" want "[[:space:]]*$") { inblk=1; found=1 }
+        inblk { print }
+        END { exit !found }
+    ' "$_rblk_file"
+}
+
 loop_goal() {
     need_dir "$@" || return $?
     _dir="$1"
@@ -372,17 +397,21 @@ loop_goal() {
                 return 1
             fi
             _rr="$_dir/output/round-result.md"
-            if [ ! -f "$_rr" ] || ! grep -Eq "^[[:space:]]*(-[[:space:]]+)?Round:[[:space:]]*$_round[[:space:]]*$" "$_rr"; then
-                log "ROUND MODE: round $_round has no matching round-result yet; finish and record that round before handoff."
+            if [ ! -f "$_rr" ]; then
+                log "ROUND MODE: round $_round has no round-result yet; finish and record that round before handoff."
                 return 1
             fi
-            _rr_verdict="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
+            if ! _rr_block="$(round_result_block "$_rr" "$_round")"; then
+                log "ROUND MODE: round $_round has no matching round-result section; finish and record that round before handoff."
+                return 1
+            fi
+            _rr_verdict="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
             case "$_rr_verdict" in
                 PASS|FAIL|INCONCLUSIVE) ;;
                 *) log "ROUND MODE: round $_round has no valid verdict; complete review and record the round result first."; return 1 ;;
             esac
-            _rr_gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
-            _rr_evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
+            _rr_gate="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
+            _rr_evidence="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
             if [ -z "$_rr_gate" ] || [ -z "$_rr_evidence" ]; then
                 log "ROUND MODE: round $_round result needs gate and evidence before handoff."
                 return 1

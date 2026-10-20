@@ -82,8 +82,9 @@ Complete the goal, not a round count. Keep all four levels visible:
   build/command alone.
 - **Milestones** (2-5): checkpoints that unlock the next stage. Each has an exit
   gate; `done` requires evidence (the gate/artifact), and marking one done does
-  not complete the goal. Any AC/milestone/evidence change resets `review status`;
-  record a fresh review verdict before claiming completion.
+  not complete the goal. Any AC/milestone/evidence or blocker finding change
+  resets `review status`; record a fresh review verdict before claiming
+  completion.
 - **Acceptance criteria**: falsifiable outcomes with named evidence (qtest,
   marker, trace, log, artifact). `pass` requires non-empty evidence; a round
   objective must name the AC it advances.

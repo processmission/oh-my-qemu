@@ -444,7 +444,7 @@ test_orchestrator_state() {
     if grep -q 'probe reset value' "$task/output/task-state.md"; then pass "loop-state records objective"; else fail "loop-state objective missing"; fi
     expect_contains "$task/output/rounds.tsv" "PASS" "loop-state records verdict"
     expect_contains "$task/output/findings.tsv" "F-01" "loop-state records finding"
-    if grep -q '^review status: PASS' "$task/output/task-state.md"; then pass "loop-state writes review status field"; else fail "loop-state review status field missing"; fi
+    if grep -q '^review status: not-requested' "$task/output/task-state.md"; then pass "loop-state invalidates review when a finding is added"; else fail "loop-state review status field missing"; fi
     if grep -q '^next action: add trace and rerun' "$task/output/task-state.md"; then pass "loop-state writes next action field"; else fail "loop-state next action field missing"; fi
     expect_rc 1 "loop-state check blocks an incomplete goal" bash "$loop" check "$task"
     goal_task="$TMPROOT/orch-goal/.oh-my-qemu/demo"
@@ -477,6 +477,7 @@ test_orchestrator_state() {
     expect_rc 1 "loop-state blocks on an open BLOCKER" bash "$loop" loop "$goal_task"
     expect_rc 1 "loop-state resolve rejects an unknown finding" bash "$loop" finding resolve "$goal_task" F-99
     expect_rc 0 "loop-state resolves a fixed blocker" bash "$loop" finding resolve "$goal_task" F-01
+    expect_rc 0 "loop-state records a verdict after blocker resolution" bash "$loop" verdict "$goal_task" PASS "marker demo-timer re-review" "logs/demo-timer-rereview.log"
     expect_rc 0 "loop-state completes after blocker resolution" bash "$loop" loop "$goal_task"
     bash "$loop" start-round "$goal_task" "next regression round" >/dev/null
     expect_rc 1 "loop-state invalidates the previous verdict on a new round" bash "$loop" loop "$goal_task"
@@ -495,18 +496,18 @@ test_orchestrator_state() {
     printf 'Round: 1\n' > "$round_task/output/round-result.md"
     expect_rc 1 "loop-state round mode rejects a header-only round result" bash "$loop" loop "$round_task"
     cat > "$round_task/output/round-result.md" <<'EOF'
-Round: 1
-Verdict: PASS
-Gate:
-Evidence:
+## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate:
+- Evidence:
 EOF
     bash "$loop" verdict "$round_task" PASS "marker ROUND READY" "logs/round.log" >/dev/null
     expect_rc 1 "loop-state round mode rejects empty gate/evidence" bash "$loop" loop "$round_task"
     cat > "$round_task/output/round-result.md" <<'EOF'
-Round: 1
-Verdict: PASS
-Gate: marker ROUND READY
-Evidence: logs/round.log
+## Round 1 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker ROUND READY
+- Evidence: logs/round.log
 EOF
     bash "$loop" verdict "$round_task" PASS "marker ROUND READY" "logs/round.log" >/dev/null
     if bash "$loop" loop "$round_task" > "$TMPROOT/round-mode.out" 2>&1; then
@@ -616,19 +617,21 @@ EOF
     mv "$TMPROOT/state-round2.md" "$task/output/task-state.md"
     expect_rc 1 "review-checks --final-goal rejects a stale round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     cat > "$task/output/round-result.md" <<'EOF'
-Round: 2
-Verdict: PASS
-Gate: marker BOOT READY
-Evidence: logs/serial.log
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence: logs/serial.log
 EOF
-    expect_rc 0 "review-checks --final-goal accepts the current round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    expect_rc 0 "review-checks --final-goal accepts the current canonical round-result" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
     cat > "$task/output/round-result.md" <<'EOF'
-Round: 2
-Verdict: PASS
-Gate: marker BOOT READY
-Evidence:
+## Round 2 - 2026-10-20
+- VERDICT: PASS
+- Gate: marker BOOT READY
+- Evidence:
 EOF
     expect_rc 1 "review-checks --final-goal rejects empty round evidence" bash "$ROOT/skills/qemu-model-review/scripts/review-checks.sh" --task-dir "$task" --final-goal
+    sed 's/^round: 2$/round: 1/' "$task/output/task-state.md" > "$TMPROOT/state-round1.md"
+    mv "$TMPROOT/state-round1.md" "$task/output/task-state.md"
     cat > "$task/output/round-result.md" <<'EOF'
 Round: 1
 Verdict: FAIL

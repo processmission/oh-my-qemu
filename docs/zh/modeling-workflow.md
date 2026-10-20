@@ -41,8 +41,8 @@ loop-state.sh loop &lt;task&gt;          # CONTINUE 或 PASS goal complete
 loop-state.sh finding resolve &lt;task&gt; F-01   # 修复并重审后解除 BLOCKER
 </pre>
 
-milestone done 必须带 exit gate/evidence；修改 AC/milestone 或其 evidence 会重置
-review status，之后要重新记录 review verdict。loop 在 round mode 只认本轮自己的
+milestone done 必须带 exit gate/evidence；修改 AC/milestone、evidence 或 blocker
+finding 会重置 review status，之后要重新记录 review verdict。loop 在 round mode 只认本轮自己的
 round-result，且要求有效 verdict/gate/evidence 与该轮的 review verdict 已记录
 （用 round baseline 防止历史结果提前触发 handoff）。review 默认按
 intermediate contract 检查；只有声明 goal complete 时才用

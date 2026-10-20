@@ -104,14 +104,13 @@ check_goal_contract() {
         _rr="$TASK_DIR/output/round-result.md"
         if [ ! -f "$_rr" ]; then fail "final goal: missing round-result.md"; return 1; fi
         _state_round="$(awk -F': ' '/^round:/ { print $2; exit }' "$_state")"
-        _rr_round="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?round:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?round:[[:space:]]*//I' | awk '{ print $1 }')"
-        if [ -z "$_rr_round" ] || [ "$_rr_round" != "$_state_round" ]; then
-            fail "final goal: round-result is for round ${_rr_round:-missing}, current round is ${_state_round:-missing}"; return 1
+        if ! _rr_block="$(round_result_block "$_rr" "$_state_round")"; then
+            fail "final goal: no round-result section for current round ${_state_round:-missing}"; return 1
         fi
-        _rr_verdict="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
+        _rr_verdict="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
         if [ "$_rr_verdict" != PASS ]; then fail "final goal: round-result verdict is not PASS: ${_rr_verdict:-missing}"; return 1; fi
-        _rr_gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
-        _rr_evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
+        _rr_gate="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
+        _rr_evidence="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
         if [ -z "$_rr_gate" ] || [ -z "$_rr_evidence" ]; then fail "final goal: round-result needs non-empty gate and evidence"; return 1; fi
         pass "goal contract final: $_m_done/$_m_total evidence-backed milestones, $_a_pass/$_a_total ACs, round PASS"
     else
@@ -180,18 +179,51 @@ check_translation() {
     fi
 }
 
+round_result_block() {
+    _rblk_file="$1"; _rblk_round="$2"
+    if _rblk="$(awk -v want="$_rblk_round" '
+        /^##[[:space:]]+Round[[:space:]]+[0-9]+/ {
+            if (inblk) exit
+            line=$0
+            sub(/^##[[:space:]]+Round[[:space:]]+/, "", line)
+            sub(/[^0-9].*$/, "", line)
+            if (line == want) { inblk=1; found=1; print; next }
+            next
+        }
+        inblk { print }
+        END { exit !found }
+    ' "$_rblk_file")"; then
+        printf '%s\n' "$_rblk"; return 0
+    fi
+    awk -v want="$_rblk_round" '
+        $0 ~ ("^[[:space:]]*Round:[[:space:]]*" want "[[:space:]]*$") { inblk=1; found=1 }
+        inblk { print }
+        END { exit !found }
+    ' "$_rblk_file"
+}
+
 check_round_result() {
     _rr="$TASK_DIR/output/round-result.md"
     if [ ! -f "$_rr" ]; then fail "round-result missing: $_rr"; return 1; fi
-    _line="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' "$_rr" | sed -n '1p')"
+    _rr_block=""
+    if [ -f "$TASK_DIR/output/task-state.md" ]; then
+        _rr_round="$(awk -F': ' '/^round:/ { print $2; exit }' "$TASK_DIR/output/task-state.md")"
+        if [ -n "$_rr_round" ]; then
+            if ! _rr_block="$(round_result_block "$_rr" "$_rr_round")"; then
+                fail "round-result missing matching section for round $_rr_round"; return 1
+            fi
+        fi
+    fi
+    [ -n "$_rr_block" ] || _rr_block="$(cat "$_rr")"
+    _line="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?(verdict|status):' | sed -n '1p')"
     if [ -z "$_line" ]; then fail "round-result missing verdict/status"; return 1; fi
     _verdict="$(printf '%s' "$_line" | sed -E 's/^[[:space:]]*(-[[:space:]]+)?(verdict|status):[[:space:]]*//I' | awk '{ print toupper($1) }')"
     case "$_verdict" in
         PASS|FAIL|INCONCLUSIVE) pass "round-result verdict present" ;;
         *) fail "round-result verdict must be exactly PASS, FAIL, or INCONCLUSIVE"; return 1 ;;
     esac
-    _gate="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
-    _evidence="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' "$_rr" | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
+    _gate="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?gate:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?gate:[[:space:]]*//I; s/[[:space:]]*$//')"
+    _evidence="$(printf '%s\n' "$_rr_block" | grep -iE '^[[:space:]]*(-[[:space:]]+)?evidence:' | sed -n '1p' | sed -E 's/^[[:space:]]*(-[[:space:]]+)?evidence:[[:space:]]*//I; s/[[:space:]]*$//')"
     case "$_verdict" in
         PASS)
             if [ -z "$_gate" ] || [ -z "$_evidence" ]; then

@@ -46,8 +46,9 @@ loop-state.sh loop &lt;task&gt;          # CONTINUE or PASS goal complete
 loop-state.sh finding resolve &lt;task&gt; F-01   # unblock after fix + re-review
 </pre>
 
-A milestone `done` requires exit-gate evidence. Changing an AC, milestone, or
-its evidence resets review status, so record a fresh review verdict afterward.
+A milestone `done` requires exit-gate evidence. Changing an AC, milestone,
+evidence, or blocker finding resets review status, so record a fresh review
+verdict afterward.
 In round mode, `loop` only accepts the requested round's own round-result with a
 valid verdict, gate, evidence, and a recorded review verdict (a baseline prevents
 a historical result from triggering handoff). Review checks default to the intermediate
