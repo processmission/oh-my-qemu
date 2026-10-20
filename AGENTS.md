@@ -77,6 +77,20 @@ Before creating audit artifacts or configuring QEMU, add `.agents/`,
 duplicates, never stage these paths, and verify them absent from
 `git status --short` at handoff.
 
+## Agent review
+
+When an agent reviews a change in this repository, report only P0 and P1
+findings:
+
+- P0: correctness, security, data loss, broken CI, or another release-blocking
+  defect.
+- P1: contract or acceptance-criteria violation, regression, missing required
+  evidence, or a fix that must land before merge.
+
+Do not emit P2, P3, nit, style, or note findings in an agent review. If an
+observation is useful but is not P0/P1, omit it from the findings list; report
+it only as an explicitly non-blocking note when the requester asks for one.
+
 ## Installer rules
 
 Keep `install.sh` self-contained and project-local. It must:
