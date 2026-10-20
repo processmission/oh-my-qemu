@@ -8,7 +8,7 @@ state in `output/task-state.md` and append rounds to `output/rounds.tsv`.
 
 | Phase | Entry | Work | Exit gate |
 | --- | --- | --- | --- |
-| P0 Intake | user request or continuation | classify task, freeze scope/AC/provenance, read prior state | audit baseline written; scope, AC, stop condition, permitted actions recorded |
+| P0 Intake | user request or continuation | classify task, freeze scope/provenance, decompose the real goal into 2-5 milestones and falsifiable ACs, read prior state | audit baseline + goal contract written; every AC names its evidence; stop condition and permitted actions recorded |
 | P1 Evidence | P0 passed | read sources, extract register/board/firmware facts, record tiers/citations | contract and/or board contract exists; unknowns and conflicts visible |
 | P2 IR and translation | P1 passed for register work | validate RS-IR, run `--translate`, map rules to mechanism/hook/observe/placeholder/qtest | every rule has mechanism+hook+qtest row; guest-visible observe; unimplemented placeholder; errors/trace/log considered |
 | P3 Implementation | P2 passed | one narrow source round via the domain skill | requested source paths changed; audit/commands updated; no unrelated changes |
@@ -48,17 +48,24 @@ Rules:
   available rule set, and list the gap in the review packet. Never pretend the
   skill was loaded.
 
-## Round budget and replanning
+## Milestones and continuous progress
 
+- The orchestrator runs in **goal mode** by default: keep starting rounds while
+  `loop-state.sh loop` prints CONTINUE. A round budget is a design checkpoint,
+  not a completion signal.
 - Default one objective per round. A round may touch several files only when
   they implement one coherent rule/feature.
 - If verification fails for an environmental reason, fix the environment first
   and record it; do not change model source to compensate.
 - If a round uncovers two independent blockers across stages or subsystems,
   stop, replan, and split the round. Do not accumulate an oversized round.
-- Record the round budget before starting (for example "at most 3 rounds before
-  a design checkpoint"). On reaching it, stop and report the state; do not
-  silently continue.
+- Record a checkpoint budget before starting (for example "at most 3 rounds
+  before a design checkpoint"). On reaching it: summarize proven/open work,
+  replan the next 1-3 rounds against pending ACs/milestones, and continue.
+  Do not report the goal as complete or pause for permission.
+- Milestones are stage checkpoints, not completion: mark one `done` only when
+  its exit gate/artifact is evidenced. Completion is the goal-level check:
+  every AC evidence-backed PASS, every milestone done, no unresolved BLOCKER.
 
 ## Failure and debug
 
@@ -94,13 +101,18 @@ session is not PASS evidence by itself; return to P4 with a naming gate.
 
 Stop when any of the following is true:
 
-- all acceptance criteria have evidence-backed PASS;
-- the user's requested scope is complete;
+- every acceptance criterion has evidence-backed PASS **and** every milestone is
+  done (goal complete);
+- the user's requested scope is complete and the user confirms handoff;
 - a concrete external input/authority is missing (record it as blocked);
-- the round budget or user stop signal is reached;
+- the user explicitly stops;
 - continuing would violate the provenance boundary.
 
-Handoff includes: task/build directories, AC status, translation mapping,
-review verdict and findings, evidence paths, source changes, pre-existing
-changes, policy limits, and unresolved gaps. A stop with INCONCLUSIVE must name
-the missing evidence and the next narrow command.
+A round budget, a failed round, or a long log is **not** a stop condition:
+replan and continue. Completion is goal-level, not round-level.
+
+Handoff includes: task/build directories, goal and AC status, milestone status,
+translation mapping, review verdict/findings, evidence paths, source changes,
+pre-existing changes, policy limits, and unresolved gaps. A stop with
+INCONCLUSIVE must name the missing evidence and the next narrow command; it does
+not mean the goal is complete.

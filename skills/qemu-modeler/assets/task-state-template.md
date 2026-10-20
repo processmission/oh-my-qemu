@@ -5,9 +5,14 @@ round: 0
 updated: <ISO-8601>
 task type: <board | peripheral | tcg | firmware | image | debug | docs>
 provenance intent: <local-only | downstream/fork | upstream-intent>
-objective: <current round objective>
+goal: <the real end state, not "finish round N">
+goal mode: goal
+round mode baseline: none
+milestones:
+- M1: <checkpoint that unlocks the next stage> [pending]
 acceptance criteria:
-- AC1: <observable outcome> -> <evidence>
+- AC1: <observable, falsifiable outcome> -> <evidence> [pending]
+objective: <current round objective>
 verification gate: <marker/test/command>
 skills used:
 - <skill name>
