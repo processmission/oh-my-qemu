@@ -59,13 +59,15 @@ the device `.c` file and follow the register contract handoff for the record.
 
 ## Source comment hygiene
 
-Board and SoC source comments describe topology, boot ABI, memory map, IRQ
-wiring, and public hardware references. Do not put local audit artifacts in
-source: `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round or
-review IDs, or absolute host paths. Evidence and source citations belong in
-`audit.md`; keep source comments self-contained for review. If
-`qemu-workflow` is installed, run its `source-comments` gate on changed
-source files.
+Keep board/SoC file-header comments minimal: SPDX/copyright plus at most a
+one-line top-level description. Do not put implementation strategy, framework
+choice/defense, "modeled contract" pointers, neighboring-device convention, or
+review/audit rationale in source. Body comments may describe topology, boot ABI,
+memory map, IRQ wiring, and public hardware references; evidence and source
+citations belong in `audit.md`. Do not write `.oh-my-qemu/...`, `output/...`,
+`audit.md`, evidence paths, round/review IDs, or absolute host paths into
+source. If `qemu-workflow` is installed, run its `source-comments` gate on
+changed source files.
 
 ## Board versus SoC ownership
 

@@ -223,6 +223,9 @@ test_gates_source_comments() {
     hostpath="$TMPROOT/source-hostpath.c"
     printf '/* workspace: /workspace/qemu/evidence */\n' > "$hostpath"
     expect_rc 1 "gates source-comments rejects absolute host paths" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$hostpath"
+    rationale="$TMPROOT/source-rationale.c"
+    printf '/* There is no policy in this tree; neighboring PCI devices use the same manual style. */\n' > "$rationale"
+    expect_rc 1 "gates source-comments rejects design rationale" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$rationale"
 }
 
 test_rst_gates() {

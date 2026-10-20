@@ -106,18 +106,25 @@ rule ids in comments, trace names, and qtests. The vocabulary is that skill's
 
 ## Source comment hygiene
 
-Source headers and body comments describe hardware behavior and cite public
-evidence only: datasheet/TRM section, vendor HAL path, checked-in QEMU docs, or
-a stable public reference. Never write local task artifacts into source:
-`.oh-my-qemu/...`, `output/...` (including register contracts, model notes,
-framework decisions), `audit.md`, evidence paths, round/review IDs, or absolute
-host paths. Keep that provenance in `audit.md` and `output/`; the source must
-stand on its own and remain reviewable outside the local workspace.
+Keep the file-header comment minimal: SPDX/copyright plus at most a one-line
+hardware identity when the filename is insufficient. Do **not** put design or
+modeling rationale in source comments: no implementation strategy, framework
+choice or defense, "modeled contract" pointer, neighboring-device convention,
+code walkthrough, review/audit decision, or justification ("no policy in this
+tree", "neighboring devices use manual style"). Those belong in
+`audit.md` / `output/framework-decision.md`.
+
+Body comments explain non-obvious hardware behavior and cite public evidence
+only: datasheet/TRM section, vendor HAL path, checked-in QEMU docs, or a stable
+public reference. Never write local task artifacts into source:
+`.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round/review IDs,
+or absolute host paths. The source must stand on its own and remain reviewable
+outside the local workspace.
 
 When `qemu-workflow` is installed, run
 `bash <qemu-workflow-dir>/scripts/gates.sh source-comments <changed-source-files...>`
-before review. A source diff that leaks local task paths into comments is a
-review blocker.
+before review. A source diff that leaks task paths or design rationale into
+comments is a review blocker.
 
 ## Unimplemented visibility
 
@@ -168,6 +175,9 @@ output; record image hashes in `audit.md`.
   without a complete decision record.
 - Manual MMIO for a control/status bank justified only by neighboring devices,
   schedule, or register count; a hybrid split was possible but skipped.
+- File-header implementation/framework rationale or defenses ("no policy",
+  "neighboring devices use manual style", "modeled contract"); decisions belong
+  in `audit.md` / `output/framework-decision.md`.
 - Fake success paths that only make firmware boot; board behavior hidden in
   MMIO callbacks.
 - Register definitions, storage, tables, or hooks in a header; trace-count-only

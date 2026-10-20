@@ -26,6 +26,7 @@ are removed; the evidence stays in the task audit, not in this reference.
 | PM-14 | Manual MMIO for a control/status bank needs a structural reason (command/FIFO/DMA/timing/reentrancy) that RegisterInfo hooks cannot express; prefer a hybrid split over whole-window manual. | Whole-window manual callbacks where a RegisterInfo bank plus a data aperture would be clearer. |
 | PM-15 | The framework decision record must state bank kind, decisive input, rationale, structural reason, hybrid split, and accepted limits; missing/vague records are review BLOCKERs. | A one-line "manual MMIO justified" note accepted without evidence or review. |
 | PM-16 | Source header/body comments describe hardware and public references only; never cite local task artifacts (`.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, review IDs, host paths). | Evidence paths leaking into upstream-style source comments and stale task-local references. |
+| PM-17 | Keep file headers minimal (SPDX/copyright plus at most a one-line hardware identity); never put implementation strategy, framework choice/defense, "modeled contract" pointers, or neighboring-convention rationale in source. | A .c header explaining "no policy in this tree; neighboring devices use manual style" instead of keeping the decision in the audit. |
 
 ## Review-comment adjustments (RV)
 
@@ -47,7 +48,7 @@ model, a patch, or a handoff:
 
 ## Use in the workflow
 
-1. Before implementing, scan PM-01..PM-16 for the device class and record the
+1. Before implementing, scan PM-01..PM-17 for the device class and record the
    applicable IDs in `audit.md`.
 2. Translate the RS-IR rules with `ir-to-registerinfo.md` and map each rule to a
    mechanism, trace/log policy, and qtest.

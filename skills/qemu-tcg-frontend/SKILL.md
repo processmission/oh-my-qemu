@@ -24,11 +24,14 @@ changes, and unresolved gaps.
 
 ## Source comment hygiene
 
-Source comments describe ISA/decode/backend behavior and cite public QEMU or ISA
-documentation only. Do not write `.oh-my-qemu/...`, `output/...`, `audit.md`,
-evidence paths, round/review IDs, or absolute host paths into source. When
-`qemu-workflow` is installed, run its `source-comments` gate on changed source
-files.
+Keep file-header comments minimal: SPDX/copyright plus at most a one-line
+component identity. Do not put implementation strategy, framework choice/defense,
+"modeled contract" pointers, neighboring-device convention, or review/audit
+rationale in source. Body comments describe ISA/decode/backend behavior and cite
+public QEMU or ISA documentation only; never write `.oh-my-qemu/...`,
+`output/...`, `audit.md`, evidence paths, round/review IDs, or absolute host
+paths into source. When `qemu-workflow` is installed, run its
+`source-comments` gate on changed source files.
 
 ## QEMU upstream boundary
 
