@@ -1,14 +1,17 @@
 # Register bank framework decision record
 
-Copy this record into `.oh-my-qemu/<task-slug>/audit.md` (or link it from
-there), replace every `<placeholder>`, and keep the semantic rule ids with the
-implementation mapping.
+Write this record to `.oh-my-qemu/<task-slug>/output/framework-decision.md`
+(link it from `audit.md`), replace every `<placeholder>`, and keep the
+semantic rule ids with the implementation mapping. Run
+`scripts/check-framework-decision.sh` on it before review.
 
 ## Bank
 
 - Device: `<device-name-and-type>`
 - Window: `<window-name-base-size>`
 - Purpose: `<control-status-or-data>`
+- Bank kind: `<control-status | data-command | hybrid>`
+- RegisterInfo default applies: `<yes/no>`
 
 ## Decision inputs (apply in order, stop at the first decisive input)
 
@@ -20,11 +23,14 @@ implementation mapping.
 
 ## Chosen framework
 
-- Implementation: `<RegisterInfo | manual MMIO | helper>`
-- Decisive input: `<row from the table above>`
+- Implementation: `<RegisterInfo | manual MMIO | hybrid>`
+- Decisive input: `<row from the table above, or "none: RegisterInfo default">`
 - Rationale: `<one or two sentences>`
+- Structural reason (required for manual/hybrid): `<which command/FIFO/DMA/timing/reentrancy behavior cannot be expressed by RegisterAccessInfo hooks>`
+- Hybrid split: `<RegisterInfo banks and manual apertures, or none>`
 - Semantic rule ids mapped here: `<rule-id>, <rule-id>`
 - Accepted limits: `<access sizes, side effects, reentrancy>`
+- Review gate: `<reviewer/date/verdict; missing or vague record is a BLOCKER>`
 
 ## Implementation mapping
 

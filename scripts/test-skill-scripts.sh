@@ -207,6 +207,15 @@ EOF
     expect_rc 1 "gates git-status rejects untracked excluded paths" bash -c "cd '$status_repo' && bash '$ROOT/skills/qemu-workflow/scripts/gates.sh' git-status '$TMPROOT/baseline-status.txt'"
 }
 
+test_gates_source_comments() {
+    good="$TMPROOT/source-good.c"
+    printf '/*\n * Demo hardware block.\n * Registers follow the vendor TRM section 4.\n */\n' > "$good"
+    expect_rc 0 "gates source-comments accepts a clean source header" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$good"
+    bad="$TMPROOT/source-bad.c"
+    printf '/*\n * Contract: output/register-contracts-r2.md section 2.\n * Decision recorded in audit.md.\n */\n' > "$bad"
+    expect_rc 1 "gates source-comments rejects local output references" bash "$ROOT/skills/qemu-workflow/scripts/gates.sh" source-comments "$bad"
+}
+
 test_rst_gates() {
     repo="$TMPROOT/rst-repo"
     mkdir -p "$repo/docs/system/arm"
@@ -748,6 +757,55 @@ test_collect_context() {
     expect_contains "$out2" "$runroot/serial.log" "collect-context resolves relative log"
 }
 
+test_framework_decision() {
+    good="$TMPROOT/framework-good.md"
+    cat > "$good" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- RegisterInfo default applies: yes
+- Implementation: RegisterInfo
+- Decisive input: none: RegisterInfo default
+- Rationale: control/status storage with W1C and IRQ hooks
+- Structural reason (required for manual/hybrid): <not applicable>
+- Hybrid split: none
+- Accepted limits: 4-byte accesses only
+- Review gate: reviewer F-01 PASS
+EOF
+    expect_rc 0 "framework decision accepts RegisterInfo default" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$good"
+    manual="$TMPROOT/framework-manual.md"
+    cat > "$manual" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: manual MMIO
+- Decisive input: none: no policy, user direction, or comparable sibling
+- Rationale: command doorbell and FIFO aperture need explicit sequencing
+- Structural reason (required for manual/hybrid): command doorbell and FIFO aperture cannot be expressed by RegisterAccessInfo hooks
+- Hybrid split: none
+- Accepted limits: 4-byte accesses only
+- Review gate: reviewer F-02 PASS
+EOF
+    expect_rc 0 "framework decision accepts a structural manual exception" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$manual"
+    bad="$TMPROOT/framework-bad.md"
+    cat > "$bad" <<'EOF'
+# Register bank framework decision record
+- Device: demo
+- Window: 0x1000+0x100
+- Bank kind: control-status
+- Implementation: manual MMIO
+- Decisive input: nearby devices are manual
+- Rationale: we are behind schedule
+- Structural reason (required for manual/hybrid): nearby devices are manual
+- Hybrid split: none
+- Accepted limits: <access sizes, side effects, reentrancy>
+- Review gate: <reviewer/date/verdict>
+EOF
+    expect_rc 1 "framework decision rejects a weak manual rationale" bash "$ROOT/skills/qemu-peripheral-modeling/scripts/check-framework-decision.sh" "$bad"
+}
+
 test_assets_exist() {
     for asset in         "$ROOT/skills/qemu-workflow/assets/audit-template.md"         "$ROOT/skills/qemu-workflow/assets/round-result-template.md"         "$ROOT/skills/qemu-workflow/assets/evidence-manifest-template.md"         "$ROOT/skills/qemu-workflow/assets/handoff-template.md"         "$ROOT/skills/qemu-board-modeling/assets/board-contract-template.md"         "$ROOT/skills/qemu-board-modeling/assets/unimplemented-map-template.csv"         "$ROOT/skills/qemu-rst-documentation/assets/board-machine-page-template.rst"         "$ROOT/skills/qemu-register-extraction/assets/ir-ops.def" "$ROOT/skills/qemu-register-extraction/assets/register-semantics-template.ir" "$ROOT/skills/qemu-register-extraction/assets/register-semantics-example.ir"         "$ROOT/skills/qemu-qtest/assets/qtest-plan-template.md"         "$ROOT/skills/qemu-model-verification/assets/claim-record-template.md"         "$ROOT/skills/qemu-debug/assets/crash-report-template.md"         "$ROOT/skills/qemu-build/assets/build-record-template.md"         "$ROOT/skills/qemu-kernel-build/assets/build-record-template.md"         "$ROOT/skills/qemu-uboot-build/assets/artifact-manifest-template.md"         "$ROOT/skills/qemu-image/assets/packaging-plan-template.md"         "$ROOT/skills/qemu-boot-run/assets/run-record-template.md"         "$ROOT/skills/qemu-linux-boot/assets/boot-evidence-template.md"         "$ROOT/skills/qemu-tcg-frontend/assets/isa-coverage-template.md"         "$ROOT/skills/qemu-tcg-backend/assets/backend-change-template.md" \
         "$ROOT/skills/qemu-modeler/assets/task-state-template.md" \
@@ -768,12 +826,14 @@ main() {
     test_gates_manifest_and_marker
     test_gates_build_dir
     test_gates_handoff_and_all
+    test_gates_source_comments
     test_rst_gates
     test_check_registration
     test_validate_register_ir
     test_orchestrator_state
     test_review_checks
     test_preflight
+    test_framework_decision
     test_redaction
     test_collect_context
     printf '\nsummary: %s passed, %s failed, %s skipped\n' "$PASS_COUNT" "$FAIL_COUNT" "$SKIP_COUNT"

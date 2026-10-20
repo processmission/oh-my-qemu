@@ -55,7 +55,8 @@ Request and inspect:
 - the overall goal, milestones, AC status, goal mode (goal/round), and current
   round objective;
 - the exact diff or changed-path list (not the whole repository);
-- the register/board contract, RS-IR, translation worklist, and placeholders;
+- the register/board contract, framework decision record, RS-IR, translation
+  worklist, and placeholders;
 - the round result, commands, decisive logs, qtests, boot evidence, and hashes;
 - the previous review report and unresolved findings.
 

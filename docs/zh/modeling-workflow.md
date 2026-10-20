@@ -66,6 +66,33 @@ Round budget 是设计检查点，不是停止条件：到点后总结已证明/
 | P7 反馈与决策 | 决定下一步 | 修 blocker、重审、记录 reusable feedback、决定继续/重规划/停止 | next action 已记录；AC 状态更新 |
 | P8 交接 | 可复现地结束 | 汇总 AC、证据、翻译、评审、source changes、gaps、next action | 交接报告完整；没有隐藏 blocker |
 
+## RegisterInfo 框架决策
+
+外设的 guest-visible control/status bank 默认使用 **RegisterInfo**。manual MMIO
+只用于 command/FIFO/DMA/timing/reentrancy 等 RegisterInfo hooks 难以表达的结构，
+或采用 hybrid split（control/status 用 RegisterInfo，data/command aperture 用
+MemoryRegionOps）。
+
+- 邻近设备大量使用 manual MMIO 不是充分理由；必须是同子系统、持续维护、语义可比
+  的约定，并引用具体 file:line。
+- 时间、预算、寄存器数量、"每个寄存器都有 side effect" 都不是决定性理由。
+- 决策记录写到 output/framework-decision.md，包含 bank kind、decisive input、
+  structural reason、hybrid split、accepted limits；缺失或含糊的记录是 review
+  BLOCKER。
+- 用 qemu-peripheral-modeling 的 check-framework-decision.sh 做确定性检查。
+
+## 源码注释卫生
+
+QEMU 源码（尤其是 .c/.h 顶部注释）描述硬件行为、公共手册/仓库引用即可，不能把
+本地任务产物当作代码信息写进去：
+
+- 不写 `.oh-my-qemu/...`、`output/...`、`audit.md`、evidence 路径、round/review
+  ID、绝对主机路径；
+- 不写 "contract is output/register-contracts-r2.md" 这类任务内引用；
+- 证据和来源留在 audit/contract/output 中，源码注释要能脱离本地工作区独立阅读；
+- review 时把泄漏的本地路径视为 blocker；如安装 qemu-workflow，对改动源码运行
+  `gates.sh source-comments <files...>`。
+
 ## 轮次（round loop）
 
 一个轮次 = 一个目标 + 一个门禁 + 一次独立评审 + 一个决策。

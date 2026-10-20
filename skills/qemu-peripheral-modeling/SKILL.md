@@ -77,18 +77,47 @@ and stop at the first decisive input:
 2. the user's explicit compatible framework direction;
 3. a clear maintained convention in a nearby device of the same subsystem.
 
-Use `RegisterInfo` from the checked-out tree when none decides; manual MMIO is
-permitted when this gate justifies it. Record bank, inputs, choice, rationale,
-and accepted limits in `.oh-my-qemu/<task-slug>/audit.md` with
+`RegisterInfo` is the default for every guest-visible control/status bank.
+A nearby manual convention alone is not decisive: it must be the same
+subsystem, actively maintained, and semantically comparable, with a cited
+`file:line`. Manual MMIO for a control/status bank is exceptional and needs a
+structural reason (command, FIFO, DMA, timing, or reentrancy behavior that
+`RegisterInfo` cannot express without distortion); use a hybrid split
+(control/status on RegisterInfo, aperture on MemoryRegionOps) rather than
+manual for the whole window. Time/budget/register count and "most siblings are
+manual" are invalid reasons.
+
+Record bank kind, inputs, choice, hybrid split, rationale, structural reason,
+accepted limits, and review gate in
+`.oh-my-qemu/<task-slug>/output/framework-decision.md` with
 [the framework decision template](assets/framework-decision-template.md); the
 decision schema, API inspection steps, reference families, and `.c` placement
 rules are in [the register framework reference](references/register-framework.md).
-Keep register layout, storage, tables, and hooks in the device `.c` file.
+A missing, vague, or unsupported decision is a review BLOCKER. Keep register
+layout, storage, tables, and hooks in the device `.c` file. Run
+[check-framework-decision.sh](scripts/check-framework-decision.sh) on the
+record before review; it rejects placeholders and manual rationales that name
+nearby convention or schedule instead of a structural limit.
 
 When qemu-register-extraction hands off the RS-IR `output/register-semantics.ir`,
 read the framework reference for the trigger/hook/operation mapping and preserve
 rule ids in comments, trace names, and qtests. The vocabulary is that skill's
 `assets/ir-ops.def`; do not invent operations outside it.
+
+## Source comment hygiene
+
+Source headers and body comments describe hardware behavior and cite public
+evidence only: datasheet/TRM section, vendor HAL path, checked-in QEMU docs, or
+a stable public reference. Never write local task artifacts into source:
+`.oh-my-qemu/...`, `output/...` (including register contracts, model notes,
+framework decisions), `audit.md`, evidence paths, round/review IDs, or absolute
+host paths. Keep that provenance in `audit.md` and `output/`; the source must
+stand on its own and remain reviewable outside the local workspace.
+
+When `qemu-workflow` is installed, run
+`bash <qemu-workflow-dir>/scripts/gates.sh source-comments <changed-source-files...>`
+before review. A source diff that leaks local task paths into comments is a
+review blocker.
 
 ## Unimplemented visibility
 
@@ -136,9 +165,11 @@ output; record image hashes in `audit.md`.
 ## Anti-patterns
 
 - Generic scratch register banks for real devices, or a framework choice
-  without recorded decision evidence.
-- Manual MMIO without a gate justification; fake success paths that only make
-  firmware boot; board behavior hidden in MMIO callbacks.
+  without a complete decision record.
+- Manual MMIO for a control/status bank justified only by neighboring devices,
+  schedule, or register count; a hybrid split was possible but skipped.
+- Fake success paths that only make firmware boot; board behavior hidden in
+  MMIO callbacks.
 - Register definitions, storage, tables, or hooks in a header; trace-count-only
   success claims.
 

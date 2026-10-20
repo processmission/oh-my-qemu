@@ -73,6 +73,36 @@ would be violated.
 | P7 Feedback & decision | Decide next action | Fix blockers, re-review, capture reusable feedback, continue/replan/stop | Next action recorded; AC status updated |
 | P8 Handoff | Finish reproducibly | Summarize ACs, evidence, translation, review, source changes, gaps, next action | Handoff complete; no hidden blocker |
 
+## RegisterInfo framework decision
+
+Guest-visible control/status banks default to **RegisterInfo**. Manual MMIO is
+reserved for command/FIFO/DMA/timing/reentrancy structures that RegisterInfo
+hooks cannot express without distortion, or for a hybrid split (control/status
+on RegisterInfo, data/command aperture on MemoryRegionOps).
+
+- "Neighboring devices use manual MMIO" is not sufficient: the convention must
+  be same-subsystem, maintained, semantically comparable, and cited by file:line.
+- Time, budget, register count, and "every register has a side effect" are not
+  decisive inputs.
+- Record the decision in output/framework-decision.md with bank kind, decisive
+  input, structural reason, hybrid split, and accepted limits; a missing or
+  vague record is a review BLOCKER.
+- Run check-framework-decision.sh from qemu-peripheral-modeling before review.
+
+## Source comment hygiene
+
+QEMU source comments (especially the top of .c/.h files) describe hardware
+behavior and public manual/repository references only. Do not put local task
+artifacts into source:
+
+- no `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round/review
+  IDs, or absolute host paths;
+- no "contract is output/register-contracts-r2.md" task-local references;
+- keep evidence and provenance in audit/contract/output; source comments must
+  stand on their own outside the local workspace;
+- review leaked local paths as blockers; when qemu-workflow is installed, run
+  `gates.sh source-comments <files...>` on changed source.
+
 ## The round loop
 
 A round = one objective + one gate + one independent review + one decision.

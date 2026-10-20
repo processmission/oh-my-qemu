@@ -35,7 +35,20 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 - [ ] PASS/FAIL/INCONCLUSIVE is based on the configured marker or falsifiable
       test, not timeout/absence of crash.
 
-## C. RS-IR and translation
+## C. Register framework decision
+
+- [ ] A framework decision record exists for every guest-visible control/status
+      bank, with bank kind, decisive input, rationale, hybrid split, structural
+      reason (if manual), accepted limits, and review gate.
+- [ ] Control/status registers use RegisterInfo unless the record has a
+      decisive policy/user direction or a same-subsystem, maintained,
+      semantically comparable convention cited by file:line.
+- [ ] Manual MMIO is limited to a structural command/FIFO/DMA/timing/reentrancy
+      aperture, or to a hybrid split; "neighboring devices are manual", time,
+      budget, and register count are rejected as rationale.
+- [ ] Missing, vague, or contradictory decision records are BLOCKERs.
+
+## D. RS-IR and translation
 
 - [ ] RS-IR validates with the extraction skill's validator when available.
 - [ ] Every rule has a mechanism (RegisterInfo, manual MMIO, helper) and a hook
@@ -49,8 +62,12 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       implemented as the IR states.
 - [ ] `EXPANDS` operations have an expansion note; `UNSUPPORTED` has a gap.
 
-## D. Model implementation
+## E. Model implementation
 
+- [ ] Source headers and body comments describe hardware behavior and public
+      references only; they contain no `.oh-my-qemu/...`, `output/...`,
+      `audit.md`, evidence paths, round/review IDs, or absolute host paths.
+      Local evidence stays in the audit workspace; a leak is a BLOCKER.
 - [ ] Register layout, field macros, storage, tables, and hooks live in the
       device `.c` file, not a header or board file.
 - [ ] Framework choice follows the recorded decision gate and is justified.
@@ -66,7 +83,7 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
 - [ ] Board versus device ownership is respected (topology in board, behavior in
       device, placeholders at board level).
 
-## E. Tests and runtime evidence
+## F. Tests and runtime evidence
 
 - [ ] qtests exercise the real offsets, widths, reset values, masks, W1C, IRQ,
       timer, and DMA behavior claimed by the rule.
@@ -78,7 +95,7 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       asset was assumed.
 - [ ] Tests are within the requested scope; removed tests were removed cleanly.
 
-## F. Audit, gates, and handoff
+## G. Audit, gates, and handoff
 
 - [ ] `audit.md` has baseline, goal, scope, acceptance criteria, plan/gates,
       provenance, decisions, round record, evidence, unresolved gaps, handoff.
@@ -95,7 +112,7 @@ or N/A with evidence. Findings use BLOCKER/MAJOR/MINOR/NOTE and reference a
       the default contract check.
 - [ ] The review packet includes previous findings and their status.
 
-## G. Review quality
+## H. Review quality
 
 - [ ] The review is independent from the implementation pass when an independent
       context was available; otherwise this is stated.

@@ -22,6 +22,10 @@ are removed; the evidence stays in the task audit, not in this reference.
 | PM-10 | DMA/descriptor models validate guest addresses, separate parsing from execution, and trace milestones; unknown descriptors stay visible. | Unchecked DMA ranges; skipped descriptor counts hidden. |
 | PM-11 | Guest-visible migratable state belongs in `VMStateDescription`; local caches do not. | Migration drift or "works only before savevm". |
 | PM-12 | Keep rule ids from the RS-IR in model comments, trace events, qtests, and documentation. | Contract, model, and test impossible to cross-check. |
+| PM-13 | For a guest-visible control/status bank, RegisterInfo is the default; a nearby manual convention is decisive only when it is same-subsystem, maintained, semantically comparable, and cited by file:line. | Agents citing "hw/net mostly uses manual MMIO" or "many siblings are manual" to skip RegisterInfo. |
+| PM-14 | Manual MMIO for a control/status bank needs a structural reason (command/FIFO/DMA/timing/reentrancy) that RegisterInfo hooks cannot express; prefer a hybrid split over whole-window manual. | Whole-window manual callbacks where a RegisterInfo bank plus a data aperture would be clearer. |
+| PM-15 | The framework decision record must state bank kind, decisive input, rationale, structural reason, hybrid split, and accepted limits; missing/vague records are review BLOCKERs. | A one-line "manual MMIO justified" note accepted without evidence or review. |
+| PM-16 | Source header/body comments describe hardware and public references only; never cite local task artifacts (`.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, review IDs, host paths). | Evidence paths leaking into upstream-style source comments and stale task-local references. |
 
 ## Review-comment adjustments (RV)
 
@@ -43,7 +47,7 @@ model, a patch, or a handoff:
 
 ## Use in the workflow
 
-1. Before implementing, scan PM-01..PM-12 for the device class and record the
+1. Before implementing, scan PM-01..PM-16 for the device class and record the
    applicable IDs in `audit.md`.
 2. Translate the RS-IR rules with `ir-to-registerinfo.md` and map each rule to a
    mechanism, trace/log policy, and qtest.

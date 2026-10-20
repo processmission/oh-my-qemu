@@ -22,6 +22,14 @@ the user explicitly requests that separate action. At handoff, reconcile `git st
 with the baseline and report the task directory, build directory, source changes, pre-existing
 changes, and unresolved gaps.
 
+## Source comment hygiene
+
+Source comments describe ISA/decode/backend behavior and cite public QEMU or ISA
+documentation only. Do not write `.oh-my-qemu/...`, `output/...`, `audit.md`,
+evidence paths, round/review IDs, or absolute host paths into source. When
+`qemu-workflow` is installed, run its `source-comments` gate on changed source
+files.
+
 ## QEMU upstream boundary
 
 QEMU's official GitLab and mailing lists are upstream channels. A patch becomes an upstream

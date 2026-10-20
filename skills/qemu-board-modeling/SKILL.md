@@ -57,6 +57,16 @@ the SoC vendor and part; record the naming evidence and compatibility target in
 the board: keep register layout, backing storage, and register-local hooks in
 the device `.c` file and follow the register contract handoff for the record.
 
+## Source comment hygiene
+
+Board and SoC source comments describe topology, boot ABI, memory map, IRQ
+wiring, and public hardware references. Do not put local audit artifacts in
+source: `.oh-my-qemu/...`, `output/...`, `audit.md`, evidence paths, round or
+review IDs, or absolute host paths. Evidence and source citations belong in
+`audit.md`; keep source comments self-contained for review. If
+`qemu-workflow` is installed, run its `source-comments` gate on changed
+source files.
+
 ## Board versus SoC ownership
 
 | Concern | Owner | Rule |

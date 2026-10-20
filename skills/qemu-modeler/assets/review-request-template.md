@@ -21,6 +21,7 @@ no unresolved BLOCKER. A round count is not completion.
 
 ## Evidence packet
 
+- Framework decision: .oh-my-qemu/<task-slug>/output/framework-decision.md
 - Contract: .oh-my-qemu/<task-slug>/output/register-contract.md
 - RS-IR: .oh-my-qemu/<task-slug>/output/register-semantics.ir
 - Translation worklist: <path or "not produced">
@@ -39,6 +40,8 @@ no unresolved BLOCKER. A round count is not completion.
 - Does every guest-visible rule have trace/log evidence?
 - Are error paths and unimplemented placeholders handled and visible?
 - Do the tests verify the real offsets/behavior, not a stand-in?
+- Do source comments/header blocks cite only hardware/public references, with no
+  task output/audit/evidence paths or host paths?
 - Does every AC have evidence-backed PASS, and is every milestone actually done?
 - Is a round count or a budget being mistaken for goal completion?
 - What evidence is missing for the claimed goal/ACs, and what is the next round?

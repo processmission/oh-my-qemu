@@ -18,6 +18,7 @@ workspace; names, paths, and customer details are removed.
 | BM-08 | Record the cross-repo image/boot asset contract: separate boot files, hash pinning, local asset serving, and repository-specific metadata. | Functional-test hash drift; assets that only exist on one machine. |
 | BM-09 | Keep board documentation short and implementation-grounded: follow the nearest sibling page, no out-of-tree repository links or local recipes, toctree registered. | 130-line pages with recipe internals and stale claims. |
 | BM-10 | Record the framework/unimplemented boundary in the audit before writing board source; keep per-commit gates (build, qtest, checkpatch) when a series is requested. | Mixed topology and behavior changes in one unverifiable round. |
+| BM-11 | Board/SoC source comments cite public hardware/topology evidence only; never embed task artifact paths (`.oh-my-qemu/...`, `output/...`, `audit.md`, evidence/review IDs or host paths) in source. | Local evidence paths leaking into board/SoC source and becoming stale. |
 
 ## Review adjustments
 

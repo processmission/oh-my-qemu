@@ -11,7 +11,8 @@ usage() {
   printf '%s\n' \
     'Usage: gates.sh <subcommand> [args]' \
     'Subcommands: git-root, exclude, workspace, audit-sections, round-result,' \
-    '  evidence-manifest, git-status, build-dir, marker, patch-series, handoff, all' \
+    '  evidence-manifest, git-status, build-dir, marker, patch-series, source-comments,' \
+    '  handoff, all' \
     '' \
     'Examples:' \
     '  gates.sh all .oh-my-qemu/<task-slug>' \
@@ -252,6 +253,24 @@ gate_patch_series() {
   pass patch-series "range=$base..HEAD checked"
 }
 
+gate_source_comments() {
+  local file hits bad=0
+  [[ "$#" -gt 0 ]] || { fail source-comments 'usage: gates.sh source-comments <source-file...>'; return 2; }
+  for file in "$@"; do
+    if [[ ! -f "$file" ]]; then
+      fail source-comments "file not found: $file"; bad=1; continue
+    fi
+    hits=$(grep -nE '[.]oh-my-qemu/|audit[.]md|round-result|output/(register-|audit|round-|task-state|evidence|framework)|register-contracts?-[A-Za-z0-9._-]+[.]md|/Users/[^ ]*|/home/[^ ]*|task artifact directory' "$file" 2>/dev/null | sed -n '1,5p')
+    if [[ -n "$hits" ]]; then
+      fail source-comments "local audit/output references in source comments: $file"
+      printf '%s\n' "$hits" | sed 's/^/  /'
+      bad=1
+    fi
+  done
+  [[ "$bad" -eq 0 ]] || return 1
+  pass source-comments "no local audit/output references in $# source file(s)"
+}
+
 gate_handoff() {
   local file="${1:-}" evidence detail
   need_arg handoff audit.md "$file" || return 2
@@ -293,6 +312,7 @@ main() {
     build-dir) shift; gate_build_dir "$@" ;;
     marker) shift; gate_marker "$@" ;;
     patch-series) shift; gate_patch_series "$@" ;;
+    source-comments) shift; gate_source_comments "$@" ;;
     handoff) shift; gate_handoff "$@" ;;
     all) shift; gate_all "$@" ;;
     *) fail cli "unknown subcommand: $cmd (run --help)"; return 2 ;;
